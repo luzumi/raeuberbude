@@ -1,0 +1,11 @@
+<mat-card>
+  <mat-card-title>Lampe Wohnzimmer</mat-card-title>
+  <mat-card-content>
+    <mat-slide-toggle
+      [checked]="lampState"
+      [disabled]="loading"
+      (change)="toggleLamp()">
+      {{ lampState ? 'An' : 'Aus' }}
+    </mat-slide-toggle>
+  </mat-card-content>
+</mat-card>

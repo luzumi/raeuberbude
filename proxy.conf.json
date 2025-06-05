@@ -1,0 +1,8 @@
+{
+  "/api": {
+    "target": "http://homeassistant.local:8123",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}
