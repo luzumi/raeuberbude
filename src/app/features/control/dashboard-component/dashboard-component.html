@@ -1,10 +1,46 @@
 <div class="dashboard-container">
-  @for (device of devices; track device.id; let i = $index) {
+  <!-- Menü-Button -->
   <div
-    class="device-box"
-    [ngStyle]="getStyle(device, i)"
-    [style.background-color]="device.color"
-    (click)="onClick(i)"
-  ></div>
+    class="menu-button"
+    [class.active]="activeIndex !== null"
+    (click)="activeIndex = null"
+    [ngStyle]="getMenuStyle()"
+  >
+    <span class="menu-label">Menu</span>
+  </div>
+
+  <!-- Geräte via @for-Block als Device-Komponenten -->
+  @for (device of devices; track device.id; let i = $index) {
+  <ng-container [ngSwitch]="device.type">
+    <app-pixel
+      *ngSwitchCase="'pixel'"
+      [ngStyle]="getStyle(device, i)"
+      (click)="onClick(i)"
+    ></app-pixel>
+
+    <app-orange-light
+      *ngSwitchCase="'orange-light'"
+      [ngStyle]="getStyle(device, i)"
+      (click)="onClick(i)"
+    ></app-orange-light>
+
+    <app-laptop
+      *ngSwitchCase="'laptop'"
+      [ngStyle]="getStyle(device, i)"
+      (click)="onClick(i)"
+    ></app-laptop>
+
+    <app-creator
+      *ngSwitchCase="'creator'"
+      [ngStyle]="getStyle(device, i)"
+      (click)="onClick(i)"
+    ></app-creator>
+
+    <app-samsung-tv
+      *ngSwitchCase="'samsung-tv'"
+      [ngStyle]="getStyle(device, i)"
+      (click)="onClick(i)"
+    ></app-samsung-tv>
+  </ng-container>
   }
 </div>
