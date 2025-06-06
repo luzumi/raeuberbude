@@ -5,11 +5,61 @@
   overflow: hidden;
 }
 
+/* Menü‐Button */
+.menu-button {
+  position: absolute;
+  background-color: #34495e;
+  border-radius: 50%;
+  cursor: pointer;
+  aspect-ratio: 1;
+  transition: all 0.3s ease;
+  z-index: 2;
+
+  /* Default: 10% Breite, zentriert */
+  width: 10%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+
+  .menu-label {
+    position: absolute;
+    color: white;
+    font-size: 1rem;
+    user-select: none;
+
+    /* Im Default: Label zentrieren */
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  &.active {
+    /* Active: 8% Breite, nur unteres rechtes Viertel sichtbar */
+    width: 8%;
+    left: -4%;
+    top: -4%;
+    transform: none;
+    z-index: 3;
+
+    .menu-label {
+      /* Label ins mittlere Viertel des sichtbaren Bereichs verschieben */
+      left: 75%;
+      top: 75%;
+      transform: translate(-50%, -50%);
+      font-size: 0.9rem;
+    }
+  }
+}
+
+/* Geräte‐Boxen (vorherige .device-box‐Optik übernehmen) */
 .device-box {
+  position: absolute; /* getStyle bindet hier Position/Größe ein */
   cursor: pointer;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: box-shadow 0.3s ease;
+
+  /* Schatten wie am Anfang */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
