@@ -1,23 +1,25 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { TestBed } from '@angular/core/testing';
 import { LampToggleComponent } from './lamp-toggle';
+import { HomeAssistant } from '../../../core/home-assistant';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import {provideHttpClient} from '@angular/common/http';
 
-describe('LampToggle', () => {
-  let component: LampToggleComponent;
-  let fixture: ComponentFixture<LampToggleComponent>;
-
+describe('LampToggleComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [LampToggleComponent]
-    })
-    .compileComponents();
+      imports: [LampToggleComponent],
+      providers: [
+        provideHttpClient(),           // ← neu! wichtig für Injection-Token
+        provideHttpClientTesting(),   // ← ersetzt Transport intern
+        HomeAssistant
+      ]
 
-    fixture = TestBed.createComponent(LampToggleComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+    }).compileComponents();
   });
 
   it('should create', () => {
+    const fixture = TestBed.createComponent(LampToggleComponent);
+    const component = fixture.componentInstance;
     expect(component).toBeTruthy();
   });
 });
