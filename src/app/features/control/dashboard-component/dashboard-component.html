@@ -1,0 +1,10 @@
+<div class="dashboard-container">
+  @for (device of devices; track device.id; let i = $index) {
+  <div
+    class="device-box"
+    [ngStyle]="getStyle(device, i)"
+    [style.background-color]="device.color"
+    (click)="onClick(i)"
+  ></div>
+  }
+</div>
