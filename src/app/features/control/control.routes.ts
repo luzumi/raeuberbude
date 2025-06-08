@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { LampToggleComponent } from './lamp-toggle/lamp-toggle';
 
 export const routes: Routes = [
   {
@@ -12,8 +11,4 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./dashboard-component/dashboard-component').then(m => m.DashboardComponent)
   },
-  {
-    path: 'lamp-toggle',
-    component: LampToggleComponent
-  }
 ];
