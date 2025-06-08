@@ -1,17 +1,19 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {Creator} from '../devices/features/control/devices/creator/creator';
-import {Laptop} from '../devices/features/control/devices/laptop/laptop';
-import {OrangeLight} from '../devices/features/control/devices/orange-light/orange-light';
-import {Pixel} from '../devices/features/control/devices/pixel/pixel';
-import {SamsungTv} from '../devices/features/control/devices/samsung-tv/samsung-tv';
+import { Creator } from '../devices/features/control/devices/creator/creator';
+import { Laptop } from '../devices/features/control/devices/laptop/laptop';
+import { OrangeLight } from '../devices/features/control/devices/orange-light/orange-light';
+import { Pixel } from '../devices/features/control/devices/pixel/pixel';
+import { SamsungTv } from '../devices/features/control/devices/samsung-tv/samsung-tv';
 
+// NEU: Import der Menü‐Komponente
+import { MenuComponent } from '../menu/menu';
 
 interface Device {
   id: number;
   type: 'pixel' | 'orange-light' | 'laptop' | 'creator' | 'samsung-tv';
-  left: number; // Kreis‐Position (Default)
-  top: number;  // Kreis‐Position (Default)
+  left: number;
+  top: number;
 }
 
 @Component({
@@ -24,6 +26,7 @@ interface Device {
     Laptop,
     Creator,
     SamsungTv,
+    MenuComponent  // NEU: Menü‐Komponente registrieren
   ],
   templateUrl: './dashboard-component.html',
   styleUrls: ['./dashboard-component.scss']
@@ -31,6 +34,9 @@ interface Device {
 export class DashboardComponent {
   devices: Device[] = [];
   activeIndex: number | null = null;
+
+  // NEU: Öffnungszustand des Menüs
+  menuOpen = false;
 
   private readonly radiusPercent = 30;
   private readonly center = 50;
@@ -43,8 +49,9 @@ export class DashboardComponent {
   ];
 
   constructor() {
+    // Geräte kreisförmig verteilen
     for (let i = 0; i < 5; i++) {
-      const angleDeg = -90 + i * (360 / 5);
+      const angleDeg = -90 + (360 / 5) * i;
       const rad = (angleDeg * Math.PI) / 180;
       const left = this.center + Math.cos(rad) * this.radiusPercent;
       const top = this.center + Math.sin(rad) * this.radiusPercent;
@@ -58,71 +65,114 @@ export class DashboardComponent {
   }
 
   onClick(idx: number) {
+    // Wenn Gerät angeklickt, Menü schließen und Gerät aktivieren
+    this.menuOpen = false;
     this.activeIndex = this.activeIndex === idx ? null : idx;
   }
 
+  onMenuButtonClick() {
+    // Klick auf den Button: Menü öffnen, alle Geräte schließen
+    this.activeIndex = null;
+    this.menuOpen = true;
+  }
+
+  closeMenu() {
+    this.menuOpen = false;
+  }
+
+  /**
+   * Inline-Styles für Geräte:
+   * 1) Kein Gerät aktiv + kein Menü geöffnet → Kreis (20 % × 20 %).
+   * 2) Gerät aktiv                    → 100 % × 80 % (links 0, top 20).
+   * 3) Inaktive Geräte                → 20 %-Leiste oben nebeneinander.
+   * 4) (Wenn Menü offen, Geräte unsichtbar: Breite/Höhe = 0)
+   */
   getStyle(device: Device, idx: number): { [key: string]: string } {
-    // 1) Kein aktiviertes Gerät → Kreis-Layout (20% × 20%)
+    // 4) Wenn Menü offen, Geräte ausblenden
+    if (this.menuOpen) {
+      return {
+        position: 'absolute',
+        width: '0%',
+        height: '0%',
+        left: '0%',
+        top: '0%',
+        transition: 'all 0.3s ease',
+        'z-index': '0'
+      };
+    }
+
+    // 1) Kein Gerät aktiv → Kreis
     if (this.activeIndex === null) {
       return {
         position: 'absolute',
         width: '20%',
         height: '20%',
-        left: device.left + '%',
-        top: device.top + '%',
+        left: `${device.left}%`,
+        top: `${device.top}%`,
         transform: 'translate(-50%, -50%)',
         transition: 'all 0.3s ease',
-        'z-index': '1'
+        'z-index': '1',
+        'border-radius': '8px'
       };
     }
 
-    // 2) Dieses Gerät ist aktiv → 80% × 100%, rechts
+    // 2) Aktives Gerät → breite Fläche unterhalb der 20 %-Leiste
     if (this.activeIndex === idx) {
       return {
         position: 'absolute',
-        width: '80%',
-        height: '100%',
-        left: '20%',
-        top: '0%',
+        width: '100%',  // füllt volle Breite
+        height: '80%',  // unterhalb von top=20%
+        left: '0%',
+        top: '20%',
         transition: 'all 0.3s ease',
-        'z-index': '5'
+        'z-index': '5',
+        'border-radius': '8px'
       };
     }
 
-    // 3) Inaktive Geräte (unterhalb des Buttons links)
-    const inactiveIdx = this.getInactiveOrder(idx);
-    const slicePercent = 22;    // vier Geräte unterhalb eines 20%-hohen Buttons
-    const topPos = 20 + inactiveIdx * slicePercent;
-
+    // 3) Inaktive Geräte → in 20 %-Leiste oben nebeneinander
+    const inactiveOrder = this.getInactiveOrder(idx); // 0..3
+    const leftPercent = inactiveOrder * 20;            // 0 %,20 %,40 %,60 %
     return {
       position: 'absolute',
       width: '20%',
-      height: slicePercent + '%',
-      left: '0%',
-      top: topPos + '%',
+      height: '20%',
+      left: `${leftPercent}%`,
+      top: '0%',
       transition: 'all 0.3s ease',
-      'z-index': '5'
+      'z-index': '3',
+      'border-radius': '8px'
     };
+  }
+
+  private getInactiveOrder(idx: number): number {
+    const arr: number[] = [];
+    this.devices.forEach((_, i) => {
+      if (i !== this.activeIndex) {
+        arr.push(i);
+      }
+    });
+    return arr.indexOf(idx);
   }
 
   getColor(type: Device['type']): string {
     switch (type) {
-      case 'pixel':
-        return '#e74c3c';      // Rot
-      case 'orange-light':
-        return '#e67e22';      // Orange
-      case 'laptop':
-        return '#3498db';      // Blau
-      case 'creator':
-        return '#9b59b6';      // Violett
-      case 'samsung-tv':
-        return '#2ecc71';      // Grün
+      case 'pixel':        return '#e74c3c';
+      case 'orange-light': return '#e67e22';
+      case 'laptop':       return '#3498db';
+      case 'creator':      return '#9b59b6';
+      case 'samsung-tv':   return '#2ecc71';
     }
   }
 
+  /**
+   * Inline-Styles für den Menü-Button selbst:
+   * - Wenn Menü geschlossen und kein Gerät aktiv → 10 % × 10 % zentriert.
+   * - Wenn Menü offen oder ein Gerät aktiv   → Button wie ein kleines Gerät in der Leiste oben.
+   */
   getMenuStyle(): { [key: string]: string } {
-    // Menü-Button: zentriert (10%) oder in der Ecke (8%) ...
-    if (this.activeIndex === null) {
+    // 1) Menü geschlossen & kein Gerät aktiv → zentriert 10 % × 10 %
+    if (!this.menuOpen && this.activeIndex === null) {
       return {
         position: 'absolute',
         width: '10%',
@@ -135,28 +185,37 @@ export class DashboardComponent {
         'background-color': '#34495e',
         'z-index': '2'
       };
-    } else {
-      return {
-        position: 'absolute',
-        width: '8%',
-        height: '8%',
-        left: '-4%',
-        top: '-4%',
-        'border-radius': '50%',
-        transition: 'all 0.3s ease',
-        'background-color': '#34495e',
-        'z-index': '3'
-      };
     }
+
+    // 2) Sonst (Gerät aktiv oder Menü offen) → Button in 20 %-Leiste oben als 20 % × 20 %
+    //    (kommt in dieselbe Leiste wie inaktive Geräte, ganz rechts: left=80%)
+    return {
+      position: 'absolute',
+      width: '20%',
+      height: '20%',
+      left: '80%',   // ganz rechts in der Leiste
+      top: '0%',
+      'border-radius': '8px',  // eckig wie die Geräte
+      transition: 'all 0.3s ease',
+      'background-color': '#34495e',
+      'z-index': '4'
+    };
   }
 
-  private getInactiveOrder(idx: number): number {
-    const arr: number[] = [];
-    this.devices.forEach((_, i) => {
-      if (i !== this.activeIndex) {
-        arr.push(i);
-      }
-    });
-    return arr.indexOf(idx);
+  /**
+   * Inline-Styles für die Menü-Komponente selbst:
+   * (wird wie ein aktives Gerät unterhalb der 20 %-Leiste angezeigt)
+   */
+  getMenuComponentStyle(): { [key: string]: string } {
+    return {
+      position: 'absolute',
+      width: '100%',
+      height: '80%',
+      left: '0%',
+      top: '20%',
+      transition: 'all 0.3s ease',
+      'z-index': '5',
+      'border-radius': '8px'
+    };
   }
 }

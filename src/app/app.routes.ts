@@ -11,9 +11,5 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/control/dashboard-component/dashboard-component').then(m => m.DashboardComponent)
   },
-  {
-    path: 'lamp-toggle',
-    loadComponent: () =>
-      import('./features/control/lamp-toggle/lamp-toggle').then(m => m.LampToggleComponent)
-  }
+
 ];

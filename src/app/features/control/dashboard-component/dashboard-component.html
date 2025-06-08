@@ -1,46 +1,62 @@
 <div class="dashboard-container">
-  <!-- Menü-Button -->
+  <!-- Menü‐Button -->
   <div
     class="menu-button"
-    [class.active]="activeIndex !== null"
-    (click)="activeIndex = null"
+    [ngClass]="{ active: menuOpen || activeIndex !== null }"
+    (click)="onMenuButtonClick()"
     [ngStyle]="getMenuStyle()"
   >
     <span class="menu-label">Menu</span>
   </div>
 
-  <!-- Geräte via @for-Block als Device-Komponenten -->
-  @for (device of devices; track device.id; let i = $index) {
-  <ng-container [ngSwitch]="device.type">
-    <app-pixel
-      *ngSwitchCase="'pixel'"
-      [ngStyle]="getStyle(device, i)"
-      (click)="onClick(i)"
-    ></app-pixel>
+  <!-- Wenn Menü geöffnet: MenuComponent einblenden -->
+  @if(menuOpen){
+    <app-menu
+      [ngStyle]="getMenuComponentStyle()"
+      [closeCallback]="closeMenu.bind(this)"
+    ></app-menu>
+  }
+  <!-- Geräte via @for-Block (nur, wenn Menü geschlossen) -->
+    @if(!menuOpen){
+    @for (device of devices; track device.id; let i = $index) {
+      @switch (device.type){
+        @case ('pixel') {
+          <app-pixel
+            [ngStyle]="getStyle(device, i)"
+            [style.background-color]="getColor(device.type)"
+            (click)="onClick(i)"
+          ></app-pixel>
+          }
+        @case('orange-light') {
+          <app-orange-light
+            [ngStyle]="getStyle(device, i)"
+            [style.background-color]="getColor(device.type)"
+            (click)="onClick(i)"
+          ></app-orange-light>
+        }
+        @case('laptop'){
+          <app-laptop
+            [ngStyle]="getStyle(device, i)"
+            [style.background-color]="getColor(device.type)"
+            (click)="onClick(i)"
+          ></app-laptop>
+        }
+        @case('creator'){
+          <app-creator
+            [ngStyle]="getStyle(device, i)"
+            [style.background-color]="getColor(device.type)"
+            (click)="onClick(i)"
+          ></app-creator>
+        }
+        @case('samsung-tv'){
+          <app-samsung-tv
+            [ngStyle]="getStyle(device, i)"
+            [style.background-color]="getColor(device.type)"
+            (deviceClicked)="onClick(i)"
+          ></app-samsung-tv>
+        }
+      }
 
-    <app-orange-light
-      *ngSwitchCase="'orange-light'"
-      [ngStyle]="getStyle(device, i)"
-      (click)="onClick(i)"
-    ></app-orange-light>
-
-    <app-laptop
-      *ngSwitchCase="'laptop'"
-      [ngStyle]="getStyle(device, i)"
-      (click)="onClick(i)"
-    ></app-laptop>
-
-    <app-creator
-      *ngSwitchCase="'creator'"
-      [ngStyle]="getStyle(device, i)"
-      (click)="onClick(i)"
-    ></app-creator>
-
-    <app-samsung-tv
-      *ngSwitchCase="'samsung-tv'"
-      [ngStyle]="getStyle(device, i)"
-      (click)="onClick(i)"
-    ></app-samsung-tv>
-  </ng-container>
+    }
   }
 </div>

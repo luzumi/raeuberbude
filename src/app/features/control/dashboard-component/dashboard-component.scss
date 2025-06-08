@@ -1,21 +1,23 @@
 .dashboard-container {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
-/* Menü‐Button */
 .menu-button {
   position: absolute;
   background-color: #34495e;
   border-radius: 50%;
   cursor: pointer;
   aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
   z-index: 2;
 
-  /* Default: 10% Breite, zentriert */
+  /* Default: 10% × 10%, zentriert */
   width: 10%;
   left: 50%;
   top: 50%;
@@ -26,42 +28,45 @@
     color: white;
     font-size: 1rem;
     user-select: none;
-
-    /* Im Default: Label zentrieren */
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
   }
 
   &.active {
-    /* Active: 8% Breite, nur unteres rechtes Viertel sichtbar */
-    width: 8%;
-    left: -4%;
-    top: -4%;
+    /* Wenn Menü offen oder Gerät aktiv: 20% × 20%, in der Leiste oben ganz rechts */
+    width: 20%;
+    height: 20%;
+    left: 80%;
+    top: 0;
     transform: none;
-    z-index: 3;
+    border-radius:8px;
+    z-index: 4;
 
     .menu-label {
-      /* Label ins mittlere Viertel des sichtbaren Bereichs verschieben */
-      left: 75%;
-      top: 75%;
+      /* Label klein in die Mitte des 20%-Feldes */
+      position: absolute;
+      left: 50%;
+      top: 50%;
       transform: translate(-50%, -50%);
       font-size: 0.9rem;
     }
   }
 }
 
-/* Geräte‐Boxen (vorherige .device-box‐Optik übernehmen) */
-.device-box {
-  position: absolute; /* getStyle bindet hier Position/Größe ein */
-  cursor: pointer;
+/* Menü-Komponente füllt die große Fläche unterhalb der 20%-Leiste */
+app-menu {
+  display: block;
+}
+
+/* Device-Komponenten füllen ihre gesamte Fläche aus */
+:host ::ng-deep app-pixel,
+:host ::ng-deep app-orange-light,
+:host ::ng-deep app-laptop,
+:host ::ng-deep app-creator,
+:host ::ng-deep app-samsung-tv {
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 8px;
-  transition: box-shadow 0.3s ease;
-
-  /* Schatten wie am Anfang */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
 }

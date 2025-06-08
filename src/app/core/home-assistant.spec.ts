@@ -1,57 +1,76 @@
-import { TestBed } from '@angular/core/testing';
-import { HomeAssistant } from './home-assistant';
-import { provideHttpClient, HttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { environment } from '../../environments/environment';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import {SamsungTv} from '../features/control/devices/features/control/devices/samsung-tv/samsung-tv';
+import {Entity, HomeAssistant} from './home-assistant';
 
-describe('HomeAssistantService', () => {
-  let service: HomeAssistant;
-  let httpMock: HttpTestingController;
+describe('SamsungTv', () => {
+  let component: SamsungTv;
+  let fixture: ComponentFixture<SamsungTv>;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({
+  const mockEntities: Entity[] = [
+    {
+      entity_id: 'media_player.samsung',
+      state: 'on',
+      attributes: {
+        source: 'HDMI1',
+        source_list: ['HDMI1', 'Netflix'],
+        volume_level: 0.35,
+        friendly_name: 'Samsung TV'
+      }
+    }
+  ];
+
+  const mockHomeAssistant = {
+    entities$: of(mockEntities),
+    callService: jasmine.createSpy('callService')
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [SamsungTv],
       providers: [
-        HomeAssistant,
-        provideHttpClient(),
-        provideHttpClientTesting()
+        { provide: HomeAssistant, useValue: mockHomeAssistant }
       ]
-    });
+    }).compileComponents();
 
-    service = TestBed.inject(HomeAssistant);
-    httpMock = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(SamsungTv);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
-  afterEach(() => {
-    httpMock.verify();
+  it('should create', () => {
+    expect(component).toBeTruthy();
   });
 
-  it('should retrieve entity state via GET', () => {
-    const dummyResponse = { entity_id: 'light.xyz', state: 'on' };
-    const id = 'light.test_device';
-
-    service.getState(id).subscribe(res => {
-      expect(res).toEqual(dummyResponse);
-    });
-
-    const req = httpMock.expectOne(`/api/states/${id}`);
-    expect(req.request.method).toBe('GET');
-    expect(req.request.headers.get('Authorization')).toContain('Bearer');
-    req.flush(dummyResponse);
+  it('should load Samsung TV entity', () => {
+    expect(component.samsung?.entity_id).toBe('media_player.samsung');
+    expect(component.samsung?.attributes.source).toBe('HDMI1');
   });
 
-  it('should call service via POST', () => {
-    const domain = 'light';
-    const action = 'turn_off';
-    const id = 'light.test_device';
+  it('should call togglePower() with correct service', () => {
+    component.togglePower();
+    expect(mockHomeAssistant.callService).toHaveBeenCalledWith(
+      'media_player',
+      'turn_off',
+      'media_player.samsung'
+    );
+  });
 
-    service.callService(domain, action, id).subscribe(res => {
-      expect(res).toBeTruthy();
-    });
+  it('should call setVolume() with correct payload', () => {
+    component.setVolume(50, new Event('', undefined));
+    expect(mockHomeAssistant.callService).toHaveBeenCalledWith(
+      'media_player',
+      'volume_set',
+      { entity_id: 'media_player.samsung', volume_level: 0.5 }
+    );
+  });
 
-    const req = httpMock.expectOne(`/api/services/${domain}/${action}`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ entity_id: id });
-    expect(req.request.headers.get('Authorization')).toContain('Bearer');
-    req.flush({ result: 'ok' });
+  it('should call selectSource() with correct payload', () => {
+    component.selectSource('Netflix');
+    expect(mockHomeAssistant.callService).toHaveBeenCalledWith(
+      'media_player',
+      'select_source',
+      { entity_id: 'media_player.samsung', source: 'Netflix' }
+    );
   });
 });
