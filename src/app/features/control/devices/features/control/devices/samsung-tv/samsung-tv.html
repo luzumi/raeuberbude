@@ -1,56 +1,22 @@
-@if (samsung){
-  <!-- samsung-tv.html -->
-  <div class="tv-wrapper" (click)="onDeviceClick()">
+@if (samsung) {
+  <div class="tv-info-line" (click)="onDeviceClick()">
+    <span class="block"><strong>{{ name }}</strong></span>
+    <span class="block">Status: {{ state }}</span>
+    <span class="block">Lautstärke: {{ volume }}%</span>
 
-
-  <div class="device samsung-tv">
-  <div class="status">
-    <div>Status: {{ samsung.state }}</div>
-    <div>Quelle: {{ samsung.attributes.source }}</div>
-    @if (samsung.attributes.volume_level) {
-     <div>Lautstärke: {{ (samsung.attributes.volume_level * 100) | number:'1.0-0' }}%</div>
-    }
-  </div>
-
-  <div class="controls">
-    @if (isTvOn) {
-      <button (click)="togglePower($event);">An/Aus</button>
-      @if (isTvIdle) {
-        <div>Der Fernseher ist eingeschaltet, aber inaktiv.</div>
-      } @else {
-        <div>Status: {{ samsung.state }}</div>
-      }
-    } @else {
-      <div>Fernseher ist aus</div>
-      <button (click)="togglePower($event)">An/Aus</button>
-    }
-
-
-
-    <div class="volume-control">
-      <label for="vol">Lautstärke</label>
-      @if(samsung.attributes.volume_level){
-        <input type="range" id="vol" min="0" max="100"
-               [value]="samsung.attributes.volume_level * 100"
-               (change)="setVolume($any($event.target).value, $event)">
-      }
+    <div class="slider-wrapper" (click)="$event.stopPropagation()">
+      <app-horizontal-slider
+        [value]="volume"
+        [min]="0"
+        [max]="100"
+        [step]="1"
+        (valueChange)="setVolume($event)">
+      </app-horizontal-slider>
     </div>
-    @if(samsung.attributes.source_list?.length){
-       <div class="source-control">
-          <label>Quelle wählen:</label>
-          <select (change)="selectSource($any($event.target).value)">
 
-            @for (s of samsung.attributes.source_list ; track s) {
-              <option [selected]="s === samsung.attributes.source">
-                {{ s }}
-              </option>
-            }
-
-          </select>
-        </div>
-    }
+    <span class="block">Mute: {{ isMuted }}</span>
   </div>
-  </div>
-</div>
+  <app-firetv></app-firetv>
+} @else {
+  <div class="tv-info-line">TV nicht gefunden</div>
 }
-

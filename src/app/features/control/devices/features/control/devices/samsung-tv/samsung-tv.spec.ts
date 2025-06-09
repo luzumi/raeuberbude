@@ -57,7 +57,7 @@ describe('SamsungTv', () => {
   });
 
   it('should call setVolume() with correct payload', () => {
-    component.setVolume(50, new Event('', undefined));
+    component.setVolume(50);
     expect(mockHomeAssistant.callService).toHaveBeenCalledWith(
       'media_player',
       'volume_set',
