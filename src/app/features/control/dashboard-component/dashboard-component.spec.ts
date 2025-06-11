@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard-component';
 import { CommonModule } from '@angular/common';
-import { MenuComponent } from '../menu/menu';
+import { MenuComponent } from '../../../shared/components/menu/menu';
 
 describe('DashboardComponent (with Menu)', () => {
   let component: DashboardComponent;

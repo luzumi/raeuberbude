@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {Firetv} from './fire-tv-component';
 
-import { Firetv } from './firetv';
 
 describe('Firetv', () => {
   let component: Firetv;

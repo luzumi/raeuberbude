@@ -1,5 +1,5 @@
 @if (samsung) {
-  <div class="tv-info-line" (click)="onDeviceClick()">
+  <div class="tv-info-line" (click)="onDeviceClick($event)">
     <span class="block"><strong>{{ name }}</strong></span>
     <span class="block">Status: {{ state }}</span>
     <span class="block">Lautstärke: {{ volume }}%</span>
@@ -16,7 +16,7 @@
 
     <span class="block">Mute: {{ isMuted }}</span>
   </div>
-  <app-firetv></app-firetv>
+  <app-firetv (onDeviceClick)="onDeviceClick($event)"></app-firetv>
 } @else {
   <div class="tv-info-line">TV nicht gefunden</div>
 }

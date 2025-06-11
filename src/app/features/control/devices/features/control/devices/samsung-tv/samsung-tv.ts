@@ -1,16 +1,16 @@
 import {AfterViewInit, Component, EventEmitter, OnInit, Output} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Entity, HomeAssistant } from '../../../../../../../core/home-assistant';
+import { Entity, HomeAssistantService } from '../../../../../../../services/home-assistant/home-assistant.service';
 import {map} from 'rxjs';
 import {HorizontalSlider} from '../../../../../../../shared/components/horizontal-slider/horizontal-slider';
 import {FormsModule} from '@angular/forms';
-import {Firetv} from '../firetv/firetv';
+import {FiretvComponent} from '../firetv/fire-tv-component';
 
 @Component({
   selector: 'app-samsung-tv',
   templateUrl: './samsung-tv.html',
   standalone: true,
-  imports: [CommonModule, HorizontalSlider, FormsModule, Firetv],
+  imports: [CommonModule, HorizontalSlider, FormsModule, FiretvComponent,],
   styleUrls: ['./samsung-tv.scss']
 })
 export class SamsungTv implements AfterViewInit {
@@ -19,11 +19,11 @@ export class SamsungTv implements AfterViewInit {
 
 
   @Output() deviceClicked = new EventEmitter<void>();
-  onDeviceClick(): void {
+  onDeviceClick($event: Event): void {
     this.deviceClicked.emit();
   }
 
-  constructor(public hass: HomeAssistant) {}
+  constructor(public hass: HomeAssistantService) {}
 
   ngAfterViewInit(): void {
     this.hass.entities$

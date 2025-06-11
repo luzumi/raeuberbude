@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SamsungTv } from './samsung-tv';
-import { HomeAssistant, Entity } from '../../../../../../../core/home-assistant';
+import { HomeAssistantService, Entity } from '../../../../../../../services/home-assistant/home-assistant.service';
 import { of } from 'rxjs';
 
 describe('SamsungTv', () => {
@@ -29,7 +29,7 @@ describe('SamsungTv', () => {
     await TestBed.configureTestingModule({
       imports: [SamsungTv],
       providers: [
-        { provide: HomeAssistant, useValue: mockHomeAssistant }
+        { provide: HomeAssistantService, useValue: mockHomeAssistant }
       ]
     }).compileComponents();
 

@@ -1,12 +1,15 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { MatSliderModule } from '@angular/material/slider';
-import { FormsModule } from '@angular/forms';
+import {FormsModule} from '@angular/forms';
 
 @Component({
   selector: 'app-horizontal-slider',
-  templateUrl: './horizontal-slider.html',
   standalone: true,
-  imports: [MatSliderModule, FormsModule]
+  imports: [
+    FormsModule,
+    MatSliderModule,
+  ],
+  templateUrl: './horizontal-slider.html',
 })
 export class HorizontalSlider {
   @Input() min = 0;
@@ -16,4 +19,8 @@ export class HorizontalSlider {
   @Input() value = 0;
 
   @Output() valueChange = new EventEmitter<number>();
+
+  setVolume(event: number) {
+    this.valueChange.emit(event);
+  }
 }
