@@ -7,7 +7,7 @@ import { Pixel } from '../devices/features/control/devices/pixel/pixel';
 import { SamsungTv } from '../devices/features/control/devices/samsung-tv/samsung-tv';
 
 // NEU: Import der Menü‐Komponente
-import { MenuComponent } from '../menu/menu';
+import { MenuComponent } from '../../../shared/components/menu/menu';
 
 interface Device {
   id: number;

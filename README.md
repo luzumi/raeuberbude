@@ -20,7 +20,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 
 ### 2. Struktur geschaffen
 - Ordnerstruktur definiert: `core/`, `features/`, `app.config.ts`, `app.routes.ts`
-- `HomeAssistant`-Service erstellt zur Kommunikation mit der Home Assistant API
+- `HomeAssistantService`-Service erstellt zur Kommunikation mit der Home Assistant API
 - Proxy-Konfiguration zur Umgehung von CORS eingerichtet
 
 ### 3. Erste Funktion umgesetzt

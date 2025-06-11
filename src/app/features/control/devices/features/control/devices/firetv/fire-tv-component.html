@@ -1,0 +1,33 @@
+<link rel="stylesheet" href="../samsung-tv/samsung-tv.scss">
+<div class="firetv" (click)="onDeviceClicked($event)">
+  <h2>{{ name }}</h2>
+  <p>Status: {{ state }} | App: {{ app }}</p>
+
+  <button (click)="togglePower(); $event.stopPropagation()">
+    {{ firetv?.isOn ? 'Ausschalten' : 'Einschalten' }}
+  </button>
+
+  <div class="volume-control" (click)="$event.stopPropagation()">
+    <label for="volume">Lautstärke:</label>
+    <app-horizontal-slider
+      [value]="volume()"
+      [min]="0"
+      [max]="100"
+      [step]="1"
+      (valueChange)="setVolume($event)">
+    </app-horizontal-slider>
+    <span>{{ volume() }}%</span>
+  </div>
+
+
+  <div class="remote-controls">
+    <button (click)="firetv?.home(); $event.stopPropagation()">Home</button>
+    <button (click)="firetv?.back(); $event.stopPropagation()">Back</button>
+    <button (click)="firetv?.up(); $event.stopPropagation()">↑</button>
+    <button (click)="firetv?.down(); $event.stopPropagation()">↓</button>
+    <button (click)="firetv?.left(); $event.stopPropagation()">←</button>
+    <button (click)="firetv?.right(); $event.stopPropagation()">→</button>
+    <button (click)="firetv?.select(); $event.stopPropagation()">OK</button>
+    <button (click)="firetv?.playPause(); $event.stopPropagation()">Play/Pause</button>
+  </div>
+</div>

@@ -1,9 +1,10 @@
 <mat-slider
+  ngDefaultControl
   [min]="min"
   [max]="max"
   [step]="step"
   [disabled]="disabled"
-  [(ngModel)]="value"
-  (click)="valueChange.emit($any($event.target).value)">
-  <input matSliderThumb />
+  [ngModel]="value"
+  (ngModelChange)="setVolume($event)">
+  <input matSliderThumb (click)="$event.stopPropagation()"/>
 </mat-slider>

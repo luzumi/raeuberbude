@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { Entity, HomeAssistant } from './home-assistant';
+import { Entity, HomeAssistantService } from './home-assistant.service';
 
 @Injectable({ providedIn: 'root' })
 export class HomeAssistantEntityUtils {
-  constructor(private ha: HomeAssistant) {}
+  constructor(private ha: HomeAssistantService) {}
 
   public getControllableAttributes(entityId: string): Record<string, any> {
     const entity = this.ha.getEntity(entityId);
