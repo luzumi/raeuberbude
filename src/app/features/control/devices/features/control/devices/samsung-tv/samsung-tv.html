@@ -1,5 +1,10 @@
 @if (samsung) {
   <div class="tv-info-line" (click)="onDeviceClick($event)">
+    <button mat-icon-button (click)="togglePower(); $event.stopPropagation()">
+      <mat-icon [ngClass]="{ 'green-icon': state !== 'off', 'gray-icon': state === 'off' }">
+        power
+      </mat-icon>
+    </button>
     <span class="block"><strong>{{ name }}</strong></span>
     <span class="block">Status: {{ state }}</span>
     <span class="block">Lautstärke: {{ volume }}%</span>
@@ -12,7 +17,8 @@
         [step]="1"
         (valueChange)="setVolume($event)">
       </app-horizontal-slider>
-    </div>
+    </div>S
+
 
     <span class="block">Mute: {{ isMuted }}</span>
   </div>

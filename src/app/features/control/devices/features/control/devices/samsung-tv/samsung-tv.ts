@@ -5,12 +5,14 @@ import {map} from 'rxjs';
 import {HorizontalSlider} from '../../../../../../../shared/components/horizontal-slider/horizontal-slider';
 import {FormsModule} from '@angular/forms';
 import {FiretvComponent} from '../firetv/fire-tv-component';
+import {MatIconButton} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
 
 @Component({
   selector: 'app-samsung-tv',
   templateUrl: './samsung-tv.html',
   standalone: true,
-  imports: [CommonModule, HorizontalSlider, FormsModule, FiretvComponent,],
+  imports: [CommonModule, HorizontalSlider, FormsModule, FiretvComponent, MatIconButton, MatIconModule,],
   styleUrls: ['./samsung-tv.scss']
 })
 export class SamsungTv implements AfterViewInit {
@@ -65,6 +67,18 @@ export class SamsungTv implements AfterViewInit {
       volume_level: volumeLevel
     }).subscribe({
       error: (err) => console.error('[SamsungTv] Fehler beim Setzen der Lautstärke', err)
+    });
+  }
+
+  togglePower(): void {
+    const remoteId = 'remote.samsung';
+    const service = this.samsung?.state === 'off' ? 'turn_on' : 'turn_off';
+
+    this.hass.callService('remote', service, {
+      entity_id: remoteId
+    }).subscribe({
+      next: res => console.log(`[SamsungTv] ${service} erfolgreich`, res),
+      error: err => console.error(`[SamsungTv] Fehler bei ${service}`, err)
     });
   }
 

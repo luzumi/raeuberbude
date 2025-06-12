@@ -1,0 +1,84 @@
+// src/styles/_palette.scss – Theme: Elegant & Gemütlich (helle Pastelltöne)
+
+// Primärfarbpalette: warmes Türkis, sanft & lebendig
+$color-primary: #b3f0e6;
+$color-primary-light: #d6faf3;
+$color-primary-dark: #82e2d3;
+
+// Akzent: softes Koralle-Rosa
+$color-accent: #f9b8b8;
+$color-accent-light: #fddede;
+$color-accent-dark: #f58c8c;
+
+// Sekundärfarben: sanftes Apricot und elegantes Lila
+$color-secondary: #fdd9b5;
+$color-highlight: #e1d1f0;
+
+// Warn-/Feedbackfarben
+$color-warn: #f08080;
+$color-success: #b9e4c9;
+$color-info: #b0d8f0;
+
+// Graustufen – für zurückhaltende UI-Elemente
+$gray-50: #fefefe;
+$gray-100: #f7f7f7;
+$gray-200: #eeeeee;
+$gray-400: #cccccc;
+$gray-600: #999999;
+$gray-800: #4a4a4a;
+
+// Hintergrundflächen & Oberflächen
+$background: #fdfdfd;
+$surface: #ffffff;
+$overlay: rgba(240, 240, 240, 0.95);
+
+// Textfarben
+$text-default: #333;
+$text-muted: #777;
+$text-inverse: #fff;
+
+// Interaktive Elemente
+$button-bg: $color-primary;
+$button-fg: $text-default;
+$button-hover: $color-primary-dark;
+
+$table-header-bg: $color-primary-light;
+$table-border: $gray-200;
+$table-row-hover: $color-accent-light;
+
+$slider-track: $gray-200;
+$slider-thumb: $color-accent;
+$slider-thumb-glow: $color-accent-dark;
+
+// Zentrale Map zur optionalen Nutzung
+$theme-colors: (
+  primary: $color-primary,
+  primary-light: $color-primary-light,
+  primary-dark: $color-primary-dark,
+  accent: $color-accent,
+  accent-light: $color-accent-light,
+  accent-dark: $color-accent-dark,
+  secondary: $color-secondary,
+  highlight: $color-highlight,
+  warn: $color-warn,
+  success: $color-success,
+  info: $color-info,
+  gray-100: $gray-100,
+  gray-400: $gray-400,
+  gray-800: $gray-800,
+  background: $background,
+  surface: $surface,
+  overlay: $overlay,
+  text: $text-default,
+  text-muted: $text-muted,
+  text-inverse: $text-inverse,
+  button-bg: $button-bg,
+  button-fg: $button-fg,
+  button-hover: $button-hover,
+  table-header-bg: $table-header-bg,
+  table-border: $table-border,
+  table-row-hover: $table-row-hover,
+  slider-track: $slider-track,
+  slider-thumb: $slider-thumb,
+  slider-thumb-glow: $slider-thumb-glow
+);
