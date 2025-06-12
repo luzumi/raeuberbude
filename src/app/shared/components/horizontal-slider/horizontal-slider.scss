@@ -1,0 +1,40 @@
+@use '../../../../styles/palette' as color;
+@use 'sass:map';
+
+
+.slider-fingerprint ::ng-deep .mat-slider-track-fill {
+background-color: map.get(color.$theme-colors, background);
+  border-radius: 999px;
+  height: 8px;
+  margin-top: 8px;
+}
+
+.slider-fingerprint ::ng-deep .mat-slider-track-background {
+  background-color: #eaeaea !important;
+  border-radius: 999px;
+  height: 8px;
+  margin-top: 8px;
+}
+
+.slider-fingerprint ::ng-deep .mat-slider-thumb {
+  width: 32px !important;
+  height: 32px !important;
+  background-color: #f4a261 !important;
+  border-radius: 16px;
+  box-shadow: 0 0 6px rgba(244, 162, 97, 0.8);
+  border: none;
+  background-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 6px 6px;
+  background-repeat: repeat;
+  background-position: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.slider-fingerprint ::ng-deep .mat-slider-thumb-label {
+  display: none;
+}
+
+.slider-fingerprint ::ng-deep .mat-slider {
+  padding: 24px 0;
+  margin-top: -12px;
+}

@@ -1,3 +1,6 @@
+@use 'sass:map';
+@use '../../../../../../../../styles/palette' as *;
+
 .tv-info-line {
   cursor: pointer;
   font-size: 0.95rem;
@@ -29,4 +32,12 @@
   height: 24px;
   padding: 0;
   margin-top: 2px;
+}
+
+.green-icon {
+  color: $color-primary-dark;
+}
+
+.gray-icon {
+  color: $color-warn;
 }

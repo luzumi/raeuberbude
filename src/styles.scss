@@ -1,7 +1,18 @@
-/* You can add global styles to this file, and also import other style files */
+@use 'sass:map';
+@use 'styles/palette' as *;
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+// Beispiel-Nutzung
+body {
+  background: map.get($theme-colors, primary-light);
+
+  color: $gray-800;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
 
 .one-row {
   display: flex;
@@ -12,4 +23,3 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .spacer {
   flex-grow: 1;
 }
-
