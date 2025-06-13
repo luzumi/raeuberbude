@@ -1,0 +1,5 @@
+// keypad.component.html
+<div class="keypad" [ngStyle]="{ gridTemplateColumns:'repeat(' + columns + ', 1fr)'}">
+  <button *ngFor="let key of keys" (click)="onKeyClick(key)">{{ key }}</button>
+</div>
+<div [ngStyle]="{ gridTemplateColumns: 'repeat(3, 1fr)' }"></div>

@@ -1,5 +1,5 @@
 @if (samsung) {
-  <div class="tv-info-line" (click)="onDeviceClick($event)">
+  <div class="tv-info-line" (click)="onDeviceClick()">
     <button mat-icon-button (click)="togglePower(); $event.stopPropagation()">
       <mat-icon [ngClass]="{ 'green-icon': state !== 'off', 'gray-icon': state === 'off' }">
         power
@@ -17,12 +17,17 @@
         [step]="1"
         (valueChange)="setVolume($event)">
       </app-horizontal-slider>
-    </div>S
+    </div>
 
+    <button (click)="toggleMute(); $event.stopPropagation();">🔇 Mute</button>
+    <button (click)="screenLeft(); $event.stopPropagation();"><span><<<</span>🔁 </button>
+    <button (click)="nextSource(); $event.stopPropagation();">🔁 Source wechseln</button>
+    <button (click)="screenRight(); $event.stopPropagation();">🔁>>></button>
+    <button (click)="screenRight(); $event.stopPropagation();"><app-keypad (keyPressed)="screenRight();" [columns]="1" [keys]="['>']"></app-keypad> </button>
 
     <span class="block">Mute: {{ isMuted }}</span>
   </div>
-  <app-firetv (onDeviceClick)="onDeviceClick($event)"></app-firetv>
+  <app-firetv (onDeviceClick)="onDeviceClick()"></app-firetv>
 } @else {
   <div class="tv-info-line">TV nicht gefunden</div>
 }

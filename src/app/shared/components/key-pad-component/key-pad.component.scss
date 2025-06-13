@@ -1,0 +1,19 @@
+.keypad {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+button {
+  padding: 1rem;
+  font-size: 1.2rem;
+  background-color: #eee;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+button:hover {
+  background-color: #ccc;
+}
