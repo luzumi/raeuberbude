@@ -2,7 +2,6 @@
 
   <!-- Zustand: Keine Entity geöffnet (Standard) -->
   @if (!selectedEntity) {
-
     <app-button
       [name]="menuEntity.name"
       [icon]="menuEntity.icon"
@@ -12,7 +11,7 @@
       style="position:absolute; transform:translate(-50%,-50%)"
     ></app-button>
 
-    @for (entity of entities; track $index;) {
+    @for (entity of entities; track $index; ) {
       <app-button
         [name]="entity.name"
         [svgIcon]="entity.svgIcon"
@@ -61,7 +60,7 @@
         (click)="openEntity(entity)"
         [style.left.%]="entity.left"
         [style.top.%]="entity.top"
-        style="position:absolute; transform:translate(-50%,-50%); width:4rem; height:4rem;"
+        style="position:absolute; transform:none; width:4rem; height:4rem;"
       ></app-button>
     }
 
@@ -69,13 +68,7 @@
     <div
       class="entity-detail-container"
       style="
-        position:absolute;
-        left:10%;
-        top:0;
-        width:90%;
-        height:100%;
-        padding-left:6rem;
-        box-sizing:border-box;
+
       "
     >
       <!-- Hier kommt ein Detail-Component oder freier Content

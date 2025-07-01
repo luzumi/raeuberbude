@@ -78,7 +78,7 @@ export class RoomMenuComponent {
       // Abstand von oben in Prozent: 10 % + i · 12 %
       e.top = 10 + i * 12;
       // links immer z.B. 8 %
-      e.left = 8;
+      e.left = 2;
     });
   }
 

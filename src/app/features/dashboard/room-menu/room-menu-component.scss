@@ -7,8 +7,8 @@
   left: 50%;
   width: 80vw;
   height: 80vw;
-  max-width: 400px;
-  max-height: 400px;
+  max-width: 1000px;
+  max-height: 600px;
   transform: translate(-50%, -50%);
 }
 
@@ -118,4 +118,15 @@
 
 app-button {
   transition: top 0.3s ease, left 0.3s ease, transform 0.3s ease;
+}
+
+.entity-detail-container {
+  position:absolute;
+  left:10%;
+  top:0;
+  width:90%;
+  height:100%;
+  padding-left:6rem;
+  box-sizing:border-box;
+  background-color: aliceblue;
 }

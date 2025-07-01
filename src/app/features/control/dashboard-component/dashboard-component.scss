@@ -6,7 +6,8 @@
   flex-wrap: wrap;
   gap: 16px;
   padding: 32px;
-  min-height: 80vh;
+  min-height: 70vh;
+  min-width: 80vw;
   align-items: center;
   justify-content: center;
   background-color: color.$gray-400; // z. B. aus deiner Palette
@@ -29,7 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.7s ease;
   z-index: 2;
 
   /* Default: 10% × 10%, zentriert */
@@ -52,7 +53,7 @@
     /* Wenn Menü offen oder Gerät aktiv: 20% × 20%, in der Leiste oben ganz rechts */
     width: 20%;
     height: 20%;
-    left: 80%;
+    left: 0;
     top: 0;
     transform: none;
     border-radius:8px;
