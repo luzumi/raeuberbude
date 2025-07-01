@@ -1,0 +1,36 @@
+@use '../../../../../src/styles/variables' as v;
+
+.app-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(90deg, #f9e4b7 0%, #ffdca3 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+  .greeting {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(0,0,0,0.1);
+    }
+
+    .greet-text {
+      font-size: 1.1rem;
+      color: #555;
+    }
+
+    .user-name {
+      font-family: v.$font-primary;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #333;
+      line-height: 1;
+    }
+  }
+}

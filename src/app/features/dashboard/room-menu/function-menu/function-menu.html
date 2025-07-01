@@ -1,0 +1,13 @@
+<div
+  class="function-menu"
+  [ngStyle]="{
+    top: position.y + 'px',
+    left: position.x + 'px'
+  }"
+>
+  @for (btn of buttons; track btn; let i = $index) {
+    <div      class="function-button"      [ngStyle]="{      '--angle': (startAngle + (i * 60)) + 'deg'}"      (click)="close.emit()"      >
+    <mat-icon>{{ btn.icon }}</mat-icon>
+    </div>
+  }
+</div>

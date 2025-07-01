@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 800 800"
+     preserveAspectRatio="xMidYMid slice">
+
+  <defs>
+    <!-- Basis‐Gradient -->
+    <radialGradient id="grad-base" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#FFF4D9" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FFDCA3" stop-opacity="0.3"/>
+    </radialGradient>
+
+    <!-- Einzelnes Puzzle-Piece -->
+    <path id="lamp-piece" d="
+      M20,0
+      C30,0 35,7 35,20
+      C35,33 30,40 20,40
+      C10,40 5,33 5,20
+      C5,7 10,0 20,0
+      Z
+    "/>
+
+    <!-- Pattern: etwas kompakter, kräftigere Linien -->
+    <pattern id="piece-grid" x="0" y="0" width="60" height="60"
+             patternUnits="userSpaceOnUse">
+      <!-- Erstes Piece, sichtbar gefüllt -->
+      <use href="#lamp-piece"
+           fill="rgba(255,255,255,0.05)"
+           stroke="rgba(255,255,255,0.3)"
+           stroke-width="1.2"/>
+
+      <!-- Gegendrehung versetzt -->
+      <use href="#lamp-piece"
+           x="30" y="30"
+           transform="rotate(180 50 50)"
+           fill="rgba(255,255,255,0.05)"
+           stroke="rgba(255,255,255,0.3)"
+           stroke-width="1.2"/>
+    </pattern>
+  </defs>
+
+  <!-- Basis -->
+  <rect width="800" height="800" fill="url(#grad-base)" />
+
+  <!-- Pattern-Overlay -->
+  <rect width="800" height="800" fill="url(#piece-grid)" />
+</svg>

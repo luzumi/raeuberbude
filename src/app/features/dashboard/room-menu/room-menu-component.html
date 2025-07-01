@@ -1,0 +1,87 @@
+<div class="menu-container" style="position:relative; width:100%; height:100%">
+
+  <!-- Zustand: Keine Entity geöffnet (Standard) -->
+  @if (!selectedEntity) {
+
+    <app-button
+      [name]="menuEntity.name"
+      [icon]="menuEntity.icon"
+      (click)="onMenuClick()"
+      [active]="menuVisible"
+      [style.left.%]="50" [style.top.%]="50"
+      style="position:absolute; transform:translate(-50%,-50%)"
+    ></app-button>
+
+    @for (entity of entities; track $index;) {
+      <app-button
+        [name]="entity.name"
+        [svgIcon]="entity.svgIcon"
+        [color]="entity.color ?? 'red'"
+        [active]="entity.active"
+        (click)="openEntity(entity)"
+        [style.left.%]="entity.left"
+        [style.top.%]="entity.top"
+        style="position:absolute; transform:translate(-50%,-50%)"
+      ></app-button>
+    }
+    @if (menuVisible) {
+      <app-function-menu
+        [entity]="menuEntity"
+        [position]="menuPosition"
+        (close)="closeFunctionMenu()"
+      ></app-function-menu>
+    }
+  }
+
+  <!-- Zustand: Eine Entity ist geöffnet -->
+  @if (selectedEntity) {
+    <!-- 1. Back-Button -->
+    <app-button
+      name="Zurück"
+      icon="arrow_back"
+      (click)="closeEntity()"
+      style="position:absolute; left:2%; top:2%;"
+    ></app-button>
+
+    <!-- 2. Menü-Button bleibt oben, falls benötigt -->
+    <app-button
+      [name]="menuEntity.name"
+      [icon]="menuEntity.icon"
+      (click)="onMenuClick()"
+      [active]="menuVisible"
+      style="position:absolute; left:2%; top:8%;"
+    ></app-button>
+
+    <!-- 3. Sidebar mit den übrigen Entities -->
+    @for (entity of sidebarItems; track $index) {
+      <app-button
+        [name]="entity.name"
+        [svgIcon]="entity.svgIcon"
+        [color]="entity.color ?? 'red'"
+        (click)="openEntity(entity)"
+        [style.left.%]="entity.left"
+        [style.top.%]="entity.top"
+        style="position:absolute; transform:translate(-50%,-50%); width:4rem; height:4rem;"
+      ></app-button>
+    }
+
+    <!-- 4. Hauptbereich für die geöffnete Entity -->
+    <div
+      class="entity-detail-container"
+      style="
+        position:absolute;
+        left:10%;
+        top:0;
+        width:90%;
+        height:100%;
+        padding-left:6rem;
+        box-sizing:border-box;
+      "
+    >
+      <!-- Hier kommt ein Detail-Component oder freier Content
+      <app-entity-detail [entity]="selectedEntity"></app-entity-detail>-->
+    </div>
+  } @else {
+  }
+
+</div>

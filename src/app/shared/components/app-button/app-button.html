@@ -1,0 +1,25 @@
+<div class="app-button" [class.active]="active" [ngStyle]="{'--color': color,'--color-active': activeColor}">
+  <div class="button-inner">
+    @if (svgIcon) {
+      <img [src]="svgIcon" class="svg-icon" [alt]="name"/>
+    } @else {
+      <mat-icon>{{ icon }}</mat-icon>
+    }
+  </div>
+
+  <!-- SO muss der Label-SVG-Block draussen (!) im Button liegen -->
+  <svg class="label-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <defs>
+      <path
+        id="{{ textPathId }}"
+        d="M50,50 m-35,0 a35,35 0 1,1 70,0 a35,35 0 1,1 -70,0"
+      />
+    </defs>
+    <text text-anchor="middle" transform="rotate(-90 50 50)">
+      <textPath [attr.xlink:href]="'#' + textPathId" startOffset="50%">
+        {{ name }}
+      </textPath>
+    </text>
+  </svg>
+</div>

@@ -1,0 +1,160 @@
+@use '../../../../../src/styles/variables' as v;
+
+.app-button {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background-color: var(--color);
+  transform: translate(-50%, -50%);
+  transition: background-color 0.2s ease;
+  z-index: 1;
+  overflow: visible;     // ganz wichtig, damit nichts abgeschnitten wird
+
+  // 1) Basis‐Aura (immer sichtbar, sehr dezent)
+  &::before {
+    content: '';
+    position: absolute;
+    /* direkt an der Kante */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    /* leichter Weiß-Glow */
+    box-shadow: 0 0 6px 4px rgba(255,255,255,0.1);
+    z-index: 0;
+  }
+
+
+  // 2) Aktive Aura (nur wenn .active)
+  &.active::after {
+    content: '';
+    position: absolute;
+    /* auch direkt an der Kante starten */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    /* hier mit größerer Spread-Radius arbeiten: */
+    box-shadow:
+      0 0 12px 4px rgba(255,255,255,0.3),      /* weicher weißer Nebel aufs Entity selbst */
+      0 0 20px 10px var(--color-active),       /* farbige Aura */
+      inset 0 0 8px rgba(255,255,255,0.4);     /* leichter Innenglanz */
+    z-index: 0;
+  }
+  &.active {
+    background-color: var(--color-active);
+  }
+
+  .button-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;  // über allen Auren
+
+    > img.svg-icon,
+    > mat-icon {
+      flex: none;
+      z-index: 3;  // ganz oben
+    }
+  }
+
+  .label-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 2;  // zwischen Text-Glow und Icons
+
+    text {
+      font-size: 8px;
+      fill: #333;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+.app-button {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background-color: var(--color);
+  transform: translate(-50%, -50%);
+  transition: background-color 0.2s ease;
+  z-index: 1;
+  overflow: visible;
+
+  /* Permanente, dezentere Basis-Aura */
+  &::before {
+    content: '';
+    position: absolute;
+    /* direkt an der Kante */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    /* leichter Weiß-Glow */
+    box-shadow: 0 0 6px 4px rgba(255,255,255,0.1);
+    z-index: 0;
+  }
+
+  /* Kräftige, aktive Aura */
+  &.active::after {
+    content: '';
+    position: absolute;
+    /* auch direkt an der Kante starten */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    /* hier mit größerer Spread-Radius arbeiten: */
+    box-shadow:
+      0 0 12px 4px rgba(255,255,255,0.3),      /* weicher weißer Nebel aufs Entity selbst */
+      0 0 20px 25px var(--color-active),       /* farbige Aura */
+      inset 0 0 8px rgba(255,255,255,0.4);     /* leichter Innenglanz */
+    z-index: 0;
+  }
+
+  &.active {
+    background-color: var(--color-active);
+  }
+
+  .button-inner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+
+    > img.svg-icon,
+    > mat-icon {
+      flex: none;
+      z-index: 3;
+    }
+  }
+
+  .label-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 2;
+
+    text {
+      font-size: 14px;
+      font-family: v.$font-secondary;
+      font-weight: bolder;
+      fill: #333;
+      letter-spacing: 0.5px;
+    }
+  }
+}
