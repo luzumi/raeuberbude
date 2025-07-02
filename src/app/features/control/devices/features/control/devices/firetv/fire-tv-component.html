@@ -21,13 +21,12 @@
 
 
   <div class="remote-controls">
-    <button (click)="firetv?.home(); $event.stopPropagation()">Home</button>
-    <button (click)="firetv?.back(); $event.stopPropagation()">Back</button>
-    <button (click)="firetv?.up(); $event.stopPropagation()">↑</button>
-    <button (click)="firetv?.down(); $event.stopPropagation()">↓</button>
-    <button (click)="firetv?.left(); $event.stopPropagation()">←</button>
-    <button (click)="firetv?.right(); $event.stopPropagation()">→</button>
-    <button (click)="firetv?.select(); $event.stopPropagation()">OK</button>
-    <button (click)="firetv?.playPause(); $event.stopPropagation()">Play/Pause</button>
+    <button (click)="$event.stopPropagation(); sendAdbCommand('HOME')">Home</button>
+    <button (click)="$event.stopPropagation(); sendAdbCommand('BACK')">Zurück</button>
+    <button (click)="$event.stopPropagation(); sendAdbCommand('DPAD_UP')">▲</button>
+    <button (click)="$event.stopPropagation(); sendAdbCommand('DPAD_DOWN')">▼</button>
+    <button (click)="$event.stopPropagation(); sendAdbCommand('DPAD_LEFT')">◀</button>
+    <button (click)="$event.stopPropagation(); sendAdbCommand('DPAD_RIGHT')">▶</button>
+    <button (click)="$event.stopPropagation(); sendAdbCommand('ENTER')">OK</button>
   </div>
 </div>

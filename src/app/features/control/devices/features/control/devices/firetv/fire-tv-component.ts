@@ -23,7 +23,11 @@ export class FiretvComponent {
       const remote = entities.find(e => e.entity_id === 'remote.fire_tv') as RemoteEntity;
 
       if (player && remote) {
-        //this.firetv = new FireTvController(player, remote, (d, s, p) => this.hass.callService(d, s, p)        );
+        if (player && remote) {
+          this.firetv = new FireTvController(player, remote, (d, s, p) => this.hass.callService(d, s, p));
+          const lvl = player.attributes['volume_level'] ?? 0;
+          this.volume.set(Math.round(lvl * 100));
+        }
 
         const lvl = player.attributes['volume_level'] ?? 0;
         this.volume.set(Math.round(lvl * 100));
@@ -31,8 +35,18 @@ export class FiretvComponent {
     });
   }
 
+  sendLaunchAppCommand(appId: string): void {
+    this.hass.callService('androidtv', 'adb_command', {
+      entity_id: 'media_player.fire_tv',
+      command: `launch_app ${appId}`
+    });
+  }
+
+
   togglePower(): void {
-    if (!this.firetv) return;
+    if (!this.firetv) {
+      console.log('No FIRE TVS'); return;
+    }
     this.firetv.isOn ? this.firetv.turnOff() : this.firetv.turnOn();
   }
 
@@ -57,6 +71,14 @@ export class FiretvComponent {
   get app(): string {
     return this.firetv?.app ?? '-';
   }
+
+  sendAdbCommand(command: string): void {
+    this.hass.callService('androidtv', 'adb_command', {
+      entity_id: 'media_player.fire_tv',
+      command
+    });
+  }
+
 
   onDeviceClicked(event: MouseEvent) {
     event.stopPropagation();

@@ -1,4 +1,5 @@
 import {Observable} from 'rxjs';
+import {HomeAssistantService} from './home-assistant.service';
 
 export interface FireTvEntity {
   entity_id: string;
@@ -40,6 +41,7 @@ export class FireTvController {
   constructor(
     private entity: FireTvEntity,
     private remote: RemoteEntity,
+    private hass: HomeAssistantService,
     private callServiceFn: (domain: string, service: string, data: any) => Observable<any>
   ) {}
 
@@ -61,15 +63,17 @@ export class FireTvController {
   }
 
   turnOn(): void {
-    this.callServiceFn('media_player', 'turn_on', {
+    this.callServiceFn('media_player', 'turn_off', {
       entity_id: this.entity.entity_id
     });
     this.send(FireTvCommand.HOME);
   }
 
   turnOff(): void {
-//    this.send(FireTvCommand.HOME);
-    this.send(FireTvCommand.POWER);
+    this.hass.callService('remote', 'turn_on', {
+      entity_id: this.entity.entity_id,
+    });
+
   }
 
   send(command: FireTvCommand): void {
