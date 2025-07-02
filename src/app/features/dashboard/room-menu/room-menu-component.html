@@ -1,80 +1,59 @@
-<div class="menu-container" style="position:relative; width:100%; height:100%">
+<div class="menu-container">
 
-  <!-- Zustand: Keine Entity geöffnet (Standard) -->
+  <!-- Kreis & Animation -->
   @if (!selectedEntity) {
     <app-button
-      [name]="menuEntity.name"
-      [icon]="menuEntity.icon"
-      (click)="onMenuClick()"
-      [active]="menuVisible"
+      [name]="menuEntity.name" [icon]="menuEntity.icon"
+      (click)="onMenuClick()" [active]="menuVisible"
       [style.left.%]="50" [style.top.%]="50"
-      style="position:absolute; transform:translate(-50%,-50%)"
+      class="center-btn"
     ></app-button>
 
-    @for (entity of entities; track $index; ) {
-      <app-button
-        [name]="entity.name"
-        [svgIcon]="entity.svgIcon"
-        [color]="entity.color ?? 'red'"
-        [active]="entity.active"
-        (click)="openEntity(entity)"
-        [style.left.%]="entity.left"
-        [style.top.%]="entity.top"
-        style="position:absolute; transform:translate(-50%,-50%)"
-      ></app-button>
-    }
-    @if (menuVisible) {
-      <app-function-menu
-        [entity]="menuEntity"
-        [position]="menuPosition"
-        (close)="closeFunctionMenu()"
-      ></app-function-menu>
-    }
-  }
-
-  <!-- Zustand: Eine Entity ist geöffnet -->
-  @if (selectedEntity) {
-    <!-- 1. Back-Button -->
-    <app-button
-      name="Zurück"
-      icon="arrow_back"
-      (click)="closeEntity()"
-      style="position:absolute; left:2%; top:2%;"
-    ></app-button>
-
-    <!-- 2. Menü-Button bleibt oben, falls benötigt -->
-    <app-button
-      [name]="menuEntity.name"
-      [icon]="menuEntity.icon"
-      (click)="onMenuClick()"
-      [active]="menuVisible"
-      style="position:absolute; left:2%; top:8%;"
-    ></app-button>
-
-    <!-- 3. Sidebar mit den übrigen Entities -->
-    @for (entity of sidebarItems; track $index) {
-      <app-button
-        [name]="entity.name"
-        [svgIcon]="entity.svgIcon"
-        [color]="entity.color ?? 'red'"
-        (click)="openEntity(entity)"
-        [style.left.%]="entity.left"
-        [style.top.%]="entity.top"
-        style="position:absolute; transform:none; width:4rem; height:4rem;"
-      ></app-button>
-    }
-
-    <!-- 4. Hauptbereich für die geöffnete Entity -->
-    <div
-      class="entity-detail-container"
-      style="
-
-      "
-    >
-      <!-- Hier kommt ein Detail-Component oder freier Content
-      <app-entity-detail [entity]="selectedEntity"></app-entity-detail>-->
+    <div class="circle-group" [class.animate]="animateSequence">
+      @for ( e of entities; track e.name; ) {
+        <app-button
+          [name]="e.name" [svgIcon]="e.svgIcon" [color]="e.color ?? 'red'"
+          (click)="openEntity(e)"
+          [style.left.%]="e.left" [style.top.%]="e.top"
+          class="circle-btn"
+        ></app-button>
+      }
     </div>
-  } @else {
+
+    @if (menuVisible) {
+      <app-function-menu [entity]="menuEntity" (close)="closeFunctionMenu()"></app-function-menu>
+    }
   }
 
+  <!-- Sidebar -->
+  @if (selectedEntity) {
+    <div class="sidebar-container">
+      <app-button
+        name="Zurück"
+        icon="arrow_back"
+        (click)="closeEntity()"
+        [active]="false"
+        style="transform:scale(50%)"
+      ></app-button>
+
+      <app-button
+        [name]="menuEntity.name"
+        [icon]="menuEntity.icon"
+        (click)="onMenuClick()"
+        [active]="false"
+        style="transform:scale(50%)"
+      ></app-button>
+
+      @for ( e of sidebarItems; track e.name; ) {
+        <app-button
+          [name]="e.name"
+          [svgIcon]="e.svgIcon"
+          (click)="openEntity(e)"
+          [active]="selectedEntity===e"
+          style="transform:scale(50%)"
+        ></app-button>
+      }
+    </div>
+    <div class="entity-detail-container"></div>
+  }
 </div>

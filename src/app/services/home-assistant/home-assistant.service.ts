@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import {BehaviorSubject, from, Observable, Subscription} from 'rxjs';
-import { environment } from '../../../environments/environment';
 import {WebSocketBridgeService} from './websocketBridgeService';
+import {environment} from '../../../environments/environments';
 
 export interface Entity {
   entity_id: string;
