@@ -1,56 +1,56 @@
 <div class="menu-container">
 
-  <!-- Kreis & Animation -->
-  @if (!selectedEntity) {
+  <!-- Kreis & Animation: bleibt sichtbar solange keine Auswahl oder Animation läuft -->
+  @if (!selectedEntity || animateSequence) {
+    <!-- 1) Menü-Button in der Mitte -->
     <app-button
-      [name]="menuEntity.name" [icon]="menuEntity.icon"
-      (click)="onMenuClick()" [active]="menuVisible"
-      [style.left.%]="50" [style.top.%]="50"
       class="center-btn"
+      [name]="menuEntity.name"
+      [icon]="menuEntity.icon"
+      (click)="onMenuClick()"
+      [active]="menuVisible"
+      [style.left.%]="50"
+      [style.top.%]="50"
     ></app-button>
 
+    <!-- 2) Alle Entities im Kreis -->
     <div class="circle-group" [class.animate]="animateSequence">
-      @for ( e of entities; track e.name; ) {
+      @for (e of entities; track e.name) {
         <app-button
-          [name]="e.name" [svgIcon]="e.svgIcon" [color]="e.color ?? 'red'"
-          (click)="openEntity(e)"
-          [style.left.%]="e.left" [style.top.%]="e.top"
           class="circle-btn"
+          [class.animate]="animateSequence"
+          [style.left.%]="e.left"
+          [style.top.%]="e.top"
+          (click)="openEntity(e)"
+          [name]="e.name"
+          [svgIcon]="e.svgIcon"
+          [color]="e.color ?? 'red'"
         ></app-button>
       }
     </div>
-
-    @if (menuVisible) {
-      <app-function-menu [entity]="menuEntity" (close)="closeFunctionMenu()"></app-function-menu>
-    }
   }
 
-  <!-- Sidebar -->
-  @if (selectedEntity) {
+  <!-- Sidebar: erst anzeigen, wenn Auswahl besteht und Animation vorbei ist -->
+  @if (selectedEntity && !animateSequence) {
     <div class="sidebar-container">
       <app-button
         name="Zurück"
         icon="arrow_back"
         (click)="closeEntity()"
         [active]="false"
-        style="transform:scale(50%)"
       ></app-button>
-
       <app-button
         [name]="menuEntity.name"
         [icon]="menuEntity.icon"
         (click)="onMenuClick()"
         [active]="false"
-        style="transform:scale(50%)"
       ></app-button>
-
-      @for ( e of sidebarItems; track e.name; ) {
+      @for (e of sidebarItems; track e.name) {
         <app-button
           [name]="e.name"
           [svgIcon]="e.svgIcon"
           (click)="openEntity(e)"
-          [active]="selectedEntity===e"
-          style="transform:scale(50%)"
+          [active]="selectedEntity === e"
         ></app-button>
       }
     </div>

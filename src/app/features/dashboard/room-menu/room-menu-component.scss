@@ -1,52 +1,125 @@
+/* room-menu-component.scss */
+
 .menu-container {
-  position: relative; width: 100%; height: 100%;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.center-btn, .circle-btn {
+  position: absolute;
+  transform: translate(-50%, -50%);
 }
 
 .center-btn {
   position: absolute;
+  /* Menu-Button exakt zentriert */
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
 }
 
-/* 1. Gruppe um Menü */
+/* 1) Gruppen-Wrapper für Kreis-Buttons */
 .circle-group {
-  position: absolute; top: 0; left: 0;
-  width: 100%; height: 100%;
-  pointer-events: none; // Buttons nehmen Clicks durch, Wrapper nicht
-}
-.circle-group.animate {
-  animation:
-    groupOrbit 0.8s ease-in-out forwards,
-    groupSlide 0.4s ease-in-out forwards 0.8s;
+  position: absolute;
+  inset: 0;             /* top:0; right:0; bottom:0; left:0; */
+  pointer-events: none; /* Buttons leiten Klicks durch */
 }
 
-/* 1a) Orbit: rotieren um das Zentrum */
-@keyframes groupOrbit {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-/* 1b) Slide: nach links in Sidebar (ca. 50% Breite minus left 2%) */
-@keyframes groupSlide {
-  from { transform: rotate(360deg) translateX(0); }
-  to   { transform: rotate(360deg) translateX(-48%); }
-}
-
-/* Einzel-Buttons im Kreis */
+/* 2) Einzel-Buttons im Kreis */
 .circle-btn {
   position: absolute;
-  transform: translate(-50%, -50%);
-  pointer-events: auto; // Clickable bleiben
-  transition: none;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  /* Initial-Transform: aus der Mitte auf den Kreis-Rand bei Winkel/Radius */
+  transform:
+    translate(-50%, -50%)
+    rotate(var(--angle))
+    translate(var(--r))
+    rotate(#{"calc(-1 * var(--angle))"});
+
+  pointer-events: auto;
+  overflow: visible;
+
+  /* Lichtschweif als Radial-Gradient-Pseudo-Element */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 2px;
+    background: radial-gradient(circle, rgba(255,200,0,0.6) 0%, rgba(255,200,0,0) 70%);
+    filter: blur(6px);
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Trail-Animation nur für ::after */
+  &.animate::after {
+    animation: trail 0.6s ease-out forwards;
+  }
 }
 
-/* Sidebar unverändert */
+/* 3) Sidebar-Layout */
 .sidebar-container {
-  position: absolute; top: 10%; left: 2%;
-  display: flex; flex-direction: column; gap: 1rem;
+  position: absolute;
+  top: 10%;
+  left: 2%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 
   app-button {
-    width: 4rem; height: 4rem; transform: none;
+    width: 4rem;
+    height: 4rem;
+    transform: none;
   }
   app-button[active="true"] {
     box-shadow: 0 0 8px rgba(255,200,0,0.8);
+  }
+}
+
+/* === Keyframes === */
+
+/* A) Spin bis „oben“ (-90°) */
+@keyframes spinToTop {
+  from {
+    transform:
+      translate(-50%, -50%)
+      rotate(var(--angle))
+      translate(var(--r))
+      rotate(#{"calc(-1 * var(--angle))"});
+  }
+  to {
+    transform:
+      translate(-50%, -50%)
+      rotate(-90deg)
+      translate(var(--r))
+      rotate(90deg);
+  }
+}
+
+/* B) Parabelflug nach links */
+@keyframes flight {
+  0%   { /* sitzt schon oben */ }
+  50%  {
+    transform: translate(-50%, -50%) translate(-24%, -20%);
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(-48%, 0);
+  }
+}
+
+/* C) Lichtschweif */
+@keyframes trail {
+  0%   {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 0;
   }
 }
