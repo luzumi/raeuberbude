@@ -1,59 +1,96 @@
-<div class="menu-container">
-
-  <!-- Kreis & Animation: bleibt sichtbar solange keine Auswahl oder Animation läuft -->
-  @if (!selectedEntity || animateSequence) {
-    <!-- 1) Menü-Button in der Mitte -->
-    <app-button
-      class="center-btn"
-      [name]="menuEntity.name"
-      [icon]="menuEntity.icon"
-      (click)="onMenuClick()"
-      [active]="menuVisible"
-      [style.left.%]="50"
-      [style.top.%]="50"
-    ></app-button>
-
-    <!-- 2) Alle Entities im Kreis -->
-    <div class="circle-group" [class.animate]="animateSequence">
-      @for (e of entities; track e.name) {
-        <app-button
-          class="circle-btn"
-          [class.animate]="animateSequence"
-          [style.left.%]="e.left"
-          [style.top.%]="e.top"
-          (click)="openEntity(e)"
-          [name]="e.name"
-          [svgIcon]="e.svgIcon"
-          [color]="e.color ?? 'red'"
-        ></app-button>
-      }
-    </div>
-  }
-
-  <!-- Sidebar: erst anzeigen, wenn Auswahl besteht und Animation vorbei ist -->
-  @if (selectedEntity && !animateSequence) {
-    <div class="sidebar-container">
+<div class="container">
+  <div class="center-container">
+    <!-- Kreis-Menü: Phase 1–3 -->
+    @if (!isFlying && !flightPhase) {
       <app-button
-        name="Zurück"
-        icon="arrow_back"
-        (click)="closeEntity()"
-        [active]="false"
+        class="center-btn"
+        name="Menu"
+        icon="settings"
+        (click)="toggleWheel()"
+        [active]="animateWheel"
+        [style.left.%]="50"
+        [style.top.%]="50"
+        size="15vw"
       ></app-button>
-      <app-button
-        [name]="menuEntity.name"
-        [icon]="menuEntity.icon"
-        (click)="onMenuClick()"
-        [active]="false"
-      ></app-button>
-      @for (e of sidebarItems; track e.name) {
+
+      <div
+        class="circle-group"
+        [class.animate]="animateWheel"
+        [class.align]="isAligning"
+        [style.--target-delta]="selectedTargetDelta"
+        [style.--spin-to-dur]="spinToDurations[selectedIndex]"
+      >
+        @for (e of entities; track e.name; let i = $index) {
+          <app-button
+            class="circle-btn"
+            [name]="e.name"
+            [active]="e.active"
+            [svgIcon]="e.svgIcon"
+            [color]="e.color ?? 'red'"
+            (click)="handleEntityClick(i)"
+            [style.left.%]="50"
+            [style.top.%]="50"
+            [style.--angle]="angles[i]"
+            size="13vw"
+          ></app-button>
+        }
+      </div>
+    }
+
+    <!-- Flug-Phase (langsam wahrnehmbar) -->
+    @if (isFlying) {
+      <div class="circle-group flight">
+        @for (e of entities; track $index) {
+          <app-button
+            class="circle-btn"
+            [name]="e.name"
+            [svgIcon]="e.svgIcon"
+            [color]="e.color ?? 'red'"
+            [style.left.%]="50"
+            [style.top.%]="50"
+            [style.--angle]="angles[$index]"
+            size="2vw'"
+          ></app-button>
+        }
+      </div>
+    }
+
+    <!-- Items oben anzeigen: Phase 4 -->
+    @if (flightPhase) {
+      <div class="flight-container">
         <app-button
-          [name]="e.name"
-          [svgIcon]="e.svgIcon"
-          (click)="openEntity(e)"
-          [active]="selectedEntity === e"
+          name="Zurück"
+          icon="arrow_back"
+          size="5vw"
+          (click)="backFromFlight()"
         ></app-button>
-      }
-    </div>
-    <div class="entity-detail-container"></div>
-  }
+
+        <div class="flight-items">
+          @for (e of entities; track $index) {
+            <app-button
+              size="10vw"
+              [name]="e.name"
+              [svgIcon]="e.svgIcon"
+              (click)="handleEntityClick($index)"
+            ></app-button>
+          }
+        </div>
+
+        <app-button
+          name="Menu"
+          size="5vw"
+          icon="settings"
+          (click)="toggleWheel()"
+          [active]="animateWheel"
+        ></app-button>
+      </div>
+    }
+    <app-function-menu
+      [entity]="entities[selectedIndex]"
+      [position]="{ x: 44, y: 44 }"
+      (close)="backFromFlight()"
+    ></app-function-menu>
+
+
+  </div>
 </div>

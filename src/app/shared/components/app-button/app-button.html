@@ -1,4 +1,10 @@
-<div class="app-button" [class.active]="active" [ngStyle]="{'--color': color,'--color-active': activeColor}">
+<div class="app-button" [class.active]="active"
+     [ngStyle]="{
+      '--color': color,
+      '--color-active': activeColor,
+      '--btn-size': size,
+      '--btn-font-size': fontSize
+    }">
   <div class="button-inner">
     @if (svgIcon) {
       <img [src]="svgIcon" class="svg-icon" [alt]="name"/>
