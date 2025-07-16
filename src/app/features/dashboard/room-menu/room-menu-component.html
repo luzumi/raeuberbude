@@ -1,25 +1,37 @@
+<!-- src/app/features/dashboard/room-menu/room-menu-component.html -->
+
+<app-header
+  [userName]="userName"
+  [flightPhase]="flightPhase"
+  [entities]="entities"
+  (toggleWheel)="toggleWheel()"
+  (entityClick)="handleEntityClick($event)"
+  (back)="backFromFlight()"
+></app-header>
+
 <div class="container">
   <div class="center-container">
     <!-- Kreis-Menü: Phase 1–3 -->
     @if (!isFlying && !flightPhase) {
-      <app-button
-        class="center-btn"
-        name="Menu"
-        icon="settings"
-        (click)="toggleWheel()"
-        [active]="animateWheel"
-        [style.left.%]="50"
-        [style.top.%]="50"
-        size="15vw"
-      ></app-button>
-
       <div
         class="circle-group"
         [class.animate]="animateWheel"
         [class.align]="isAligning"
-        [style.--target-delta]="selectedTargetDelta"
-        [style.--spin-to-dur]="spinToDurations[selectedIndex]"
+        [ngStyle]="{
+           '--target-delta': selectedTargetDelta,
+            '--spin-to-dur': spinToDurations[selectedIndex]
+          }"
       >
+        <app-button
+          class="center-btn"
+          name="Menu"
+          icon="settings"
+          (click)="toggleWheel()"
+          [active]="animateWheel"
+          [style.left.%]="50"
+          [style.top.%]="50"
+          size="8vw"
+        ></app-button>
         @for (e of entities; track e.name; let i = $index) {
           <app-button
             class="circle-btn"
@@ -30,17 +42,17 @@
             (click)="handleEntityClick(i)"
             [style.left.%]="50"
             [style.top.%]="50"
-            [style.--angle]="angles[i]"
-            size="13vw"
+            [ngStyle]="{ '--angle': angles[i] }"
+            size="8vw"
           ></app-button>
         }
       </div>
     }
 
-    <!-- Flug-Phase (langsam wahrnehmbar) -->
+    <!-- Flug-Phase (Phase 3) -->
     @if (isFlying) {
       <div class="circle-group flight">
-        @for (e of entities; track $index) {
+        @for (e of entities; track e.name; let i = $index) {
           <app-button
             class="circle-btn"
             [name]="e.name"
@@ -48,49 +60,26 @@
             [color]="e.color ?? 'red'"
             [style.left.%]="50"
             [style.top.%]="50"
-            [style.--angle]="angles[$index]"
-            size="2vw'"
+            [ngStyle]="{ '--angle': angles[i] }"
+            size="7vw"
           ></app-button>
         }
       </div>
     }
 
-    <!-- Items oben anzeigen: Phase 4 -->
-    @if (flightPhase) {
-      <div class="flight-container">
-        <app-button
-          name="Zurück"
-          icon="arrow_back"
-          size="5vw"
-          (click)="backFromFlight()"
-        ></app-button>
-
-        <div class="flight-items">
-          @for (e of entities; track $index) {
-            <app-button
-              size="10vw"
-              [name]="e.name"
-              [svgIcon]="e.svgIcon"
-              (click)="handleEntityClick($index)"
-            ></app-button>
-          }
-        </div>
-
-        <app-button
-          name="Menu"
-          size="5vw"
-          icon="settings"
-          (click)="toggleWheel()"
-          [active]="animateWheel"
-        ></app-button>
+    <!-- Detail-View (Phase 4) -->
+    @if (flightPhase && activeEntityComponent) {
+      <div class="entity-detail-container">
+        <ng-container [ngComponentOutlet]="activeEntityComponent"></ng-container>
       </div>
     }
+
+    <!-- Function-Menu immer unten -->
     <app-function-menu
       [entity]="entities[selectedIndex]"
       [position]="{ x: 44, y: 44 }"
       (close)="backFromFlight()"
     ></app-function-menu>
-
-
   </div>
 </div>
+

@@ -1,36 +1,70 @@
+/* src/app/shared/components/header/header.component.scss */
+
 @use '../../../../../src/styles/variables' as v;
 
+:host {
+  display: block;
+}
+
 .app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;             // volle Breite
+  height: 80px;            // feste Höhe, passe bei Bedarf an
   display: flex;
   align-items: center;
-  padding: 1rem 2rem;
+  justify-content: space-between;
+  padding: 0 1rem;
   background: linear-gradient(90deg, #f9e4b7 0%, #ffdca3 100%);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
 
-  .greeting {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+.app-header .greeting {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 
-    .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid rgba(0,0,0,0.1);
-    }
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+  }
 
-    .greet-text {
-      font-size: 1.1rem;
-      color: #555;
-    }
+  .greet-text {
+    font-size: 1.1rem;
+    color: #555;
+  }
 
-    .user-name {
-      font-family: v.$font-primary;
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: #333;
-      line-height: 1;
-    }
+  .user-name {
+    font-family: v.$font-primary;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+    line-height: 1;
   }
 }
+
+/* in header.component.scss */
+
+.header-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  /* hier definierst Du, wie breit die gesamte Gruppe maximal werden darf: */
+  width: 80%;           /* sonst standardmäßig die volle Breite */
+  margin: 0 auto;        /* zentriert, wenn der Header breiter ist */
+  gap: 0.5rem;           /* Abstand zwischen den Buttons */
+
+  /* Für den Notfall: falls doch zu viele Buttons, scrollbar: */
+  overflow-x: auto;
+}
+
+.header-buttons app-button {
+  flex: 0 1 auto;       /* wachsen nicht über die max-width hinaus, schrumpfen aber bei Bedarf */
+}
+

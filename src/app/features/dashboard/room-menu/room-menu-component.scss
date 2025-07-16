@@ -1,30 +1,31 @@
-/* room-menu-component.scss */
+/* src/app/features/dashboard/room-menu/room-menu-component.scss */
 
-:root {
-  /* Dauer der Flug-Phase */
+/* 1) Component-Host-Variablen */
+:host {
   --flight-dur: 11.5s;
   --rm-button-size: clamp(2.5rem, 6vw, 4rem);
-
 }
 
-.container{
-  position: relative;
-  width: 90%;
-  height: 100%;
+/* 2) Container unterhalb des fixen Headers */
+.container {
+  position: absolute;
+  top: 80px;    /* Höhe des app-header */
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
-  justify-self: center;
-  align-items: center;
   justify-content: center;
+  align-items: center;
 }
 
-.menu-container {
+/* 3) Innerer Bereich */
+.center-container {
   position: relative;
-  width: 90%;
+  width: 100%;
   height: 100%;
-  overflow: hidden;
 }
 
-/* Center- & Circle-Buttons */
+/* 4) Basisposition aller Buttons */
 .center-btn,
 .circle-btn {
   position: absolute;
@@ -34,133 +35,92 @@
   pointer-events: auto;
 }
 
-/* === Kreis-Layout (Phasen 1–3) === */
+/* 5) Rad-Menü (Phasen 1–3) */
 .circle-group {
   position: absolute;
   inset: 0;
   pointer-events: none;
   transform-origin: center center;
 
-  .entity-button {
-    width: var(--rm-button-size);
-    height: var(--rm-button-size);
-    font-size: calc(var(--rm-button-size) * 0.5); // Icon/Text etwas kleiner
-  }
-
-  /* Radius & Align-Variablen */
+  /* Radius und Animationsparameter */
   --r: 200px;
   --target-delta: 0deg;
   --spin-to-dur: 1s;
 
-  /* 1) Wheel: 1 s Ease-In → 3 s/Umdrehung konstant */
+  /* Wheel-Drehung */
   &.animate {
     animation: spinUp 1s ease-in forwards,
     spinConstant 3s linear calc(1s) infinite;
   }
 
-  /* 3) Align bis geklickter Button oben steht */
+  /* Ausrichten */
   &.align {
     animation: spinToTop var(--spin-to-dur) ease-in forwards;
   }
 }
 
-/* Positionierung auf Kreis */
+/* 6) Position auf dem Kreis */
+/* Nutzt Sass-Interpolation, damit calc-Ausdrücke unverändert bleiben */
 .circle-btn {
   transform-origin: center center;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translate(var(--r)) rotate(calc(-1 * var(--angle)));
+  transform: translate(-50%, -50%)
+  rotate(var(--angle))
+  translate(var(--r))
+  rotate(#{'calc(-1 * var(--angle))'});
 }
 
-.circle-group.flight {
-  // Beispiel: Einmal drehen und auseinanderfliegen
-  animation: flight var(--spin-to-dur) ease-out forwards;
-}
-
+/* 7) Flug-Phase: Animation auf die einzelnen Buttons */
 .circle-group.flight .circle-btn {
-  // Dreh-Translation um den Winkel herum
-  transform:
-    rotate(var(--angle))
-    translate( /* Dein Radius */ )
-    rotate(calc(-1 * var(--angle)));
+  animation: flight var(--flight-dur) ease-out forwards;
 }
 
-@keyframes flight {
-  to {
-    opacity: 0;
-    transform: translate(var(--target-delta));
-  }
-}
-
-/* === Flug-Phase (Phase 3→4) === */
-.circle-group.flight .circle-btn {
-  animation: flight var(--spin-to-dur) ease-out forwards;
-}
-
-/* Ballistische Flugkurve */
-@keyframes flight {
-
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) translate(0, 0);
-  }
-  50% {
-    opacity: 0;
-    transform: translate(-50%, -50%) translate(-24%, -20%);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) translate(-48%, 0);
-  }
-}
-
-/* === Items oben (Phase 4) === */
-.flight-container {
-  position: absolute;
-  top: 10%;
-  left: 50%;
-  width: 90%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  pointer-events: auto;
-
-  app-button {
-    position: static !important;
-    transform: none !important;
-  }
-}
-
-.flight-items {
-  display: flex;
-  flex: 1;
-  justify-content: space-evenly;
-}
-
-/* === Keyframes für Wheel & Align === */
+/* 8) Keyframes für Wheel */
 @keyframes spinUp {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(-360deg);
-  }
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
 }
 
 @keyframes spinConstant {
-  from {
-    transform: rotate(-360deg);
+  from { transform: rotate(-360deg); }
+  to   { transform: rotate(-720deg); }
+}
+
+/* 9) Keyframes fürs Ausrichten */
+@keyframes spinToTop {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(#{'calc(-1 * var(--target-delta))'}); }
+}
+
+/* 10) Ballistische Flugkurve */
+@keyframes flight {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%)
+    rotate(var(--angle))
+    translate(var(--r))
+    rotate(#{'calc(-1 * var(--angle))'});
   }
-  to {
-    transform: rotate(-720deg);
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%)
+    rotate(var(--angle))
+    translate(#{'calc(var(--r) * 1.5)'})
+    rotate(#{'calc(-1 * var(--angle))'});
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(0, -150vh);
   }
 }
 
-@keyframes spinToTop {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(calc(-1 * var(--target-delta)));
-  }
+/* 11) Detail-Ansicht unter dem Header */
+.entity-detail-container {
+  position: absolute;
+  top: 60px;   /* Header-Höhe */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  overflow: auto;
+  background: #fafafa;
 }
