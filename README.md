@@ -33,6 +33,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - `HttpClient`-Bereitstellung auf `provideHttpClient()` umgestellt (modern)
 - CORS-Probleme durch `proxy.conf.json` mit `/api`-Rewrite gelöst
 - Standalone-Komponenten korrekt mit Imports und Routing integriert
+- Fehlerbehandlung beim Lampenschalter verbessert (subscribe mit next/error)
 
 ---
 
