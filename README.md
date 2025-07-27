@@ -63,6 +63,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - ✅ Proxy für CORS eingerichtet und stabil
 - ✅ Routing funktioniert standalone
 - ✅ Material-Design eingebunden
+- ✅ RoomMenu über `/` erreichbar und verbindet sich per WebSocket
 
 ---
 

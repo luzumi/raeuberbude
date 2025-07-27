@@ -3,8 +3,8 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'control',
-    pathMatch: 'full'
+    loadChildren: () =>
+      import('./features/rooms/rooms.routes').then(m => m.routes)
   },
   {
     path: 'control',
