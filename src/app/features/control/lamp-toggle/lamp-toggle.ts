@@ -35,9 +35,17 @@ export class LampToggleComponent implements OnInit {
   toggleLamp(): void {
     this.loading = true;
     const service = this.lampState ? 'turn_off' : 'turn_on';
-    this.ha.callService('light', service, this.entityId).subscribe(() => {
-      this.lampState = !this.lampState;
-      this.loading = false;
+    this.ha.callService('light', service, this.entityId).subscribe({
+      // Erfolgsfall: State umschalten und Ladeanzeige beenden
+      next: () => {
+        this.lampState = !this.lampState;
+        this.loading = false;
+      },
+      // Fehlerfall: Laden ebenfalls beenden und optional Fehler loggen
+      error: (err) => {
+        console.error('Lamp toggle failed', err);
+        this.loading = false;
+      }
     });
   }
 }
