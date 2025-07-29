@@ -60,6 +60,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - ✅ Projektstruktur und Konfiguration
 - ✅ Verbindung zu Home Assistant funktioniert
 - ✅ Erster Schalter (Lampe) ist sichtbar und steuerbar
+- ✅ Orange Light verfügt über einen Device-Button zum Ein- und Ausschalten
 - ✅ Proxy für CORS eingerichtet und stabil
 - ✅ Routing funktioniert standalone
 - ✅ Material-Design eingebunden
