@@ -1,8 +1,14 @@
+/**
+ * OrangeLight Component
+ *
+ * Stellt einen Device-Button zum Ein- und Ausschalten der Lampe bereit.
+ * Die Kommunikation erfolgt über den HomeAssistantService per WebSocket.
+ */
 import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription, map } from 'rxjs';
 import { AppButtonComponent } from '../../../../../../../shared/components/app-button/app-button';
-import { HomeAssistantService, Entity } from '../../../../../../../services/home-assistant/home-assistant.service';
+import { HomeAssistantService } from '../../../../../../../services/home-assistant/home-assistant.service';
 
 @Component({
   selector: 'app-orange-light',
@@ -12,11 +18,18 @@ import { HomeAssistantService, Entity } from '../../../../../../../services/home
   styleUrl: './orange-light.scss'
 })
 export class OrangeLight implements OnDestroy {
-  /** Aktueller Zustand der Lampe */
+  /**
+   * Speichert, ob die Lampe laut Home Assistant aktuell eingeschaltet ist.
+   * Dieser Wert steuert auch die Farbe des Buttons.
+   */
   isOn = false;
-  /** ID der Home Assistant Entity */
+  /**
+   * Entity-ID der Lampe in Home Assistant. 
+   * Muss zum jeweiligen Setup passen.
+   */
   readonly entityId = 'light.wiz_tunable_white_640190';
 
+  /** Subscription auf State-Änderungen */
   private sub: Subscription;
 
   constructor(private ha: HomeAssistantService) {
@@ -26,13 +39,17 @@ export class OrangeLight implements OnDestroy {
       .subscribe(e => this.isOn = e?.state === 'on');
   }
 
-  /** Lampenzustand umschalten */
+  /**
+   * Lampenzustand umschalten.
+   * Sendet 'turn_on' oder 'turn_off' über den HomeAssistantService.
+   */
   toggle(): void {
     const service = this.isOn ? 'turn_off' : 'turn_on';
     // Service-Aufruf über WebSocket an Home Assistant schicken
     this.ha.callService('light', service, { entity_id: this.entityId }).subscribe();
   }
 
+  /** Aufräumen der Subscription, wenn die Komponente zerstört wird */
   ngOnDestroy(): void {
     this.sub.unsubscribe();
   }
