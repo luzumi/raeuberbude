@@ -124,3 +124,15 @@
   overflow: auto;
   background: #fafafa;
 }
+
+/* Positionierter Link zum Dashboard */
+.dashboard-link {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  text-decoration: none;
+  color: #333;
+}

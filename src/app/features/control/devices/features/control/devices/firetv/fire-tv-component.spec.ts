@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import {Firetv} from './fire-tv-component';
+import { FiretvComponent } from './fire-tv-component';
 
 
-describe('Firetv', () => {
-  let component: Firetv;
-  let fixture: ComponentFixture<Firetv>;
+describe('FiretvComponent', () => {
+  let component: FiretvComponent;
+  let fixture: ComponentFixture<FiretvComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Firetv]
+      imports: [FiretvComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(Firetv);
+    fixture = TestBed.createComponent(FiretvComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

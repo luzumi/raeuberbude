@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { HomeAssistant } from '../../../core/home-assistant';
+// Aktuellen HomeAssistantService einbinden
+import { HomeAssistantService, Entity } from '../../../services/home-assistant/home-assistant.service';
 import {MatCard, MatCardContent, MatCardTitle} from '@angular/material/card';
 import {MatSlideToggle} from '@angular/material/slide-toggle';
 
@@ -20,21 +21,24 @@ export class LampToggleComponent implements OnInit {
   loading: boolean = false;
   readonly entityId = 'light.wiz_tunable_white_640190';
 
-  constructor(private ha: HomeAssistant) {}
+  constructor(private ha: HomeAssistantService) {}
 
   ngOnInit(): void {
     this.loadState();
   }
 
   loadState(): void {
-    this.ha.getState(this.entityId).subscribe(data => {
-      this.lampState = data.state === 'on';
-    });
+    // Aktuellen Status der Lampe laden
+    const ent = this.ha.getEntity(this.entityId);
+    if (ent) {
+      this.lampState = ent.state === 'on';
+    }
   }
 
   toggleLamp(): void {
     this.loading = true;
     const service = this.lampState ? 'turn_off' : 'turn_on';
+    // Service-Aufruf zum An/Aus-Schalten der Lampe
     this.ha.callService('light', service, this.entityId).subscribe({
       // Erfolgsfall: State umschalten und Ladeanzeige beenden
       next: () => {
@@ -42,7 +46,7 @@ export class LampToggleComponent implements OnInit {
         this.loading = false;
       },
       // Fehlerfall: Laden ebenfalls beenden und optional Fehler loggen
-      error: (err) => {
+      error: (err: unknown) => {
         console.error('Lamp toggle failed', err);
         this.loading = false;
       }

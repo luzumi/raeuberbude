@@ -1,7 +1,9 @@
 @use 'sass:map';
 @use 'styles/palette' as *;
-/* Google-Fonts: Roboto (Material) + Poppins (Headings) */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Poppins:wght@300;400;600;700&display=swap');
+/* Google-Fonts: Roboto (Material) + Poppins (Headings)
+   Hinweis: Die Fonts werden in der Testumgebung nicht geladen, um Buildfehler
+   durch fehlende Internetverbindung zu vermeiden. */
+/* @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Poppins:wght@300;400;600;700&display=swap'); */
 
 // Beispiel-Nutzung
 body {

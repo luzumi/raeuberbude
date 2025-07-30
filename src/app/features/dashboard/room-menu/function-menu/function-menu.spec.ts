@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { FunctionMenu } from './function-menu';
+import { FunctionMenuComponent } from './function-menu';
 
-describe('FunctionMenu', () => {
-  let component: FunctionMenu;
-  let fixture: ComponentFixture<FunctionMenu>;
+describe('FunctionMenuComponent', () => {
+  let component: FunctionMenuComponent;
+  let fixture: ComponentFixture<FunctionMenuComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [FunctionMenu]
+      imports: [FunctionMenuComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(FunctionMenu);
+    fixture = TestBed.createComponent(FunctionMenuComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

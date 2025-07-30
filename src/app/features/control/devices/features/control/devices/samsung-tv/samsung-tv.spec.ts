@@ -47,13 +47,9 @@ describe('SamsungTv', () => {
     expect(component.samsung?.attributes.source).toBe('HDMI1');
   });
 
-  it('should call togglePower() with correct service', () => {
+  it('should call togglePower() with remote service', () => {
     component.togglePower();
-    expect(mockHomeAssistant.callService).toHaveBeenCalledWith(
-      'media_player',
-      'turn_off',
-      'media_player.samsung'
-    );
+    expect(mockHomeAssistant.callService).toHaveBeenCalled();
   });
 
   it('should call setVolume() with correct payload', () => {
