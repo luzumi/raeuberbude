@@ -136,6 +136,17 @@ export class SamsungTv implements AfterViewInit {
 
   }
 
+  /**
+   * Wählt direkt eine Quelle aus dem Source-Menü.
+   * Wird im Test verwendet, daher hier minimal implementiert.
+   */
+  selectSource(source: string): void {
+    this.hass.callService('media_player', 'select_source', {
+      entity_id: 'media_player.tv_samsung',
+      source
+    }).subscribe();
+  }
+
   screenLeft(){
     this.hass.callService('remote', 'send_command', {
       entity_id: 'remote.samsung',

@@ -1,0 +1,10 @@
+<mat-card>
+  <mat-card-title>Orange Light</mat-card-title>
+  <mat-card-content>
+    <mat-slide-toggle
+      [checked]="lampState"
+      (change)="toggleLamp()"
+      [disabled]="loading"
+    >{{ lampState ? 'On' : 'Off' }}</mat-slide-toggle>
+  </mat-card-content>
+</mat-card>

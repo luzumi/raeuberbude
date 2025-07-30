@@ -3,6 +3,8 @@
 import { Component, OnInit, Type } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+// Für den Dashboard-Link
+import { RouterLink } from '@angular/router';
 
 import { AppButtonComponent } from '../../../shared/components/app-button/app-button';
 import { HeaderComponent }  from '../../../shared/components/header/header.component';
@@ -24,7 +26,8 @@ import { Laptop }        from '../../control/devices/features/control/devices/la
     MatIconModule,
     AppButtonComponent,
     HeaderComponent,
-    FunctionMenuComponent
+    FunctionMenuComponent,
+    RouterLink
   ],
   templateUrl: './room-menu-component.html',
   styleUrls: ['./room-menu-component.scss'],
