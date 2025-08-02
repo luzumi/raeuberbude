@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+// Reuse header component from '/raub1' to keep visual consistency
+import { HeaderComponent } from '../../../shared/components/header/header.component';
 
 /**
  * Login form presented at the root route. Redirects to '/zuhause' on success.
@@ -10,7 +12,8 @@ import { AuthService } from '../../../services/auth.service';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  // Include header so the login page matches '/raub1' styling
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, HeaderComponent],
   templateUrl: './login-component.html',
   styleUrl: './login-component.scss'
 })

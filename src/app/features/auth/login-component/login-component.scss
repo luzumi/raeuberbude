@@ -1,42 +1,47 @@
-.login-wrapper {
+// Reused centered container from '/raub1' room menu
+.login-container {
+  position: absolute;
+  top: 80px; /* height of app-header */
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
 }
 
+// Card-style form with gradient borrowed from the header in '/raub1'
 .login-form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, #f9e4b7 0%, #ffdca3 100%);
   border-radius: 8px;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-  color: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  color: #333;
 }
 
 .login-form input {
   padding: 0.5rem;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #333;
 }
 
 .login-form button {
   padding: 0.5rem;
   border: none;
-  background: rgba(0, 150, 136, 0.5);
+  background: #f9a825;
   color: #fff;
   cursor: pointer;
   transition: box-shadow 0.3s;
 }
 
 .login-form button:hover {
-  box-shadow: 0 0 10px rgba(0, 150, 136, 0.8);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
 .error {
-  color: #ff8080;
+  color: #b00020;
 }

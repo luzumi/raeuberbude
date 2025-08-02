@@ -35,6 +35,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Standalone-Komponenten korrekt mit Imports und Routing integriert
 - Fehlerbehandlung beim Lampenschalter verbessert (subscribe mit next/error)
 - **Login & Routing:** Einfache Benutzeranmeldung mit Weiterleitung nach `/zuhause`; Inhalte der bisherigen Startseite liegen nun unter `/raub1`, das Dashboard ist zusätzlich über `/raub2` erreichbar.
+- Neues Login-Design im Stil von `/raub1` für ein einheitliches Erscheinungsbild.
 
 ---
 
