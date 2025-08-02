@@ -1,0 +1,15 @@
+<div class="login-wrapper">
+  <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
+    <h2>Login</h2>
+    <label>
+      Benutzername
+      <input type="text" formControlName="username" />
+    </label>
+    <label>
+      Passwort
+      <input type="password" formControlName="password" />
+    </label>
+    <button type="submit" [disabled]="form.invalid">Einloggen</button>
+    <p class="error" *ngIf="error">{{ error }}</p>
+  </form>
+</div>

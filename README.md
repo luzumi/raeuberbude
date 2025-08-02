@@ -34,6 +34,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - CORS-Probleme durch `proxy.conf.json` mit `/api`-Rewrite gelöst
 - Standalone-Komponenten korrekt mit Imports und Routing integriert
 - Fehlerbehandlung beim Lampenschalter verbessert (subscribe mit next/error)
+- **Login & Routing:** Einfache Benutzeranmeldung mit Weiterleitung nach `/zuhause`; Inhalte der bisherigen Startseite liegen nun unter `/raub1`, das Dashboard ist zusätzlich über `/raub2` erreichbar.
 
 ---
 
@@ -52,6 +53,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Token liegt aktuell noch im `environment.ts` – später sicherer handhaben
 - App läuft vollständig standalone, `AppComponent` bootstrapped direkt (`bootstrapApplication()`)
 - Kein klassisches `AppModule` oder `NgModule` nötig
+- Default-Login: `admin` / `secret` (lokale Demo-Datenbank)
 
 ---
 
