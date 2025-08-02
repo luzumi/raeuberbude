@@ -9,7 +9,8 @@
       Passwort
       <input type="password" formControlName="password" />
     </label>
-    <button type="submit" [disabled]="form.invalid">Einloggen</button>
+    <!-- Angelehnt an die Kreismenü-Buttons aus '/raub1' mit Glow-Effekt -->
+    <button class="login-button" type="submit" [disabled]="form.invalid">Einloggen</button>
     <p class="error" *ngIf="error">{{ error }}</p>
   </form>
 </div>
