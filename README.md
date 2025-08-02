@@ -104,6 +104,13 @@ Wir planen die Startseite als eine Art **visuelles Geräte-Dashboard**:
 - [ ] Styles & Animationen definieren (Responsivität & Fokuswechsel)
 - [ ] Detailanzeige bei Klick (Popup oder Inline)
 
+## Login und neue Routen
+- Startseite zeigt nun einen Login-Dialog
+- Nach erfolgreichem Login führt `/zuhause` zu einer Raumübersicht
+- Der ursprüngliche Inhalt von `/` ist unter `/raub1` erreichbar
+- Die frühere Route `/dashboard` wurde zu `/raub2` umbenannt
+- Standardnutzer: **admin / 1234** (wird bei erstem Start in LocalStorage angelegt)
+
 ---
 
 *Letzte Aktualisierung: 2025-06-05*

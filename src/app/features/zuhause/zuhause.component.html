@@ -1,0 +1,9 @@
+<div class="room-grid">
+  <button
+    class="room-btn"
+    *ngFor="let room of rooms"
+    [routerLink]="room.link"
+    [disabled]="!room.link">
+    {{ room.name }}
+  </button>
+</div>
