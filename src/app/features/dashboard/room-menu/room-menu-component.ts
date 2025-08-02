@@ -7,7 +7,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 
 import { AppButtonComponent } from '../../../shared/components/app-button/app-button';
-import { HeaderComponent }  from '../../../shared/components/header/header.component';
 import { RoomEntityButton } from './room-entity-button';
 import { FunctionMenuComponent } from './function-menu/function-menu';
 
@@ -25,7 +24,6 @@ import { Laptop }        from '../../control/devices/features/control/devices/la
     CommonModule,
     MatIconModule,
     AppButtonComponent,
-    HeaderComponent,
     FunctionMenuComponent,
     RouterLink
   ],

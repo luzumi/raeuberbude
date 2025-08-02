@@ -1,9 +1,10 @@
 // src/app/shared/components/header/header.component.ts
 
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppButtonComponent } from '../app-button/app-button';
 import { RoomEntityButton } from '../../../features/dashboard/room-menu/room-entity-button';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -34,6 +35,9 @@ export class HeaderComponent {
   /** Event für den Zurück-Button */
   @Output() back = new EventEmitter<void>();
 
+  /** Service zum Verwalten der Authentifizierung */
+  private auth = inject(AuthService);
+
   /** Methode: Menu-Icon anklicken */
   onToggleMenu(): void {
     this.toggleWheel.emit();
@@ -47,6 +51,13 @@ export class HeaderComponent {
   /** Methode: Zurück-Button anklicken */
   onBack(): void {
     this.back.emit();
+  }
+
+  /**
+   * Klick auf den Logout-Button: beendet die Sitzung und leitet auf die Login-Seite um.
+   */
+  logout(): void {
+    this.auth.logout();
   }
 
   /** Tageszeiten-Begrüßung */

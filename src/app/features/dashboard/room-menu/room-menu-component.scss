@@ -6,10 +6,10 @@
   --rm-button-size: clamp(2.5rem, 6vw, 4rem);
 }
 
-/* 2) Container unterhalb des fixen Headers */
+/* 2) Container – Header ist jetzt global, daher kein Offset notwendig */
 .container {
   position: absolute;
-  top: 80px;    /* Höhe des app-header */
+  top: 0;        /* Header-Abstand wird in AppComponent gesetzt */
   bottom: 0;
   left: 0;
   right: 0;
@@ -116,7 +116,7 @@
 /* 11) Detail-Ansicht unter dem Header */
 .entity-detail-container {
   position: absolute;
-  top: 60px;   /* Header-Höhe */
+  top: 0;      /* globaler Header bereits berücksichtigt */
   bottom: 0;
   left: 0;
   right: 0;

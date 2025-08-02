@@ -36,6 +36,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Fehlerbehandlung beim Lampenschalter verbessert (subscribe mit next/error)
 - **Login & Routing:** Einfache Benutzeranmeldung mit Weiterleitung nach `/zuhause`; Inhalte der bisherigen Startseite liegen nun unter `/raub1`, das Dashboard ist zusätzlich über `/raub2` erreichbar.
 - **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
+- **Logout:** Globaler Button im Header ermöglicht Abmeldung von jeder Seite.
 
 ---
 
