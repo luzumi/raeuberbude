@@ -1,40 +1,56 @@
+@use '../../../../../src/styles/variables' as v;
+
+/* Wrapper reuses '/raub1' header gradient */
 .login-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
+  background: linear-gradient(90deg, #f9e4b7 0%, #ffdca3 100%);
+  font-family: v.$font-primary;
 }
 
+/* Semi-transparent form card */
 .login-form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-  color: #fff;
+  color: v.$color-text;
+  backdrop-filter: blur(4px);
+  font-family: v.$font-secondary;
 }
 
 .login-form input {
   padding: 0.5rem;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: v.$color-text;
 }
 
+/* Button uses theme colors from '/raub1' wheel */
 .login-form button {
-  padding: 0.5rem;
+  padding: 0.5rem 1rem;
   border: none;
-  background: rgba(0, 150, 136, 0.5);
-  color: #fff;
+  border-radius: 4px;
+  background: linear-gradient(90deg, v.$color-light 0%, v.$color-center 100%);
+  color: v.$color-text;
   cursor: pointer;
   transition: box-shadow 0.3s;
 }
 
 .login-form button:hover {
-  box-shadow: 0 0 10px rgba(0, 150, 136, 0.8);
+  box-shadow: 0 0 10px v.$color-center;
+}
+
+.subtitle {
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+  color: #555;
 }
 
 .error {

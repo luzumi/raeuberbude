@@ -1,6 +1,8 @@
+<!-- Login screen styled with elements from '/raub1' -->
 <div class="login-wrapper">
   <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
-    <h2>Login</h2>
+    <h2>Willkommen</h2>
+    <p class="subtitle">Melde dich an, um fortzufahren</p>
     <label>
       Benutzername
       <input type="text" formControlName="username" />
@@ -9,6 +11,7 @@
       Passwort
       <input type="password" formControlName="password" />
     </label>
+    <!-- Button uses theme colors from '/raub1' -->
     <button type="submit" [disabled]="form.invalid">Einloggen</button>
     <p class="error" *ngIf="error">{{ error }}</p>
   </form>
