@@ -9,6 +9,7 @@
       Passwort
       <input type="password" formControlName="password" />
     </label>
+    <!-- Button übernimmt Glow-Stil aus '/raub1' -->
     <button type="submit" [disabled]="form.invalid">Einloggen</button>
     <p class="error" *ngIf="error">{{ error }}</p>
   </form>

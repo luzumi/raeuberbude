@@ -1,8 +1,13 @@
+@use '../../../../styles/variables' as v; /* Zugriff auf Farb- und Font-Variablen */
+
 .login-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
+  /* Hintergrund-Verlauf aus dem Header von '/raub1' */
+  background: linear-gradient(90deg, #f9e4b7 0%, #ffdca3 100%);
+  font-family: v.$font-primary;
 }
 
 .login-form {
@@ -10,31 +15,47 @@
   flex-direction: column;
   gap: 1rem;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  /* Schatten wie bei Panels in '/raub1' */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: v.$color-text;
+}
+
+.login-form label {
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
 }
 
 .login-form input {
   padding: 0.5rem;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  color: v.$color-text;
 }
 
 .login-form button {
-  padding: 0.5rem;
+  align-self: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%; /* runde Form wie Buttons unter '/raub1' */
   border: none;
-  background: rgba(0, 150, 136, 0.5);
-  color: #fff;
+  background: v.$color-center; /* zentrale Farbe aus '/raub1' */
+  font-family: v.$font-secondary;
+  color: #333;
   cursor: pointer;
+  /* dezente Aura inspiriert vom app-button */
+  box-shadow: 0 0 6px 4px rgba(255, 255, 255, 0.1);
   transition: box-shadow 0.3s;
 }
 
 .login-form button:hover {
-  box-shadow: 0 0 10px rgba(0, 150, 136, 0.8);
+  /* Glow-Effekt aus dem app-button von '/raub1' */
+  box-shadow: 0 0 12px 4px rgba(255, 255, 255, 0.3),
+    0 0 20px 25px v.$color-center,
+    inset 0 0 8px rgba(255, 255, 255, 0.4);
 }
 
 .error {
