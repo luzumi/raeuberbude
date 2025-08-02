@@ -110,5 +110,13 @@ Wir planen die Startseite als eine Art **visuelles Geräte-Dashboard**:
 
 *Letzte Aktualisierung: 2025-06-05*
 
+## Tests
+
+Um die Unit-Tests auszuführen, wird ein Chrome- bzw. Chromium-Browser benötigt. Sollte die automatische Suche fehlschlagen, kann der Pfad über die Umgebungsvariable `CHROME_BIN` gesetzt werden:
+
+```bash
+CHROME_BIN=/pfad/zu/chromium npm test
+```
+
 ## Animation
 ![Kreis Animation](kreis_animation.png)
