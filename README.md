@@ -1,10 +1,4 @@
- Tests
-
-Alle Tests liegen nun im Verzeichnis `tests/`. Der Testlauf nutzt Puppeteer und lädt dadurch automatisch eine Chromium-Binary, so dass keine lokale Installation nötig ist. Bei Bedarf kann weiterhin ein eigener Browser über die Umgebungsvariable `CHROME_BIN` gesetzt werden.
-
-```bash
-npm test
-```# Raeuberbude
+# Raeuberbude
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.0.1.
 
@@ -119,7 +113,7 @@ Wir planen die Startseite als eine Art **visuelles Geräte-Dashboard**:
 
 ## Tests
 
-Alle Tests liegen nun im Verzeichnis `tests/`. Der Testlauf nutzt Puppeteer und lädt dadurch automatisch eine Chromium-Binary, so dass keine lokale Installation nötig ist. Bei Bedarf kann weiterhin ein eigener Browser über die Umgebungsvariable `CHROME_BIN` gesetzt werden.
+Alle Tests liegen im Verzeichnis `tests/`. Der Testlauf nutzt `jsdom` und kommt damit ohne einen installierten Browser aus.
 
 ```bash
 npm test

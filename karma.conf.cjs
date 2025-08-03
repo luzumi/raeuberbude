@@ -1,10 +1,8 @@
 const { join } = require('path');
 const { constants } = require('karma');
-const puppeteer = require('puppeteer');
 
-// Use Puppeteer to supply a Chromium binary for Karma.
-// Developers can still override CHROME_BIN to use a local installation.
-process.env.CHROME_BIN = process.env.CHROME_BIN || puppeteer.executablePath(); // use Puppeteer Chromium for tests
+// Use jsdom to emulate a browser environment without external dependencies.
+// This avoids missing system libraries required by Chromium in the container.
 
 module.exports = function (config) {
   config.set({
@@ -13,7 +11,7 @@ module.exports = function (config) {
     frameworks: ['jasmine'],
     plugins: [
       require('karma-jasmine'),
-      require('karma-chrome-launcher'),
+      require('karma-jsdom-launcher'), // run tests in jsdom
       require('karma-jasmine-html-reporter'),
       require('karma-coverage'),
     ],
@@ -37,7 +35,7 @@ module.exports = function (config) {
     colors: true,
     logLevel: constants.LOG_INFO,
     autoWatch: false,
-    browsers: ['ChromeHeadless'],
+    browsers: ['jsdom'], // use lightweight jsdom instead of Chrome
     singleRun: true,
     restartOnFileChange: false,
   });
