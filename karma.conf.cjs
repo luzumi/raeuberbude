@@ -17,7 +17,7 @@ module.exports = function (config) {
       require('karma-coverage'),
     ],
     client: {
-      jasmine: {},
+      // jasmine: {},
       clearContext: false,
     },
     jasmineHtmlReporter: {
@@ -37,7 +37,9 @@ module.exports = function (config) {
     logLevel: constants.LOG_INFO,
     autoWatch: false,
     browsers: ['ChromeHeadless'],
+    // browsers: ['ChromeHeadless'],
     singleRun: true,
     restartOnFileChange: false,
+
   });
 };
