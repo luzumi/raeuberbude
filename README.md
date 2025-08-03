@@ -128,6 +128,23 @@ WebSocket-Server bereit, der eingehende Nachrichten automatisch protokolliert.
 
 *Letzte Aktualisierung: 2025-06-05*
 
+## Logging-Server
+
+Ein Node.js-Backend unter `backend/` protokolliert WebSocket-Nachrichten
+und Benutzeraktionen in einer MongoDB-Datenbank. Es werden lediglich
+pseudonyme Benutzerkennungen gespeichert.
+
+### Starten
+
+```bash
+cd backend
+npm install
+npm start
+```
+
+Konfiguriere den Datenbankzugang über die Umgebungsvariable
+`MONGODB_URI` (siehe `backend/.env.example`).
+
 ## Tests
 
 Um die Unit-Tests auszuführen, wird ein Chrome- bzw. Chromium-Browser benötigt. Sollte die automatische Suche fehlschlagen, kann der Pfad über die Umgebungsvariable `CHROME_BIN` gesetzt werden:

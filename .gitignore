@@ -8,8 +8,13 @@
 
 # Node
 /node_modules
+# Ignore nested node_modules directories such as the backend server
+node_modules/
 npm-debug.log
 yarn-error.log
+
+# Environment files
+.env
 
 # IDEs and editors
 .idea/

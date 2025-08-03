@@ -4,13 +4,15 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppButtonComponent } from '../app-button/app-button';
 import { RoomEntityButton } from '../../../features/dashboard/room-menu/room-entity-button';
+import {LogoutButtonComponent} from '../logout-button/logout-button';
 
 @Component({
   selector: 'app-header',
   standalone: true,
   imports: [
     CommonModule,
-    AppButtonComponent
+    AppButtonComponent,
+    LogoutButtonComponent
   ],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']

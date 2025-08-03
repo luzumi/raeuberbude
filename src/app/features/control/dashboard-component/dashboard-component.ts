@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass, NgStyle} from '@angular/common';
 import { Creator } from '../devices/features/control/devices/creator/creator';
 import { Laptop } from '../devices/features/control/devices/laptop/laptop';
 import { OrangeLight } from '../devices/features/control/devices/orange-light/orange-light';
@@ -20,13 +20,15 @@ interface Device {
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    CommonModule,
     Pixel,
     OrangeLight,
     Laptop,
     Creator,
     SamsungTv,
-    MenuComponent  // NEU: Menü‐Komponente registrieren
+    MenuComponent,
+    NgStyle,
+    NgClass,
+    // NEU: Menü‐Komponente registrieren
   ],
   templateUrl: './dashboard-component.html',
   styleUrls: ['./dashboard-component.scss']

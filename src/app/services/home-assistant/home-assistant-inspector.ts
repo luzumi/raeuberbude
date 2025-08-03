@@ -36,7 +36,7 @@ export class HomeAssistantInspector {
     'Content-Type': 'application/json'
   });
 
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   public getAllEntities(): Observable<Entity[]> {
     return this.http.get<Entity[]>(`${this.baseUrl}/api/states`, { headers: this.headers });
@@ -47,16 +47,16 @@ export class HomeAssistantInspector {
   }
 
   public getSupportedFeatures(entity: Entity): string[] {
-    const supported = entity.attributes.supported_features || 0;
+    const supported = entity.attributes.supported_features ?? 0;
     return Object.entries(MediaPlayerFeature)
       .filter(([_, bit]) => (supported & Number(bit)) === Number(bit))
-      .map(([name]) => name);
+      .map(([name, _]) => name);
   }
 
   public describeFeatures(bitmask: number): string[] {
     return Object.entries(MediaPlayerFeature)
       .filter(([_, value]) => typeof value === 'number' && (bitmask & value) === value)
-      .map(([name]) => name);
+      .map(([name,_]) => name);
   }
 
   public listAllMediaControls(entities: Entity[]): { entity_id: string, features: string[] }[] {

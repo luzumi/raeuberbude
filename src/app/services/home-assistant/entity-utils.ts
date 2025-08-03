@@ -12,7 +12,7 @@ const CONTROLLABLE_KEYS = [
 export function getControllableAttributes(entity: Entity): Record<string, any> {
   const attrs = entity?.attributes ?? {};
   return Object.fromEntries(
-    Object.entries(attrs).filter(([k]) => CONTROLLABLE_KEYS.includes(k))
+    Object.entries(attrs).filter(([key, _]) => CONTROLLABLE_KEYS.includes(key))
   );
 }
 

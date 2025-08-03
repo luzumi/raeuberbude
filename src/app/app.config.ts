@@ -1,6 +1,5 @@
 import {
-  ApplicationConfig,
-  importProvidersFrom, inject, provideAppInitializer,
+  ApplicationConfig, inject, provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection
 } from '@angular/core';
