@@ -7,9 +7,10 @@ describe('SamsungTv', () => {
   let component: SamsungTv;
   let fixture: ComponentFixture<SamsungTv>;
 
+  // Use the same entity ID as in the component to keep the test realistic
   const mockEntities: Entity[] = [
     {
-      entity_id: 'media_player.samsung',
+      entity_id: 'media_player.tv_samsung',
       state: 'on',
       attributes: {
         source: 'HDMI1',
@@ -43,7 +44,7 @@ describe('SamsungTv', () => {
   });
 
   it('should load Samsung TV entity', () => {
-    expect(component.samsung?.entity_id).toBe('media_player.samsung');
+    expect(component.samsung?.entity_id).toBe('media_player.tv_samsung');
     expect(component.samsung?.attributes.source).toBe('HDMI1');
   });
 
@@ -57,7 +58,7 @@ describe('SamsungTv', () => {
     expect(mockHomeAssistant.callService).toHaveBeenCalledWith(
       'media_player',
       'volume_set',
-      { entity_id: 'media_player.samsung', volume_level: 0.5 }
+      { entity_id: 'media_player.tv_samsung', volume_level: 0.5 }
     );
   });
 
@@ -66,7 +67,7 @@ describe('SamsungTv', () => {
     expect(mockHomeAssistant.callService).toHaveBeenCalledWith(
       'media_player',
       'select_source',
-      { entity_id: 'media_player.samsung', source: 'Netflix' }
+      { entity_id: 'media_player.tv_samsung', source: 'Netflix' }
     );
   });
 });
