@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { KeyPadComponent } from './key-pad.component';
+import { KeyPadComponent } from 'src/app/shared/components/key-pad-component/key-pad.component'; // path adjusted after moving tests
 
 describe('KeyPadComponent', () => {
   let component: KeyPadComponent;

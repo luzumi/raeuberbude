@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FiretvComponent } from './fire-tv-component';
+import { FiretvComponent } from 'src/app/features/control/devices/features/control/devices/firetv/fire-tv-component'; // path adjusted after moving tests
 
 
 describe('FiretvComponent', () => {

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { RoomMenuComponent } from './room-menu-component';
+import { RoomMenuComponent } from 'src/app/features/dashboard/room-menu/room-menu-component'; // path adjusted after moving tests
 
 describe('RoomMenuComponent', () => {
   let component: RoomMenuComponent;

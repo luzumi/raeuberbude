@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AppButtonComponent } from './app-button';
+import { Laptop } from 'src/app/features/control/devices/features/control/devices/laptop/laptop'; // path adjusted after moving tests
 
-describe('AppButtonComponent', () => {
-  let component: AppButtonComponent;
-  let fixture: ComponentFixture<AppButtonComponent>;
+describe('Laptop', () => {
+  let component: Laptop;
+  let fixture: ComponentFixture<Laptop>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AppButtonComponent]
+      imports: [Laptop]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(AppButtonComponent);
+    fixture = TestBed.createComponent(Laptop);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

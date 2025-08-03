@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ConfigService } from './config-service';
+import { ConfigService } from 'src/app/services/config-service'; // path adjusted after moving tests
 
 describe('ConfigService', () => {
   let service: ConfigService;

@@ -1,9 +1,10 @@
 const { join } = require('path');
 const { constants } = require('karma');
+const puppeteer = require('puppeteer');
 
-// Ensure Karma uses a Chromium binary if available; developers can override
-// CHROME_BIN to point at their local Chrome installation.
-process.env.CHROME_BIN = process.env.CHROME_BIN || 'chromium';
+// Use Puppeteer to supply a Chromium binary for Karma.
+// Developers can still override CHROME_BIN to use a local installation.
+process.env.CHROME_BIN = process.env.CHROME_BIN || puppeteer.executablePath(); // use Puppeteer Chromium for tests
 
 module.exports = function (config) {
   config.set({

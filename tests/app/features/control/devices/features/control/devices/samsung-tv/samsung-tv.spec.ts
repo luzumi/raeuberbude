@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SamsungTv } from './samsung-tv';
-import { HomeAssistantService, Entity } from '../../../../../../../services/home-assistant/home-assistant.service';
+import { SamsungTv } from 'src/app/features/control/devices/features/control/devices/samsung-tv/samsung-tv'; // path adjusted after moving tests
+import { HomeAssistantService, Entity } from 'src/app/services/home-assistant/home-assistant.service'; // path adjusted after moving tests
 import { of } from 'rxjs';
 
 describe('SamsungTv', () => {

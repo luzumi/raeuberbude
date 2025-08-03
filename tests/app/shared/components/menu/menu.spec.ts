@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Laptop } from './laptop';
+import { MenuComponent } from 'src/app/shared/components/menu/menu'; // path adjusted after moving tests
 
-describe('Laptop', () => {
-  let component: Laptop;
-  let fixture: ComponentFixture<Laptop>;
+describe('Menu', () => {
+  let component: MenuComponent;
+  let fixture: ComponentFixture<MenuComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Laptop]
+      imports: [MenuComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(Laptop);
+    fixture = TestBed.createComponent(MenuComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

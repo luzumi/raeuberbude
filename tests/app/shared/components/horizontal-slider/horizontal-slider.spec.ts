@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { HorizontalSlider } from './horizontal-slider';
+import { HorizontalSlider } from 'src/app/shared/components/horizontal-slider/horizontal-slider'; // path adjusted after moving tests
 
 describe('HorizontalSlider', () => {
   let component: HorizontalSlider;

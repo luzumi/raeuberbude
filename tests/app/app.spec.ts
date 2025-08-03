@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { AppComponent } from './app';
+import { AppComponent } from 'src/app/app'; // path adjusted after moving tests
 
 describe('App', () => {
   beforeEach(async () => {

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DashboardComponent } from './dashboard-component';
+import { DashboardComponent } from 'src/app/features/control/dashboard-component/dashboard-component'; // path adjusted after moving tests
 import { CommonModule } from '@angular/common';
-import { MenuComponent } from '../../../shared/components/menu/menu';
+import { MenuComponent } from 'src/app/shared/components/menu/menu'; // path adjusted after moving tests
 
 describe('DashboardComponent (with Menu)', () => {
   let component: DashboardComponent;

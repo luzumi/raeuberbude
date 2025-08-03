@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { OrangeLight } from './orange-light';
+import { OrangeLight } from 'src/app/features/control/devices/features/control/devices/orange-light/orange-light'; // path adjusted after moving tests
 
 describe('OrangeLight', () => {
   let component: OrangeLight;

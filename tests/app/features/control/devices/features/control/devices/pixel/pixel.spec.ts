@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { MenuComponent } from './menu';
+import { Pixel } from 'src/app/features/control/devices/features/control/devices/pixel/pixel'; // path adjusted after moving tests
 
-describe('Menu', () => {
-  let component: MenuComponent;
-  let fixture: ComponentFixture<MenuComponent>;
+describe('Pixel', () => {
+  let component: Pixel;
+  let fixture: ComponentFixture<Pixel>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MenuComponent]
+      imports: [Pixel]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(MenuComponent);
+    fixture = TestBed.createComponent(Pixel);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

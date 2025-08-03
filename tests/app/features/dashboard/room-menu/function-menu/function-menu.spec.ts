@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { FunctionMenuComponent } from './function-menu';
+import { FunctionMenuComponent } from 'src/app/features/dashboard/room-menu/function-menu/function-menu'; // path adjusted after moving tests
 
 describe('FunctionMenuComponent', () => {
   let component: FunctionMenuComponent;
