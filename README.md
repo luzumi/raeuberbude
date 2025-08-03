@@ -109,6 +109,23 @@ Wir planen die Startseite als eine Art **visuelles Geräte-Dashboard**:
 
 ---
 
+## Logging-Server
+
+Zur Nachverfolgung von WebSocket-Nachrichten und Benutzeraktionen wurde ein einfacher Logging-Server unter `server/` ergänzt.
+Dieser nutzt **MongoDB** als Datenbank und speichert Ereignisse in einer `logs`-Kollektion. Sensible Felder werden vor dem
+Speichern entfernt, um den Datenschutz zu wahren.
+
+### Start
+
+```bash
+MONGO_URI=mongodb://localhost:27017/raeuberbude npm run serve:logs
+```
+
+Der Server lauscht standardmäßig auf Port `3000` und stellt sowohl einen REST-Endpunkt (`/logs/user-action`) als auch einen
+WebSocket-Server bereit, der eingehende Nachrichten automatisch protokolliert.
+
+---
+
 *Letzte Aktualisierung: 2025-06-05*
 
 ## Tests
