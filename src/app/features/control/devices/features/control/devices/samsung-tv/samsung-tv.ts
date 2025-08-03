@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, EventEmitter, Output} from '@angular/core';
+import {OnInit, Component, EventEmitter, Output} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {Entity, HomeAssistantService} from '../../../../../../../services/home-assistant/home-assistant.service';
 import {map} from 'rxjs';
@@ -16,7 +16,7 @@ import {KeyPadComponent} from '../../../../../../../shared/components/key-pad-co
   imports: [CommonModule, HorizontalSlider, FormsModule, MatIconButton, MatIconModule, FiretvComponent, KeyPadComponent],
   styleUrls: ['./samsung-tv.scss']
 })
-export class SamsungTv implements AfterViewInit {
+export class SamsungTv implements OnInit {
   samsung?: Entity;
   volume: number = 0;
 
@@ -25,7 +25,11 @@ export class SamsungTv implements AfterViewInit {
   constructor(public hass: HomeAssistantService) {
   }
 
-  ngAfterViewInit(): void {
+  /**
+   * Subscribe during OnInit to avoid ExpressionChangedAfterItHasBeenCheckedError
+   * caused by updating template-bound values after the view was initialized.
+   */
+  ngOnInit(): void {
     this.hass.entities$
       .pipe(
         map((entities) => entities.find(e => e.entity_id === 'media_player.tv_samsung'))

@@ -113,7 +113,8 @@ Wir planen die Startseite als eine Art **visuelles Geräte-Dashboard**:
 
 Zur Nachverfolgung von WebSocket-Nachrichten und Benutzeraktionen wurde ein einfacher Logging-Server unter `server/` ergänzt.
 Dieser nutzt **MongoDB** als Datenbank und speichert Ereignisse in einer `logs`-Kollektion. Sensible Felder werden vor dem
-Speichern entfernt, um den Datenschutz zu wahren.
+Speichern entfernt, und Benutzerkennungen werden gehasht, um den Datenschutz zu wahren. Über einen zusätzlichen
+`/users`-Endpunkt lassen sich pseudonymisierte Benutzerinformationen ablegen.
 
 ### Start
 
