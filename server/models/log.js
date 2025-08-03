@@ -10,4 +10,7 @@ const logSchema = new mongoose.Schema({
   metadata: { type: Object }, // Zusätzliche Informationen
 });
 
+// Index für häufige Abfragen: sortiert nach Typ und Zeit absteigend
+logSchema.index({ type: 1, timestamp: -1 });
+
 module.exports = mongoose.model('Log', logSchema);

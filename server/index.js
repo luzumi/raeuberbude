@@ -1,7 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const WebSocket = require('ws');
-const { logWebsocketMessage, logUserAction } = require('./logger');
+const { logWebsocketMessage, logUserAction, anonymizeUserId } = require('./logger');
+const User = require('./models/user');
 require('dotenv').config();
 
 const app = express();
@@ -25,6 +26,18 @@ mongoose.connect(process.env.MONGO_URI, {
 app.post('/logs/user-action', async (req, res) => {
   await logUserAction(req.body.userId, req.body.action, req.body.metadata);
   res.status(201).json({ status: 'ok' });
+});
+
+// Einfacher Endpunkt zum Speichern/Pseudonymisieren von Benutzern
+app.post('/users', async (req, res) => {
+  const { userId, info } = req.body;
+  const hashedId = anonymizeUserId(userId); // Nutzer anonymisieren
+  await User.findOneAndUpdate(
+    { userId: hashedId },
+    { info },
+    { upsert: true, new: true }
+  );
+  res.status(201).json({ status: 'ok', userId: hashedId });
 });
 
 const port = process.env.PORT || 3000;
