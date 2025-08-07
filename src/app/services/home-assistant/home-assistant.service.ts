@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import {BehaviorSubject, from, Observable, Subscription} from 'rxjs';
+import {BehaviorSubject, from, Observable, Subscription, map} from 'rxjs';
 import {WebSocketBridgeService} from './websocketBridgeService';
 import {environment} from '../../../environments/environments';
 
@@ -79,6 +79,28 @@ export class HomeAssistantService {
 
   public getEntitiesSnapshot(): Entity[] {
     return this.entitiesSubject.getValue();
+  }
+
+  /**
+   * Holt alle registrierten Geräte aus Home Assistant.
+   * Diese Liste stammt aus der Geräte-Registry und liefert Metadaten wie Hersteller oder Modell.
+   */
+  public getAllDevices(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/api/devices`, { headers: this.headers });
+  }
+
+  /**
+   * Liefert alle verfügbaren Befehle (Services) für eine angegebene Entität.
+   * @param entityId z.B. 'light.wohnzimmer'
+   */
+  public getCommandsForEntity(entityId: string): Observable<string[]> {
+    const domain = entityId.split('.')[0];
+    return this.http.get<any[]>(`${this.baseUrl}/api/services`, { headers: this.headers }).pipe(
+      map((domains: any[]) => {
+        const entry = domains.find(d => d.domain === domain);
+        return entry ? Object.keys(entry.services) : [];
+      })
+    );
   }
 
   public getAllScripts(): Entity[] {
