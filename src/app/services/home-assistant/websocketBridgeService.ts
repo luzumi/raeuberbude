@@ -15,6 +15,8 @@ export class WebSocketBridgeService {
   private msgId = 1;
   private readonly pending = new Map<number, (response: any) => void>();
   private readonly eventSubjects = new Map<string, Subject<any>>();
+  // Queue messages that are sent before the socket is authenticated
+  private readonly queue: { msg: WebSocketMessage; resolve: (v: any) => void; reject: (e: any) => void }[] = [];
 
   constructor() {
     this.connect();
@@ -33,6 +35,12 @@ export class WebSocketBridgeService {
       if (msg.type === 'auth_ok') {
         this.connected = true;
         console.log('[WS] Auth OK – subscribing events now');
+
+        // Flush queued messages once the connection is fully established
+        this.queue.splice(0).forEach(({ msg: queuedMsg, resolve }) => {
+          this.pending.set(queuedMsg.id, resolve);
+          this.ws!.send(JSON.stringify(queuedMsg));
+        });
       }
 
       if (msg.type === 'result' && this.pending.has(msg.id)) {
@@ -64,10 +72,11 @@ export class WebSocketBridgeService {
 
   public send(msg: Omit<WebSocketMessage, "id">): Promise<any> {
     const id = this.msgId++;
-    const fullMsg = { ...msg, id };
+    const fullMsg = { ...msg, id } as WebSocketMessage;
     return new Promise((resolve, reject) => {
       if (!this.connected || !this.ws) {
-        reject(new Error('WebSocket not connected'));
+        // Store message until the connection is ready.
+        this.queue.push({ msg: fullMsg, resolve, reject });
         return;
       }
       this.pending.set(id, resolve);
