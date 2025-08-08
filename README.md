@@ -37,6 +37,9 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - **Login & Routing:** Einfache Benutzeranmeldung mit Weiterleitung nach `/zuhause`; Inhalte der bisherigen Startseite liegen nun unter `/raub1`, das Dashboard ist zusätzlich über `/raub2` erreichbar.
 - **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
 
+### 5. Zimmerübersicht
+- Startseite `/zuhause` zeigt eine Kartenübersicht der Räume *Wohnzimmer*, *Schlafzimmer*, *Räuberbude*, *Büro*, *Flur*, *Bad* und *Küche*.
+
 ---
 
 ## Warum haben wir das so gemacht?

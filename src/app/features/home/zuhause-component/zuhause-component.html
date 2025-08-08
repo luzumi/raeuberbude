@@ -1,8 +1,9 @@
 <div class="rooms-grid">
- <app-logout-button *ngIf="auth.isLoggedIn()"></app-logout-button>
+  <app-logout-button *ngIf="auth.isLoggedIn()"></app-logout-button>
 
-
-  <button *ngFor="let room of rooms" class="room-button" [routerLink]="room.route" [disabled]="!room.route">
-    {{ room.name }}
+  <!-- Render each room as a card with icon and label -->
+  <button *ngFor="let room of rooms" class="room-card" [routerLink]="room.route" [disabled]="!room.route">
+    <div class="room-icon">{{ room.icon }}</div>
+    <div class="room-name">{{ room.name }}</div>
   </button>
 </div>

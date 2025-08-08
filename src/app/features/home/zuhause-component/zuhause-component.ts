@@ -17,13 +17,15 @@ import {LogoutButtonComponent} from "../../../shared/components/logout-button/lo
 export class ZuhauseComponent {
 
   constructor(public auth: AuthService) {}
-  // Definition of all rooms to be rendered as buttons
+
+  // Room overview including icons; adds "Bad" and routes where available
   rooms = [
-    { name: 'Wohnzimmer' },
-    { name: 'Schlafzimmer' },
-    { name: 'Räuberbude', route: '/raub2' },
-    { name: 'Küche' },
-    { name: 'Büro' },
-    { name: 'Flur' }
+    { name: 'Wohnzimmer', icon: '🛋️' },
+    { name: 'Schlafzimmer', icon: '🛏️' },
+    { name: 'Räuberbude', icon: '🏴\u200d☠️', route: '/raub2' },
+    { name: 'Büro', icon: '💻' },
+    { name: 'Flur', icon: '🚪' },
+    { name: 'Bad', icon: '🛁' },
+    { name: 'Küche', icon: '🍳' }
   ];
 }
