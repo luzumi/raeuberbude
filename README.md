@@ -146,6 +146,21 @@ npm start
 Konfiguriere den Datenbankzugang über die Umgebungsvariable
 `MONGODB_URI` (siehe `backend/.env.example`).
 
+
+### Docker
+
+Der Logging-Server und eine passende MongoDB lassen sich auch per Docker starten:
+
+```bash
+# Container bauen und starten
+docker-compose up --build
+```
+
+Die Anwendung ist anschließend unter http://localhost:3000 erreichbar;
+MongoDB lauscht auf Port 27017. Beende beide Container mit
+`docker-compose down`.
+
+=======
 ### Datenbankeinrichtung
 
 Eine beispielhafte Konfiguration für den MongoDB-Server liegt unter `backend/mongodb.conf`. Sie schreibt die Log-Ausgaben nach `./data/mongo.log` und verwendet `./data/db` als Datenverzeichnis.
@@ -156,6 +171,7 @@ Mit dem Skript `backend/init-db.js` lassen sich die notwendigen Collections (`lo
 cd backend
 node init-db.js
 ```
+
 
 
 ## Tests
