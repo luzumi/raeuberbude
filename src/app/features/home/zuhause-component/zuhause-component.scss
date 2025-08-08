@@ -3,21 +3,35 @@
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 1rem;
   padding: 2rem;
+  height: 100vh;
+  /* Radial background inspired by '/raub1' */
+  background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
 }
 
 .room-button {
+  position: relative;
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: #fff;
   text-transform: uppercase;
   cursor: pointer;
   transition: box-shadow 0.3s;
+
+  /* Subtle glow similar to buttons from '/raub1' */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 6px 4px rgba(255, 255, 255, 0.1);
+    z-index: -1;
+  }
 }
 
 .room-button:not(:disabled):hover {
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 12px 4px rgba(255, 255, 255, 0.3);
 }
 
 .room-button:disabled {

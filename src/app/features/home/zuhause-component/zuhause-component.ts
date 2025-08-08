@@ -17,13 +17,15 @@ import {LogoutButtonComponent} from "../../../shared/components/logout-button/lo
 export class ZuhauseComponent {
 
   constructor(public auth: AuthService) {}
-  // Definition of all rooms to be rendered as buttons
+  // Definition of all rooms to be rendered as buttons in the desired order.
+  // The 'Räuberbude' links to the classic dashboard at '/raub1'.
   rooms = [
     { name: 'Wohnzimmer' },
     { name: 'Schlafzimmer' },
-    { name: 'Räuberbude', route: '/raub2' },
-    { name: 'Küche' },
+    { name: 'Räuberbude', route: '/raub1' },
     { name: 'Büro' },
-    { name: 'Flur' }
+    { name: 'Flur' },
+    { name: 'Bad' },
+    { name: 'Küche' }
   ];
 }
