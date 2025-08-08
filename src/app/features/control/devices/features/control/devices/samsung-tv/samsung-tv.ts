@@ -8,6 +8,8 @@ import {MatIconButton} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import {FiretvComponent} from '../firetv/fire-tv-component';
 import {KeyPadComponent} from '../../../../../../../shared/components/key-pad-component/key-pad.component';
+// Import the FireTv command enum so we can list all possible commands in a select
+import {FireTvCommand} from '../../../../../../../services/home-assistant/fire-tv-control';
 
 @Component({
   selector: 'app-samsung-tv',
@@ -19,6 +21,22 @@ import {KeyPadComponent} from '../../../../../../../shared/components/key-pad-co
 export class SamsungTv implements OnInit {
   samsung?: Entity;
   volume: number = 0;
+
+  // Arrays for the dropdowns (FireTV uses enum, Samsung TV uses raw IR codes)
+  fireTvCommands = Object.values(FireTvCommand);
+  samsungCommands: string[] = [
+    'KEY_POWER',
+    'KEY_MUTE',
+    'KEY_SOURCE',
+    'KEY_LEFT',
+    'KEY_RIGHT',
+    'KEY_UP',
+    'KEY_DOWN',
+    'KEY_ENTER',
+    'KEY_HOME'
+  ];
+  selectedFireCommand?: FireTvCommand;
+  selectedSamsungCommand?: string;
 
   @Output() deviceClicked = new EventEmitter<void>();
 
@@ -162,5 +180,28 @@ export class SamsungTv implements OnInit {
       entity_id: 'remote.samsung',
       command: [ 'KEY_RIGHT']
     });
+  }
+
+  /**
+   * Sends the chosen FireTV command via WebSocket.
+   * Added as an alternative to the existing buttons.
+   */
+  sendFireTvCommand(cmd: FireTvCommand): void {
+    if (!cmd) return;
+    this.hass.callService('remote', 'send_command', {
+      entity_id: 'remote.fire_tv',
+      command: cmd
+    }).subscribe();
+  }
+
+  /**
+   * Sends the chosen Samsung TV command via WebSocket.
+   */
+  sendSamsungCommand(cmd: string): void {
+    if (!cmd) return;
+    this.hass.callService('remote', 'send_command', {
+      entity_id: 'remote.samsung',
+      command: cmd
+    }).subscribe();
   }
 }
