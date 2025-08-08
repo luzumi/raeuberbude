@@ -146,6 +146,20 @@ npm start
 Konfiguriere den Datenbankzugang über die Umgebungsvariable
 `MONGODB_URI` (siehe `backend/.env.example`).
 
+### Docker
+
+Der Logging-Server und eine passende MongoDB lassen sich auch per Docker starten:
+
+```bash
+# Container bauen und starten
+docker-compose up --build
+```
+
+Die Anwendung ist anschließend unter http://localhost:3000 erreichbar;
+MongoDB lauscht auf Port 27017. Beende beide Container mit
+`docker-compose down`.
+
+
 ## Tests
 
 Um die Unit-Tests auszuführen, wird ein Chrome- bzw. Chromium-Browser benötigt. Sollte die automatische Suche fehlschlagen, kann der Pfad über die Umgebungsvariable `CHROME_BIN` gesetzt werden:
