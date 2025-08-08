@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-// Aktuellen HomeAssistantService einbinden
-import { HomeAssistantService, Entity } from '../../../services/home-assistant/home-assistant.service';
 import {MatCard, MatCardContent, MatCardTitle} from '@angular/material/card';
 import {MatSlideToggle} from '@angular/material/slide-toggle';
+import {HomeAssistantService} from "../../../services/home-assistant/home-assistant.service";
+
 
 @Component({
   selector: 'app-lamp-toggle',
@@ -20,13 +20,10 @@ export class LampToggleComponent implements OnInit {
   lampState: boolean = false;
   loading: boolean = false;
   readonly entityId = 'light.wiz_tunable_white_640190';
-
   constructor(private ha: HomeAssistantService) {}
-
   ngOnInit(): void {
     this.loadState();
   }
-
   loadState(): void {
     // Aktuellen Status der Lampe laden
     const ent = this.ha.getEntity(this.entityId);
@@ -34,7 +31,6 @@ export class LampToggleComponent implements OnInit {
       this.lampState = ent.state === 'on';
     }
   }
-
   toggleLamp(): void {
     this.loading = true;
     const service = this.lampState ? 'turn_off' : 'turn_on';

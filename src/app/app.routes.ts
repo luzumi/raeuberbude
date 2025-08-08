@@ -40,5 +40,10 @@ export const routes: Routes = [
         m => m.DashboardComponent
       ),
     canActivate: [authGuard]
-  }
+  },
+  {
+    path: 'control',
+    loadChildren: () =>
+      import('./features/control/control.routes').then(m => m.routes)
+  },
 ];
