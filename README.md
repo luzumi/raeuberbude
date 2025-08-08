@@ -162,11 +162,8 @@ MongoDB lauscht auf Port 27017. Beende beide Container mit
 
 ## Tests
 
-Um die Unit-Tests auszuführen, wird ein Chrome- bzw. Chromium-Browser benötigt. Sollte die automatische Suche fehlschlagen, kann der Pfad über die Umgebungsvariable `CHROME_BIN` gesetzt werden:
-
-```bash
-CHROME_BIN=/pfad/zu/chromium npm test
-```
+Die Unit-Tests laufen standardmäßig in einer [jsdom](https://github.com/jsdom/jsdom)-Umgebung und benötigen daher keinen installierten Browser.
+Für einen Testlauf mit einem echten Browser kann `karma.conf.cjs` lokal auf `ChromeHeadless` umgestellt werden.
 
 ## Animation
 ![Kreis Animation](kreis_animation.png)
