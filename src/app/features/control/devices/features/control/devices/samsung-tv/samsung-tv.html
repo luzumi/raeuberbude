@@ -1,6 +1,6 @@
 @if (samsung) {
   <div class="tv-info-line" (click)="onDeviceClick()">
-    <button mat-icon-button (click)="togglePower(); $event.stopPropagation()">
+    <button mat-icon-button class="tv-button" (click)="togglePower(); $event.stopPropagation()">
       <mat-icon [ngClass]="{ 'green-icon': state !== 'off', 'gray-icon': state === 'off' }">
         power
       </mat-icon>
@@ -19,11 +19,28 @@
       </app-horizontal-slider>
     </div>
 
-    <button (click)="toggleMute(); $event.stopPropagation();">🔇 Mute</button>
-    <button (click)="screenLeft(); $event.stopPropagation();"><span><<<</span>🔁 </button>
-    <button (click)="nextSource(); $event.stopPropagation();">🔁 Source wechseln</button>
-    <button (click)="screenRight(); $event.stopPropagation();">🔁>>></button>
-    <button (click)="screenRight(); $event.stopPropagation();"><app-keypad (keyPressed)="screenRight();" [columns]="1" [keys]="['>']"></app-keypad> </button>
+    <!-- redesigned buttons inspired by '/raub1' -->
+      <button class="tv-button" (click)="sendSamsungCommand('KEY_MUTE'); $event.stopPropagation();">🔇 Mute</button>
+      <button class="tv-button" (click)="sendSamsungCommand('KEY_LEFT'); $event.stopPropagation();"><span><<<</span>🔁 </button>
+      <button class="tv-button" (click)="sendSamsungCommand('KEY_SOURCE'); $event.stopPropagation();">🔁 Source wechseln</button>
+      <button class="tv-button" (click)="sendSamsungCommand('KEY_RIGHT'); $event.stopPropagation();">🔁>>></button>
+      <button class="tv-button" (click)="$event.stopPropagation();">
+        <app-keypad (keyPressed)="sendSamsungCommand('KEY_RIGHT');" [columns]="1" [keys]="['>']"></app-keypad>
+      </button>
+
+    <div class="select-wrapper" (click)="$event.stopPropagation()">
+      <!-- FireTV command selector -->
+        <select class="tv-select" [(ngModel)]="selectedFireCommand" (change)="sendFireTvCommand(selectedFireCommand!)">
+          <option value="" disabled selected>FireTV Befehl</option>
+          <option *ngFor="let cmd of fireTvCommands" [value]="cmd">{{ cmd }}</option>
+        </select>
+
+      <!-- Samsung TV command selector -->
+        <select class="tv-select" [(ngModel)]="selectedSamsungCommand" (change)="sendSamsungCommand(selectedSamsungCommand!)">
+          <option value="" disabled selected>Samsung Befehl</option>
+          <option *ngFor="let cmd of samsungCommands" [value]="cmd">{{ cmd }}</option>
+        </select>
+    </div>
 
     <span class="block">Mute: {{ isMuted }}</span>
   </div>

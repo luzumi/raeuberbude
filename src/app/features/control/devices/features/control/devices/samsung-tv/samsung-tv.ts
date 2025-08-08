@@ -20,6 +20,12 @@ export class SamsungTv implements OnInit {
   samsung?: Entity;
   volume: number = 0;
 
+  // Command lists fetched dynamically from Home Assistant via WebSocket
+  fireTvCommands: string[] = [];
+  samsungCommands: string[] = [];
+  selectedFireCommand?: string;
+  selectedSamsungCommand?: string;
+
   @Output() deviceClicked = new EventEmitter<void>();
 
   constructor(public hass: HomeAssistantService) {
@@ -42,6 +48,25 @@ export class SamsungTv implements OnInit {
           console.warn('[SamsungTv] Entity media_player.tv_samsung nicht gefunden');
         }
       });
+
+    // Load available command lists for FireTV and Samsung remote
+    this.loadCommands();
+  }
+
+  /**
+   * Requests the command lists for the remotes from Home Assistant via WebSocket.
+   */
+  private loadCommands(): void {
+    this.hass.getStatesWs().subscribe({
+      next: (states) => {
+        const fire = states.find(e => e.entity_id === 'remote.fire_tv');
+        this.fireTvCommands = fire?.attributes?.['command_list'] ?? [];
+
+        const samsung = states.find(e => e.entity_id === 'remote.samsung');
+        this.samsungCommands = samsung?.attributes?.['command_list'] ?? [];
+      },
+      error: err => console.error('[SamsungTv] Fehler beim Laden der Befehle:', err)
+    });
   }
 
   onDeviceClick(): void {
@@ -94,7 +119,7 @@ export class SamsungTv implements OnInit {
 
         // Fallback: FireTV einschalten
         this.hass.callService('remote', 'turn_on', {
-          entity_id: 'remote.firetv'
+          entity_id: 'remote.fire_tv'
         }).subscribe({
           next: () => console.log('[SamsungTv] FireTV als Fallback aktiviert'),
           error: (err) => console.error('[SamsungTv] FireTV-Fallback fehlgeschlagen:', err)
@@ -112,7 +137,7 @@ export class SamsungTv implements OnInit {
 
         // Jetzt auch FireTV ausschalten
         this.hass.callService('remote', 'turn_off', {
-          entity_id: 'remote.firetv'
+          entity_id: 'remote.fire_tv'
         }).subscribe({
           next: () => console.log('[SamsungTv] FireTV ausgeschaltet'),
           error: (err) => console.error('[SamsungTv] Fehler beim FireTV-Ausschalten:', err)
@@ -120,24 +145,6 @@ export class SamsungTv implements OnInit {
       },
       error: (err) => console.error('[SamsungTv] Fehler beim Ausschalten des TVs:', err)
     });
-  }
-
-  toggleMute(): void {
-    this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.samsung',
-      command: 'KEY_MUTE'
-    }).subscribe({
-      next: () => console.log('[SamsungTv] IR Mute Command gesendet'),
-      error: (err) => console.error('[SamsungTv] Fehler beim IR-Mute:', err)
-    });
-  }
-
-  nextSource() {
-    this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.samsung',
-      command: 'KEY_SOURCE'
-    });
-
   }
 
   /**
@@ -151,16 +158,28 @@ export class SamsungTv implements OnInit {
     }).subscribe();
   }
 
-  screenLeft(){
+  /**
+   * Sends the chosen FireTV command via WebSocket.
+   * Added as an alternative to the existing buttons.
+   */
+  // Forward selected FireTV command to Home Assistant
+  sendFireTvCommand(cmd: string): void {
+    if (!cmd) return;
     this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.samsung',
-      command: [ 'KEY_LEFT']
-    });
+      entity_id: 'remote.fire_tv',
+      command: cmd
+    }).subscribe();
   }
-  screenRight(){
+
+  /**
+   * Sends the chosen Samsung TV command via WebSocket.
+   */
+  // Sends any Samsung TV command chosen from buttons or select
+  sendSamsungCommand(cmd: string): void {
+    if (!cmd) return;
     this.hass.callService('remote', 'send_command', {
       entity_id: 'remote.samsung',
-      command: [ 'KEY_RIGHT']
-    });
+      command: cmd
+    }).subscribe();
   }
 }
