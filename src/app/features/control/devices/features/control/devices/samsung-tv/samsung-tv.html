@@ -18,12 +18,37 @@
         (valueChange)="setVolume($event)">
       </app-horizontal-slider>
     </div>
+    <div class="control-buttons" (click)="$event.stopPropagation()">
+      <button class="control-btn" (click)="toggleMute(); $event.stopPropagation();">
+        <mat-icon>volume_off</mat-icon>
+      </button>
+      <button class="control-btn" (click)="screenLeft(); $event.stopPropagation();">
+        <mat-icon>arrow_left</mat-icon>
+      </button>
+      <button class="control-btn" (click)="nextSource(); $event.stopPropagation();">
+        <mat-icon>input</mat-icon>
+      </button>
+      <button class="control-btn" (click)="screenRight(); $event.stopPropagation();">
+        <mat-icon>arrow_right</mat-icon>
+      </button>
+    </div>
 
-    <button (click)="toggleMute(); $event.stopPropagation();">🔇 Mute</button>
-    <button (click)="screenLeft(); $event.stopPropagation();"><span><<<</span>🔁 </button>
-    <button (click)="nextSource(); $event.stopPropagation();">🔁 Source wechseln</button>
-    <button (click)="screenRight(); $event.stopPropagation();">🔁>>></button>
-    <button (click)="screenRight(); $event.stopPropagation();"><app-keypad (keyPressed)="screenRight();" [columns]="1" [keys]="['>']"></app-keypad> </button>
+    <!-- Dropdowns für freie Befehle -->
+    <div class="command-select" (click)="$event.stopPropagation()">
+      <label for="samsungCmd">Samsung-Befehl:</label>
+      <select id="samsungCmd" [(ngModel)]="selectedSamsungCommand" (change)="sendSamsungCommand()">
+        <option value="" disabled>Bitte wählen</option>
+        <option *ngFor="let cmd of samsungCommands" [value]="cmd">{{ cmd }}</option>
+      </select>
+    </div>
+
+    <div class="command-select" (click)="$event.stopPropagation()">
+      <label for="firetvCmd">FireTV-Befehl:</label>
+      <select id="firetvCmd" [(ngModel)]="selectedFireTvCommand" (change)="sendFireTvCommand()">
+        <option value="" disabled>Bitte wählen</option>
+        <option *ngFor="let cmd of fireTvCommands" [value]="cmd">{{ cmd }}</option>
+      </select>
+    </div>
 
     <span class="block">Mute: {{ isMuted }}</span>
   </div>

@@ -1,24 +1,38 @@
-import {OnInit, Component, EventEmitter, Output} from '@angular/core';
-import {CommonModule} from '@angular/common';
-import {Entity, HomeAssistantService} from '../../../../../../../services/home-assistant/home-assistant.service';
-import {map} from 'rxjs';
-import {HorizontalSlider} from '../../../../../../../shared/components/horizontal-slider/horizontal-slider';
-import {FormsModule} from '@angular/forms';
-import {MatIconButton} from '@angular/material/button';
-import {MatIconModule} from '@angular/material/icon';
-import {FiretvComponent} from '../firetv/fire-tv-component';
-import {KeyPadComponent} from '../../../../../../../shared/components/key-pad-component/key-pad.component';
+import { OnInit, Component, EventEmitter, Output } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Entity, HomeAssistantService } from '../../../../../../../services/home-assistant/home-assistant.service';
+import { map } from 'rxjs';
+import { HorizontalSlider } from '../../../../../../../shared/components/horizontal-slider/horizontal-slider';
+import { FormsModule } from '@angular/forms';
+import { MatIconButton } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { FiretvComponent } from '../firetv/fire-tv-component';
 
 @Component({
   selector: 'app-samsung-tv',
   templateUrl: './samsung-tv.html',
   standalone: true,
-  imports: [CommonModule, HorizontalSlider, FormsModule, MatIconButton, MatIconModule, FiretvComponent, KeyPadComponent],
+  imports: [CommonModule, HorizontalSlider, FormsModule, MatIconButton, MatIconModule, FiretvComponent],
   styleUrls: ['./samsung-tv.scss']
 })
 export class SamsungTv implements OnInit {
   samsung?: Entity;
   volume: number = 0;
+
+  // Aktuell ausgewählte Befehle aus den Dropdowns
+  selectedSamsungCommand = '';
+  selectedFireTvCommand = '';
+
+  // Befehlslisten für die Auswahlfelder
+  samsungCommands: string[] = [
+    'KEY_POWER', 'KEY_MUTE', 'KEY_VOLUMEUP', 'KEY_VOLUMEDOWN',
+    'KEY_LEFT', 'KEY_RIGHT', 'KEY_UP', 'KEY_DOWN',
+    'KEY_ENTER', 'KEY_HOME', 'KEY_PLAY', 'KEY_PAUSE', 'KEY_SOURCE'
+  ];
+
+  fireTvCommands: string[] = [
+    'HOME', 'BACK', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'SELECT', 'PLAY', 'PAUSE'
+  ];
 
   @Output() deviceClicked = new EventEmitter<void>();
 
@@ -161,6 +175,33 @@ export class SamsungTv implements OnInit {
     this.hass.callService('remote', 'send_command', {
       entity_id: 'remote.samsung',
       command: [ 'KEY_RIGHT']
+    });
+  }
+  /**
+   * Sendet einen frei gewählten Samsung-IR-Befehl aus dem Dropdown.
+   */
+  sendSamsungCommand(): void {
+    if (!this.selectedSamsungCommand) { return; }
+    this.hass.callService('remote', 'send_command', {
+      entity_id: 'remote.samsung',
+      command: this.selectedSamsungCommand,
+    }).subscribe({
+      next: () => console.log(`[SamsungTv] Befehl ${this.selectedSamsungCommand} gesendet`),
+      error: err => console.error('[SamsungTv] Fehler beim Samsung-Befehl:', err)
+    });
+  }
+
+  /**
+   * Sendet einen frei gewählten FireTV-Befehl aus dem Dropdown.
+   */
+  sendFireTvCommand(): void {
+    if (!this.selectedFireTvCommand) { return; }
+    this.hass.callService('remote', 'send_command', {
+      entity_id: 'remote.firetv',
+      command: this.selectedFireTvCommand,
+    }).subscribe({
+      next: () => console.log(`[SamsungTv] FireTV-Befehl ${this.selectedFireTvCommand} gesendet`),
+      error: err => console.error('[SamsungTv] Fehler beim FireTV-Befehl:', err)
     });
   }
 }

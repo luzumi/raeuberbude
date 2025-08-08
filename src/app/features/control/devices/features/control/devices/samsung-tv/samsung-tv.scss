@@ -1,19 +1,22 @@
 @use 'sass:map';
+@use 'sass:color';
 @use '../../../../../../../../styles/palette' as *;
+@use '../../../../../../../../styles/variables' as vars;
 
 .tv-info-line {
   cursor: pointer;
   font-size: 0.95rem;
   line-height: 1.4;
   padding: 0.75rem 1rem;
-  background: #1e1e1e;
+  background: vars.$color-samsungtv;
   border-radius: 8px;
-  color: #ddd;
+  color: $text-default;
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
   flex-direction: row;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
 }
 
 .block {
@@ -40,4 +43,39 @@
 
 .gray-icon {
   color: $color-warn;
+}
+
+// Steuerungs-Buttons im Stil von '/raub1'
+.control-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.control-btn {
+  background: color.adjust(vars.$color-samsungtv, $lightness: 10%);
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease-in-out;
+}
+
+.control-btn:hover {
+  background: color.adjust(vars.$color-samsungtv, $lightness: -5%);
+}
+
+// Dropdown-Auswahl für freie Befehle
+.command-select {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  select {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid $gray-400;
+  }
 }
