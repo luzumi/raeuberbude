@@ -18,41 +18,41 @@
   }
   <!-- Geräte via @for-Block (nur, wenn Menü geschlossen) -->
     @if(!menuOpen){
-    @for (device of devices; track device.id; let i = $index) {
+    @for (device of devices; track $index) {
       @switch (device.type){
         @case ('pixel') {
           <app-pixel
-            [ngStyle]="getStyle(device, i)"
+            [ngStyle]="getStyle(device, $index)"
             [style.background-color]="getColor(device.type)"
-            (click)="onClick(i)"
+            (click)="onClick($index)"
           ></app-pixel>
           }
         @case('orange-light') {
           <app-orange-light
-            [ngStyle]="getStyle(device, i)"
+            [ngStyle]="getStyle(device, $index)"
             [style.background-color]="getColor(device.type)"
-            (click)="onClick(i)"
+            (click)="onClick($index)"
           ></app-orange-light>
         }
         @case('laptop'){
           <app-laptop
-            [ngStyle]="getStyle(device, i)"
+            [ngStyle]="getStyle(device, $index)"
             [style.background-color]="getColor(device.type)"
-            (click)="onClick(i)"
+            (click)="onClick($index)"
           ></app-laptop>
         }
         @case('creator'){
           <app-creator
-            [ngStyle]="getStyle(device, i)"
+            [ngStyle]="getStyle(device, $index)"
             [style.background-color]="getColor(device.type)"
-            (click)="onClick(i)"
+            (click)="onClick($index)"
           ></app-creator>
         }
         @case('samsung-tv'){
           <app-samsung-tv
-            [ngStyle]="getStyle(device, i)"
+            [ngStyle]="getStyle(device, $index)"
             [style.background-color]="getColor(device.type)"
-            (deviceClicked)="onClick(i)"
+            (deviceClicked)="onClick($index)"
           ></app-samsung-tv>
         }
       }

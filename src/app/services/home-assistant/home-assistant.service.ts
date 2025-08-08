@@ -36,16 +36,16 @@ export class HomeAssistantService {
     'Content-Type': 'application/json'
   });
 
-  private entitiesMap = new Map<string, Entity>();
-  private entitiesSubject = new BehaviorSubject<Entity[]>([]);
+  private readonly entitiesMap = new Map<string, Entity>();
+  private readonly entitiesSubject = new BehaviorSubject<Entity[]>([]);
   public readonly entities$ = this.entitiesSubject.asObservable();
 
-  constructor(private http: HttpClient, private bridge: WebSocketBridgeService) {
+  constructor(private readonly http: HttpClient, private readonly bridge: WebSocketBridgeService) {
     this.refreshEntities();
 
     this.bridge.subscribeEvent('state_changed').subscribe((event:any) => {
-      const newState = event.data.new_state as Entity;
-      if (newState && newState.entity_id) {
+      const newState = event.data?.new_state as Entity;
+      if (newState?.entity_id) {
         this.entitiesMap.set(newState.entity_id, newState);
         this.entitiesSubject.next([...this.entitiesMap.values()]);
       }
@@ -69,7 +69,7 @@ export class HomeAssistantService {
       domain,
       service,
       service_data: data
-    }));
+    } as unknown as Omit<HassServiceResponse, "id">));
   }
 
 

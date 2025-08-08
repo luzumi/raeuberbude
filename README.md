@@ -34,6 +34,8 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - CORS-Probleme durch `proxy.conf.json` mit `/api`-Rewrite gelöst
 - Standalone-Komponenten korrekt mit Imports und Routing integriert
 - Fehlerbehandlung beim Lampenschalter verbessert (subscribe mit next/error)
+- **Login & Routing:** Einfache Benutzeranmeldung mit Weiterleitung nach `/zuhause`; Inhalte der bisherigen Startseite liegen nun unter `/raub1`, das Dashboard ist zusätzlich über `/raub2` erreichbar.
+- **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
 
 ---
 
@@ -52,6 +54,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Token liegt aktuell noch im `environment.ts` – später sicherer handhaben
 - App läuft vollständig standalone, `AppComponent` bootstrapped direkt (`bootstrapApplication()`)
 - Kein klassisches `AppModule` oder `NgModule` nötig
+- Default-Login: `admin` / `secret` (lokale Demo-Datenbank)
 
 ---
 
@@ -106,7 +109,62 @@ Wir planen die Startseite als eine Art **visuelles Geräte-Dashboard**:
 
 ---
 
+## Logging-Server
+
+Zur Nachverfolgung von WebSocket-Nachrichten und Benutzeraktionen wurde ein einfacher Logging-Server unter `server/` ergänzt.
+Dieser nutzt **MongoDB** als Datenbank und speichert Ereignisse in einer `logs`-Kollektion. Sensible Felder werden vor dem
+Speichern entfernt, und Benutzerkennungen werden gehasht, um den Datenschutz zu wahren. Über einen zusätzlichen
+`/users`-Endpunkt lassen sich pseudonymisierte Benutzerinformationen ablegen.
+
+### Start
+
+```bash
+MONGO_URI=mongodb://localhost:27017/raeuberbude npm run serve:logs
+```
+
+Der Server lauscht standardmäßig auf Port `3000` und stellt sowohl einen REST-Endpunkt (`/logs/user-action`) als auch einen
+WebSocket-Server bereit, der eingehende Nachrichten automatisch protokolliert.
+
+---
+
 *Letzte Aktualisierung: 2025-06-05*
+
+## Logging-Server
+
+Ein Node.js-Backend unter `backend/` protokolliert WebSocket-Nachrichten
+und Benutzeraktionen in einer MongoDB-Datenbank. Es werden lediglich
+pseudonyme Benutzerkennungen gespeichert.
+
+### Starten
+
+```bash
+cd backend
+npm install
+npm start
+```
+
+Konfiguriere den Datenbankzugang über die Umgebungsvariable
+`MONGODB_URI` (siehe `backend/.env.example`).
+
+### Datenbankeinrichtung
+
+Eine beispielhafte Konfiguration für den MongoDB-Server liegt unter `backend/mongodb.conf`. Sie schreibt die Log-Ausgaben nach `./data/mongo.log` und verwendet `./data/db` als Datenverzeichnis.
+
+Mit dem Skript `backend/init-db.js` lassen sich die notwendigen Collections (`logs`, `users`) samt Index auf `logs.timestamp` anlegen:
+
+```bash
+cd backend
+node init-db.js
+```
+
+
+## Tests
+
+Um die Unit-Tests auszuführen, wird ein Chrome- bzw. Chromium-Browser benötigt. Sollte die automatische Suche fehlschlagen, kann der Pfad über die Umgebungsvariable `CHROME_BIN` gesetzt werden:
+
+```bash
+CHROME_BIN=/pfad/zu/chromium npm test
+```
 
 ## Animation
 ![Kreis Animation](kreis_animation.png)

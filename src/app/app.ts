@@ -1,5 +1,7 @@
+
 import {Component} from '@angular/core';
 import {RouterOutlet} from '@angular/router';
+import {AuthService} from './services/auth.service';
 import {ConfigService} from './services/config-service';
 
 @Component({
@@ -7,7 +9,8 @@ import {ConfigService} from './services/config-service';
   standalone: true,
   imports: [RouterOutlet],
   template: `
-    <router-outlet></router-outlet>`,
+      <router-outlet></router-outlet>`,
+
   providers: [
     {
       provide: 'root',
@@ -18,5 +21,6 @@ import {ConfigService} from './services/config-service';
   ]
 })
 export class AppComponent {
+  constructor(public auth: AuthService) {}
 }
 

@@ -13,8 +13,8 @@ export class WebSocketBridgeService {
   private ws?: WebSocket;
   private connected = false;
   private msgId = 1;
-  private pending = new Map<number, (response: any) => void>();
-  private eventSubjects = new Map<string, Subject<any>>();
+  private readonly pending = new Map<number, (response: any) => void>();
+  private readonly eventSubjects = new Map<string, Subject<any>>();
 
   constructor() {
     this.connect();
@@ -62,12 +62,12 @@ export class WebSocketBridgeService {
     return this.connected;
   }
 
-  public send(msg: Omit<WebSocketMessage, 'id'>): Promise<any> {
+  public send(msg: Omit<WebSocketMessage, "id">): Promise<any> {
     const id = this.msgId++;
     const fullMsg = { ...msg, id };
     return new Promise((resolve, reject) => {
       if (!this.connected || !this.ws) {
-        reject('WebSocket not connected');
+        reject(new Error('WebSocket not connected'));
         return;
       }
       this.pending.set(id, resolve);
@@ -78,7 +78,7 @@ export class WebSocketBridgeService {
   public subscribeEvent(eventType: string): Subject<any> {
     if (!this.eventSubjects.has(eventType)) {
       this.eventSubjects.set(eventType, new Subject<any>());
-      this.send({ type: 'subscribe_events', event_type: eventType }).catch(console.error);
+      this.send( { type: 'subscribe_events', event_type: eventType } ).catch(console.error);
     }
     return this.eventSubjects.get(eventType)!;
   }
