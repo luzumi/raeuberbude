@@ -1,0 +1,3 @@
+# Exclude local dependencies and debug logs from the Docker build context
+node_modules
+npm-debug.log
