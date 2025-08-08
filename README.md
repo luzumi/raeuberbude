@@ -36,7 +36,10 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Fehlerbehandlung beim Lampenschalter verbessert (subscribe mit next/error)
 - **Login & Routing:** Einfache Benutzeranmeldung mit Weiterleitung nach `/zuhause`; Inhalte der bisherigen Startseite liegen nun unter `/raub1`, das Dashboard ist zusätzlich über `/raub2` erreichbar.
 - **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
+
 - **Zuhause-Ansicht:** Raumübersicht (Wohnzimmer, Schlafzimmer, Räuberbude, Büro, Flur, Bad, Küche) im App-Stil angelehnt an `/raub1`.
+
+- **TV-Steuerung:** Samsung-TV-Komponente im Stil von `/raub1` mit WebSocket-Anbindung und Dropdowns für FireTV- und Samsung-Befehle.
 
 ---
 
@@ -146,6 +149,20 @@ npm start
 
 Konfiguriere den Datenbankzugang über die Umgebungsvariable
 `MONGODB_URI` (siehe `backend/.env.example`).
+
+### Docker
+
+Der Logging-Server und eine passende MongoDB lassen sich auch per Docker starten:
+
+```bash
+# Container bauen und starten
+docker-compose up --build
+```
+
+Die Anwendung ist anschließend unter http://localhost:3000 erreichbar;
+MongoDB lauscht auf Port 27017. Beende beide Container mit
+`docker-compose down`.
+
 
 ## Tests
 
