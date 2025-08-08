@@ -6,19 +6,32 @@ import {HorizontalSlider} from '../../../../../../../shared/components/horizonta
 import {FormsModule} from '@angular/forms';
 import {MatIconButton} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {FiretvComponent} from '../firetv/fire-tv-component';
-import {KeyPadComponent} from '../../../../../../../shared/components/key-pad-component/key-pad.component';
 
 @Component({
   selector: 'app-samsung-tv',
   templateUrl: './samsung-tv.html',
   standalone: true,
-  imports: [CommonModule, HorizontalSlider, FormsModule, MatIconButton, MatIconModule, FiretvComponent, KeyPadComponent],
+  imports: [CommonModule, HorizontalSlider, FormsModule, MatIconButton, MatIconModule],
   styleUrls: ['./samsung-tv.scss']
 })
 export class SamsungTv implements OnInit {
   samsung?: Entity;
   volume: number = 0;
+
+  // Kommandolisten für Dropdowns – orientiert an Home-Assistant-Remote-Codes
+  samsungCommands: string[] = [
+    'KEY_HOME', 'KEY_MENU', 'KEY_SOURCE', 'KEY_LEFT', 'KEY_RIGHT',
+    'KEY_UP', 'KEY_DOWN', 'KEY_ENTER', 'KEY_BACK', 'KEY_MUTE',
+    'KEY_PLAY', 'KEY_PAUSE'
+  ];
+  fireTvCommands: string[] = [
+    'Home', 'Back', 'Up', 'Down', 'Left', 'Right',
+    'Select', 'Play', 'Pause'
+  ];
+
+  // Gebundene Werte der Selects
+  selectedSamsungCommand?: string;
+  selectedFireTvCommand?: string;
 
   @Output() deviceClicked = new EventEmitter<void>();
 
@@ -138,6 +151,24 @@ export class SamsungTv implements OnInit {
       command: 'KEY_SOURCE'
     });
 
+  }
+
+  // Sendet ein beliebiges Kommando an den Samsung-TV über WebSocket
+  sendSamsungCommand(command: string | undefined): void {
+    if (!command) { return; }
+    this.hass.callService('remote', 'send_command', {
+      entity_id: 'remote.samsung',
+      command
+    }).subscribe();
+  }
+
+  // Sendet ein Kommando an den FireTV-Adapter
+  sendFireTvCommand(command: string | undefined): void {
+    if (!command) { return; }
+    this.hass.callService('remote', 'send_command', {
+      entity_id: 'remote.firetv',
+      command
+    }).subscribe();
   }
 
   /**

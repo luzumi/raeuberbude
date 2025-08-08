@@ -37,6 +37,8 @@ describe('SamsungTv', () => {
     fixture = TestBed.createComponent(SamsungTv);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    // Reset spy calls to keep expectations sauber
+    mockHomeAssistant.callService.calls.reset();
   });
 
   it('should create', () => {
@@ -68,6 +70,24 @@ describe('SamsungTv', () => {
       'media_player',
       'select_source',
       { entity_id: 'media_player.tv_samsung', source: 'Netflix' }
+    );
+  });
+
+  it('should send custom samsung command', () => {
+    component.sendSamsungCommand('KEY_HOME');
+    expect(mockHomeAssistant.callService).toHaveBeenCalledWith(
+      'remote',
+      'send_command',
+      { entity_id: 'remote.samsung', command: 'KEY_HOME' }
+    );
+  });
+
+  it('should send custom firetv command', () => {
+    component.sendFireTvCommand('Home');
+    expect(mockHomeAssistant.callService).toHaveBeenCalledWith(
+      'remote',
+      'send_command',
+      { entity_id: 'remote.firetv', command: 'Home' }
     );
   });
 });

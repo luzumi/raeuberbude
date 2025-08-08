@@ -1,9 +1,7 @@
 @if (samsung) {
   <div class="tv-info-line" (click)="onDeviceClick()">
-    <button mat-icon-button (click)="togglePower(); $event.stopPropagation()">
-      <mat-icon [ngClass]="{ 'green-icon': state !== 'off', 'gray-icon': state === 'off' }">
-        power
-      </mat-icon>
+    <button class="btn-raub1" mat-icon-button (click)="togglePower(); $event.stopPropagation()">
+      <mat-icon [ngClass]="{ 'green-icon': state !== 'off', 'gray-icon': state === 'off' }">power</mat-icon>
     </button>
     <span class="block"><strong>{{ name }}</strong></span>
     <span class="block">Status: {{ state }}</span>
@@ -19,15 +17,25 @@
       </app-horizontal-slider>
     </div>
 
-    <button (click)="toggleMute(); $event.stopPropagation();">🔇 Mute</button>
-    <button (click)="screenLeft(); $event.stopPropagation();"><span><<<</span>🔁 </button>
-    <button (click)="nextSource(); $event.stopPropagation();">🔁 Source wechseln</button>
-    <button (click)="screenRight(); $event.stopPropagation();">🔁>>></button>
-    <button (click)="screenRight(); $event.stopPropagation();"><app-keypad (keyPressed)="screenRight();" [columns]="1" [keys]="['>']"></app-keypad> </button>
+    <button class="btn-raub1" (click)="toggleMute(); $event.stopPropagation();">🔇 Mute</button>
+    <button class="btn-raub1" (click)="screenLeft(); $event.stopPropagation();"><span><<<</span>🔁 </button>
+    <button class="btn-raub1" (click)="nextSource(); $event.stopPropagation();">🔁 Source wechseln</button>
+    <button class="btn-raub1" (click)="screenRight(); $event.stopPropagation();">🔁>>></button>
+
+    <!-- Auswahlmenü für Samsung-Kommandos -->
+    <select [(ngModel)]="selectedSamsungCommand" (change)="sendSamsungCommand(selectedSamsungCommand); $event.stopPropagation()">
+      <option [ngValue]="undefined">Samsung-Kommando</option>
+      <option *ngFor="let cmd of samsungCommands" [value]="cmd">{{ cmd }}</option>
+    </select>
+
+    <!-- Auswahlmenü für FireTV-Kommandos -->
+    <select [(ngModel)]="selectedFireTvCommand" (change)="sendFireTvCommand(selectedFireTvCommand); $event.stopPropagation()">
+      <option [ngValue]="undefined">FireTV-Kommando</option>
+      <option *ngFor="let cmd of fireTvCommands" [value]="cmd">{{ cmd }}</option>
+    </select>
 
     <span class="block">Mute: {{ isMuted }}</span>
   </div>
-  <app-firetv (onDeviceClick)="onDeviceClick()"></app-firetv>
 } @else {
   <div class="tv-info-line">TV nicht gefunden</div>
 }
