@@ -1,20 +1,27 @@
+// src/app/shared/components/logout-button/logout-button.ts
+
 import {Component, Input} from '@angular/core';
-import {CommonModule} from '@angular/common';
-import {AuthService} from '../../../services/auth.service';
+import { AppButtonComponent } from '../app-button/app-button';
+import { AuthService } from '../../../services/auth.service';
 
 /**
- * Small reusable logout button that triggers the AuthService.
- * The template is intentionally simple to keep tests light-weight.
+ * Fester Logout-Button, der auf allen Seiten erreichbar ist.
  */
 @Component({
   selector: 'app-logout-button',
   standalone: true,
-  imports: [CommonModule],
-  template: `<button (click)="auth.logout()" [style.fontSize]="size">Logout</button>`,
+  imports: [AppButtonComponent],
+  templateUrl: './logout-button.html',
+  styleUrls: ['./logout-button.scss']
 })
 export class LogoutButtonComponent {
-  /** Allows consumers to set the font-size of the button */
-  @Input() size = '1rem';
+  @Input() size: string = 'r4em';
+  constructor(private readonly auth: AuthService) {}
 
-  constructor(public auth: AuthService) {}
+  /**
+   * Meldet den aktuellen Nutzer ab und leitet zur Login-Seite um.
+   */
+  logout(): void {
+    this.auth.logout();
+  }
 }
