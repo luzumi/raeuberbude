@@ -1,9 +1,8 @@
 const { join } = require('path');
 const { constants } = require('karma');
 
-// Ensure Karma uses a Chromium binary if available; developers can override
-// CHROME_BIN to point at their local Chrome installation.
-process.env.CHROME_BIN = process.env.CHROME_BIN || 'chromium';
+// Run tests in a lightweight DOM environment to avoid external browser dependencies.
+// Developers may switch to ChromeHeadless locally if they need full browser features.
 
 module.exports = function (config) {
   config.set({
@@ -12,6 +11,8 @@ module.exports = function (config) {
     frameworks: ['jasmine'],
     plugins: [
       require('karma-jasmine'),
+      require('karma-jsdom-launcher'),
+      // Include Chrome launcher so developers can easily switch to a real browser.
       require('karma-chrome-launcher'),
       require('karma-jasmine-html-reporter'),
       require('karma-coverage'),
@@ -36,8 +37,7 @@ module.exports = function (config) {
     colors: true,
     logLevel: constants.LOG_INFO,
     autoWatch: false,
-    browsers: ['ChromeHeadless'],
-    // browsers: ['ChromeHeadless'],
+    browsers: ['jsdom'], // Default to jsdom to keep the test setup browserless
     singleRun: true,
     restartOnFileChange: false,
 
