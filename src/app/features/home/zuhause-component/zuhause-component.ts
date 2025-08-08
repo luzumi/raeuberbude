@@ -19,11 +19,12 @@ export class ZuhauseComponent {
   constructor(public auth: AuthService) {}
   // Definition of all rooms to be rendered as buttons
   rooms = [
-    { name: 'Wohnzimmer' },
-    { name: 'Schlafzimmer' },
-    { name: 'Räuberbude', route: '/raub2' },
-    { name: 'Küche' },
-    { name: 'Büro' },
-    { name: 'Flur' }
+    { name: 'Wohnzimmer' }, // Living room
+    { name: 'Schlafzimmer' }, // Bedroom
+    { name: 'Räuberbude', route: '/raub2' }, // Link to the original dashboard
+    { name: 'Büro' }, // Office
+    { name: 'Flur' }, // Hallway
+    { name: 'Bad' }, // Bathroom
+    { name: 'Küche' } // Kitchen
   ];
 }

@@ -1,23 +1,62 @@
+@use '../../../../styles/palette' as color;
+
+/* Grid layout for the room overview with a soft radial background */
 .rooms-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 1rem;
   padding: 2rem;
+  min-height: 100vh;
+  place-items: center;
+  position: relative;
+  background: radial-gradient(circle at center,
+    rgba(color.$color-primary-dark, 0.2), rgba(0, 0, 0, 0.9));
 }
 
+/* Position logout button in the upper right corner */
+.logout-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+/* Buttons styled in the spirit of '/raub1' with glowing hover effect */
 .room-button {
+  position: relative;
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid color.$color-primary-dark;
   border-radius: 8px;
   color: #fff;
   text-transform: uppercase;
   cursor: pointer;
-  transition: box-shadow 0.3s;
-}
+  transition: background-color 0.2s ease;
 
-.room-button:not(:disabled):hover {
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    box-shadow: 0 0 6px 4px rgba(255, 255, 255, 0.1);
+    z-index: -1;
+  }
+
+  &:not(:disabled):hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    box-shadow: 0 0 12px 4px rgba(255, 255, 255, 0.3),
+      0 0 20px 25px rgba(0, 150, 136, 0.5),
+      inset 0 0 8px rgba(255, 255, 255, 0.4);
+    z-index: -1;
+  }
 }
 
 .room-button:disabled {
