@@ -1,26 +1,42 @@
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1rem;
   padding: 2rem;
 }
 
-.room-button {
+/* Base card styling inspired by the glow effects on '/raub1' */
+.room-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  border-radius: 12px;
   color: #fff;
   text-transform: uppercase;
   cursor: pointer;
-  transition: box-shadow 0.3s;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.room-button:not(:disabled):hover {
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+.room-card:not(:disabled):hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3),
+              0 0 8px rgba(255, 255, 255, 0.5);
 }
 
-.room-button:disabled {
+.room-card:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.room-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.room-label {
+  font-size: 0.9rem;
 }
