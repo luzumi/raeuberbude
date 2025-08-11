@@ -146,6 +146,16 @@ npm start
 Konfiguriere den Datenbankzugang über die Umgebungsvariable
 `MONGODB_URI` (siehe `backend/.env.example`).
 
+## Docker
+
+Starte Backend und Datenbank mit Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+Die Anwendung lauscht auf Port 3000 und die MongoDB auf Port 27017.
+
 ## Tests
 
 Um die Unit-Tests auszuführen, wird ein Chrome- bzw. Chromium-Browser benötigt. Sollte die automatische Suche fehlschlagen, kann der Pfad über die Umgebungsvariable `CHROME_BIN` gesetzt werden:

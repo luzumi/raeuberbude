@@ -1,0 +1,29 @@
+# Orchestrates the application and MongoDB database
+version: '3.9'
+
+services:
+  app:
+    # Build the Node.js backend
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      # Connection string used by the app to talk to MongoDB
+      - MONGODB_URI=mongodb://db:27017/raeuberbude
+    depends_on:
+      - db
+
+  db:
+    # Use the official MongoDB image
+    image: mongo:6
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      # Persist database files between restarts
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
+    # Named volume for MongoDB persistence
+    

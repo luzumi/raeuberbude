@@ -1,0 +1,6 @@
+# Ignore node modules and logs
+node_modules
+npm-debug.log
+
+# Optional: ignore environment files
+.env
