@@ -146,6 +146,14 @@ npm start
 Konfiguriere den Datenbankzugang über die Umgebungsvariable
 `MONGODB_URI` (siehe `backend/.env.example`).
 
+### MongoDB Konfiguration
+
+- Eine Beispielkonfiguration findet sich in `backend/mongodb.conf`. Sie legt
+  den Pfad für Daten und Logdatei fest, damit Datenbank- und Anwendungslogs
+  nachvollziehbar bleiben.
+- Führe `node backend/init-db.js` aus, um die notwendigen Collections
+  (`logs` und `users`) vorab anzulegen.
+
 ## Tests
 
 Um die Unit-Tests auszuführen, wird ein Chrome- bzw. Chromium-Browser benötigt. Sollte die automatische Suche fehlschlagen, kann der Pfad über die Umgebungsvariable `CHROME_BIN` gesetzt werden:
