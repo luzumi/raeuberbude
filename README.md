@@ -146,17 +146,13 @@ npm start
 Konfiguriere den Datenbankzugang über die Umgebungsvariable
 `MONGODB_URI` (siehe `backend/.env.example`).
 
-### Datenbankeinrichtung
+### MongoDB Konfiguration
 
-Eine beispielhafte Konfiguration für den MongoDB-Server liegt unter `backend/mongodb.conf`. Sie schreibt die Log-Ausgaben nach `./data/mongo.log` und verwendet `./data/db` als Datenverzeichnis.
-
-Mit dem Skript `backend/init-db.js` lassen sich die notwendigen Collections (`logs`, `users`) samt Index auf `logs.timestamp` anlegen:
-
-```bash
-cd backend
-node init-db.js
-```
-
+- Eine Beispielkonfiguration findet sich in `backend/mongodb.conf`. Sie legt
+  den Pfad für Daten und Logdatei fest, damit Datenbank- und Anwendungslogs
+  nachvollziehbar bleiben.
+- Führe `node backend/init-db.js` aus, um die notwendigen Collections
+  (`logs` und `users`) vorab anzulegen.
 
 ## Tests
 

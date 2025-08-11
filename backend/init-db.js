@@ -1,29 +1,22 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import Log from './models/Log.js';
+import User from './models/User.js';
 
-// Load environment variables from a .env file if present
-dotenv.config();
+// Ensures the required MongoDB collections and indexes exist.
+// Run this script once before starting the server to create the
+// `logs` and `users` collections if they are missing.
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/logging';
 
-(async () => {
-  // Use configured URI or default to a local database
-  const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/logging';
+async function init() {
+  await mongoose.connect(mongoUri);
+  // Initialize models to create collections and indexes
+  await Log.init();
+  await User.init();
+  console.log('MongoDB collections ready');
+  await mongoose.disconnect();
+}
 
-  try {
-    // Establish connection to MongoDB
-    await mongoose.connect(mongoUri);
-
-    // Explicitly create the collections required by the logging server.
-    // If they already exist, any errors are silently ignored.
-    await mongoose.connection.createCollection('logs').catch(() => {});
-    await mongoose.connection.createCollection('users').catch(() => {});
-
-    // Index log entries by timestamp for faster chronological queries
-    await mongoose.connection.collection('logs').createIndex({ timestamp: 1 }).catch(() => {});
-
-    console.log('Database initialization complete');
-    process.exit(0);
-  } catch (err) {
-    console.error('Database initialization failed:', err);
-    process.exit(1);
-  }
-})();
+init().catch(err => {
+  console.error('Database initialization failed', err);
+  process.exit(1);
+});
