@@ -153,12 +153,13 @@ Der Logging-Server und eine passende MongoDB lassen sich auch per Docker starten
 
 ```bash
 # Container bauen und starten
-docker-compose up --build
+./runDB.sh
 ```
 
-Die Anwendung ist anschließend unter http://localhost:3000 erreichbar;
-MongoDB lauscht auf Port 27017. Beende beide Container mit
-`docker-compose down`.
+Das Skript startet beide Container und schreibt die Ausgaben nach
+`logs/run.log`. Die Anwendung ist anschließend unter
+http://localhost:3000 erreichbar; MongoDB lauscht auf Port 27017.
+Beende beide Container mit `docker-compose down`.
 
 =======
 ### Datenbankeinrichtung
