@@ -146,6 +146,7 @@ npm start
 Konfiguriere den Datenbankzugang über die Umgebungsvariable
 `MONGODB_URI` (siehe `backend/.env.example`).
 
+
 ## Docker
 
 Starte Backend und Datenbank mit Docker Compose:
@@ -158,11 +159,37 @@ Die Anwendung lauscht auf Port 3000 und die MongoDB auf Port 27017.
 
 ## Tests
 
-Um die Unit-Tests auszuführen, wird ein Chrome- bzw. Chromium-Browser benötigt. Sollte die automatische Suche fehlschlagen, kann der Pfad über die Umgebungsvariable `CHROME_BIN` gesetzt werden:
+### Docker
+
+Der Logging-Server und eine passende MongoDB lassen sich auch per Docker starten:
 
 ```bash
-CHROME_BIN=/pfad/zu/chromium npm test
+# Container bauen und starten
+docker-compose up --build
 ```
+
+Die Anwendung ist anschließend unter http://localhost:3000 erreichbar;
+MongoDB lauscht auf Port 27017. Beende beide Container mit
+`docker-compose down`.
+
+=======
+### Datenbankeinrichtung
+
+Eine beispielhafte Konfiguration für den MongoDB-Server liegt unter `backend/mongodb.conf`. Sie schreibt die Log-Ausgaben nach `./data/mongo.log` und verwendet `./data/db` als Datenverzeichnis.
+
+Mit dem Skript `backend/init-db.js` lassen sich die notwendigen Collections (`logs`, `users`) samt Index auf `logs.timestamp` anlegen:
+
+```bash
+cd backend
+node init-db.js
+```
+
+
+
+## Tests
+
+Die Unit-Tests laufen standardmäßig in einer [jsdom](https://github.com/jsdom/jsdom)-Umgebung und benötigen daher keinen installierten Browser.
+Für einen Testlauf mit einem echten Browser kann `karma.conf.cjs` lokal auf `ChromeHeadless` umgestellt werden.
 
 ## Animation
 ![Kreis Animation](kreis_animation.png)

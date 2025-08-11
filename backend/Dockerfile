@@ -15,4 +15,5 @@ COPY . .
 EXPOSE 3000
 
 # Start the server
+
 CMD ["node", "server.js"]

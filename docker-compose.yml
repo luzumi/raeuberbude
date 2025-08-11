@@ -1,29 +1,32 @@
-# Orchestrates the application and MongoDB database
-version: '3.9'
+# Docker Compose setup for the logging app and its MongoDB
+version: "3.8"
 
 services:
   app:
-    # Build the Node.js backend
-    build: ./backend
-    ports:
-      - "3000:3000"
+    # Build the application image from the backend folder
+    build:
+      context: ./backend
     environment:
-      # Connection string used by the app to talk to MongoDB
-      - MONGODB_URI=mongodb://db:27017/raeuberbude
+      # Connection string used by the app to reach the database
+      - MONGODB_URI=mongodb://db:27017/logging
+    ports:
+      # Expose the app's HTTP/WebSocket port
+      - "3000:3000"
     depends_on:
+      # Ensure the database container is started before the app
       - db
 
   db:
-    # Use the official MongoDB image
-    image: mongo:6
+    # Official MongoDB image for persistent storage
+    image: mongo:7
     restart: always
-    ports:
-      - "27017:27017"
     volumes:
-      # Persist database files between restarts
+      # Keep database files outside of the container lifecycle
       - mongo-data:/data/db
+    ports:
+      # Expose the database port for local connections
+      - "27017:27017"
 
+# Define the named volume for MongoDB data
 volumes:
-  mongo-data:
-    # Named volume for MongoDB persistence
-    
+  mongo-data: {}
