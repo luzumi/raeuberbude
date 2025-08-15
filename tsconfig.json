@@ -13,8 +13,17 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
-  },
+    "module": "preserve",
+    "baseUrl": "src",
+      "paths": {
+        "@shared/*": ["app/shared/*"],
+        "@services/*": ["app/services/*"],
+        "@rooms/*": ["app/features/rooms/*"],
+        "@components/*": ["app/components/*"],
+        "@bude/*": ["app/features/rooms/bude/*"],
+        "@zuhause/*": ["app/features/rooms/zuhause/*"],
+      }
+    },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
