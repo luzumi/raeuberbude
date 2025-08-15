@@ -1,4 +1,4 @@
-// src/app/features/control/menu/menu.component.ts
+// Verschoben aus den Control-Features in den Shared-Bereich
 import {Component, Input} from '@angular/core';
 
 @Component({

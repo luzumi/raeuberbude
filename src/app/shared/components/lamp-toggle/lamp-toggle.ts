@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import {MatCard, MatCardContent, MatCardTitle} from '@angular/material/card';
 import {MatSlideToggle} from '@angular/material/slide-toggle';
-import {HomeAssistantService} from "../../../services/home-assistant/home-assistant.service";
+import { HomeAssistantService } from '@services/home-assistant/home-assistant.service';
 
 
 @Component({
