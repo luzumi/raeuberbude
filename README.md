@@ -38,6 +38,11 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
 - **TV-Steuerung:** Samsung-TV-Komponente im Stil von `/raub1` mit WebSocket-Anbindung und Dropdowns für FireTV- und Samsung-Befehle.
 
+### 5. Struktur reorganisiert
+- Komponenten für wiederverwendbare UI-Elemente liegen nun unter `src/app/shared/components`.
+- Raumansichten (z. B. *Bude*) und ihre Geräte befinden sich unter `src/app/features/rooms/`.
+- Globale Services werden per Alias (`@services`, `@shared`, `@rooms`) importiert.
+
 ---
 
 ## Warum haben wir das so gemacht?

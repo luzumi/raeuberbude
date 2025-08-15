@@ -7,8 +7,8 @@
 import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription, map } from 'rxjs';
-import { AppButtonComponent } from '../../../../../../../shared/components/app-button/app-button';
-import { HomeAssistantService } from '../../../../../../../services/home-assistant/home-assistant.service';
+import { AppButtonComponent } from '@shared/components/app-button/app-button';
+import { HomeAssistantService } from '@services/home-assistant/home-assistant.service';
 
 @Component({
   selector: 'app-orange-light',

@@ -28,22 +28,17 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () =>
-      import('./features/control/dashboard-component/dashboard-component').then(
-        m => m.DashboardComponent
+      import('@rooms/bude/bude-component/bude.component').then(
+        m => m.BudeComponent
       ),
     canActivate: [authGuard]
   },
   {
     path: 'raub2',
     loadComponent: () =>
-      import('./features/control/dashboard-component/dashboard-component').then(
-        m => m.DashboardComponent
+      import('@rooms/bude/bude-component/bude.component').then(
+        m => m.BudeComponent
       ),
     canActivate: [authGuard]
-  },
-  {
-    path: 'control',
-    loadChildren: () =>
-      import('./features/control/control.routes').then(m => m.routes)
   },
 ];

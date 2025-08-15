@@ -1,15 +1,14 @@
-import {Component, OnInit} from '@angular/core';
-import { NgClass, NgStyle} from '@angular/common';
-import {AuthService} from '../../../services/auth.service';
-import {HeaderComponent} from '../../../shared/components/header/header.component';
-import { Creator } from '../devices/features/control/devices/creator/creator';
-import { Laptop } from '../devices/features/control/devices/laptop/laptop';
-import { OrangeLight } from '../devices/features/control/devices/orange-light/orange-light';
-import { Pixel } from '../devices/features/control/devices/pixel/pixel';
-import { SamsungTv } from '../devices/features/control/devices/samsung-tv/samsung-tv';
-
-// NEU: Import der Menü‐Komponente
-import { MenuComponent } from '../../../shared/components/menu/menu';
+import { Component, OnInit } from '@angular/core';
+import { NgClass, NgStyle } from '@angular/common';
+// Aliases erleichtern den Überblick nach der Umstrukturierung
+import { AuthService } from '@services/auth.service';
+import { HeaderComponent } from '@shared/components/header/header.component';
+import { MenuComponent } from '@shared/components/menu/menu';
+import { Creator } from '@rooms/bude/devices/creator/creator';
+import { Laptop } from '@rooms/bude/devices/laptop/laptop';
+import { OrangeLight } from '@rooms/bude/devices/orange-light/orange-light';
+import { Pixel } from '@rooms/bude/devices/pixel/pixel';
+import { SamsungTv } from '@rooms/bude/devices/samsung-tv/samsung-tv';
 
 interface Device {
   id: number;
@@ -19,8 +18,9 @@ interface Device {
 }
 
 @Component({
-  selector: 'app-dashboard',
+  selector: 'app-bude',
   standalone: true,
+  // Alle benötigten UI-Bausteine des Raumes
   imports: [
     Pixel,
     OrangeLight,
@@ -30,17 +30,16 @@ interface Device {
     MenuComponent,
     NgStyle,
     NgClass,
-    HeaderComponent,
-    // NEU: Menü‐Komponente registrieren
+    HeaderComponent
   ],
-  templateUrl: './dashboard-component.html',
-  styleUrls: ['./dashboard-component.scss']
+  templateUrl: './bude.component.html',
+  styleUrls: ['./bude.component.scss']
 })
-export class DashboardComponent implements OnInit {
+export class BudeComponent implements OnInit {
   devices: Device[] = [];
   activeIndex: number | null = null;
 
-  // NEU: Öffnungszustand des Menüs
+  // Öffnungszustand des Menüs
   menuOpen = false;
 
   private readonly radiusPercent = 30;

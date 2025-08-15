@@ -1,9 +1,9 @@
 import {Component, EventEmitter, Output, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HomeAssistantService } from '../../../../../../../services/home-assistant/home-assistant.service';
-import { FireTvController, FireTvEntity, RemoteEntity } from '../../../../../../../services/home-assistant/fire-tv-control';
+import { HomeAssistantService } from '@services/home-assistant/home-assistant.service';
+import { FireTvController, FireTvEntity, RemoteEntity } from '@services/home-assistant/fire-tv-control';
 import { FormsModule } from '@angular/forms';
-import {HorizontalSlider} from '../../../../../../../shared/components/horizontal-slider/horizontal-slider';
+import { HorizontalSlider } from '@shared/components/horizontal-slider/horizontal-slider';
 
 @Component({
   selector: 'app-firetv',

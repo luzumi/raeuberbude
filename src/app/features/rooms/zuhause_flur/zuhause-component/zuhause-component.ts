@@ -2,9 +2,9 @@ import {Component, OnInit} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
-import {AuthService} from '../../../../services/auth.service';
-import {HeaderComponent} from '../../../../shared/components/header/header.component';
-import {LogoutButtonComponent} from "../../../../shared/components/logout-button/logout-button";
+import { AuthService } from '@services/auth.service';
+import { HeaderComponent } from '@shared/components/header/header.component';
+import { LogoutButtonComponent } from '@shared/components/logout-button/logout-button';
 
 /**
  * Landing page after login showing available rooms as a grid.
