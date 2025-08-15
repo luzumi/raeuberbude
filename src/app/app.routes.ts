@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { RoomMenuComponent } from './features/dashboard/room-menu/room-menu-component';
 // Login & Zuhause components are new views introduced for authentication flow
 import { LoginComponent } from './features/auth/login-component/login-component';
-import { ZuhauseComponent } from './features/home/zuhause-component/zuhause-component';
+import { ZuhauseComponent } from './features/rooms/zuhause_flur/zuhause-component/zuhause-component';
 // Guard to prevent access to protected routes without authentication
 import { authGuard } from './services/auth.guard';
 

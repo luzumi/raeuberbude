@@ -1,0 +1,13 @@
+<app-header
+  [userName]="userName"
+  [flightPhase]="false"
+></app-header>
+
+<div class="rooms-grid">
+  @for (room of rooms; track room.name) {
+    <button class="room-button" [routerLink]="room.route" [disabled]="!room.route">
+      <mat-icon>{{ room.icon }}</mat-icon>
+      <span>{{ room.name }}</span>
+    </button>
+  }
+</div>

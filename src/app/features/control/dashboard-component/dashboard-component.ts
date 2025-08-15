@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import { NgClass, NgStyle} from '@angular/common';
+import {AuthService} from '../../../services/auth.service';
+import {HeaderComponent} from '../../../shared/components/header/header.component';
 import { Creator } from '../devices/features/control/devices/creator/creator';
 import { Laptop } from '../devices/features/control/devices/laptop/laptop';
 import { OrangeLight } from '../devices/features/control/devices/orange-light/orange-light';
@@ -28,12 +30,13 @@ interface Device {
     MenuComponent,
     NgStyle,
     NgClass,
+    HeaderComponent,
     // NEU: Menü‐Komponente registrieren
   ],
   templateUrl: './dashboard-component.html',
   styleUrls: ['./dashboard-component.scss']
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   devices: Device[] = [];
   activeIndex: number | null = null;
 
@@ -49,8 +52,11 @@ export class DashboardComponent {
     'creator',
     'samsung-tv'
   ];
+  public userName: string = 'asd';
 
-  constructor() {
+  constructor(
+    private readonly auth: AuthService,
+  ) {
     // Geräte kreisförmig verteilen
     for (let i = 0; i < 5; i++) {
       const angleDeg = -90 + (360 / 5) * i;
@@ -64,6 +70,10 @@ export class DashboardComponent {
         top
       });
     }
+  }
+
+  ngOnInit(): void {
+    this.userName = this.auth.getUserName();
   }
 
   onClick(idx: number) {
