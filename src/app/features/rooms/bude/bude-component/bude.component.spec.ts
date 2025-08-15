@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DashboardComponent } from './dashboard-component';
 import { CommonModule } from '@angular/common';
-import { MenuComponent } from '../../../shared/components/menu/menu';
+import { MenuComponent } from '@shared/components/menu/menu';
+import { BudeComponent } from './bude.component';
 
-describe('DashboardComponent (with Menu)', () => {
-  let component: DashboardComponent;
-  let fixture: ComponentFixture<DashboardComponent>;
+describe('BudeComponent (with Menu)', () => {
+  let component: BudeComponent;
+  let fixture: ComponentFixture<BudeComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DashboardComponent, CommonModule, MenuComponent]
+      imports: [BudeComponent, CommonModule, MenuComponent]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(DashboardComponent);
+    fixture = TestBed.createComponent(BudeComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

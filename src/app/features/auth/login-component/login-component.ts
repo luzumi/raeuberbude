@@ -37,7 +37,7 @@ export class LoginComponent implements OnInit {
   submit(): void {
     const { username, password } = this.form.value;
     if (this.auth.login(username ?? '', password ?? '')) {
-      this.router.navigate( ['/raub1'] ).then();
+      this.router.navigate( ['/zuhause'] ).then();
     } else {
       this.error = 'Ungültige Zugangsdaten';
     }
@@ -48,7 +48,7 @@ export class LoginComponent implements OnInit {
    */
   ngOnInit(): void {
     if (this.auth.isLoggedIn()) {
-      this.router.navigate(['/raub1']).then();
+      this.router.navigate(['/zuhause']).then();
     } else {
       const users = localStorage.getItem('users');
       if (users) {

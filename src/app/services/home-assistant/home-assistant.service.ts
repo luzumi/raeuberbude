@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import {BehaviorSubject, from, Observable, Subscription} from 'rxjs';
+// Extended with `map` to transform WebSocket responses when fetching states
+import {BehaviorSubject, from, Observable, Subscription, map} from 'rxjs';
 import {WebSocketBridgeService} from './websocketBridgeService';
 import {environment} from '../../../environments/environments';
 
@@ -70,6 +71,16 @@ export class HomeAssistantService {
       service,
       service_data: data
     } as unknown as Omit<HassServiceResponse, "id">));
+  }
+
+  /**
+   * Retrieves the full list of entity states via WebSocket.
+   * Used to dynamically obtain command lists for remote controls.
+   */
+  public getStatesWs(): Observable<Entity[]> {
+    return from(this.bridge.send({ type: 'get_states' })).pipe(
+      map((res: HassServiceResponse) => res.result as Entity[])
+    );
   }
 
 

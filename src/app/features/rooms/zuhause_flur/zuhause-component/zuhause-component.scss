@@ -1,0 +1,60 @@
+// Design-Tokens
+$header-offset: 80px;
+
+$rb-padding: 1.5rem;
+$rb-gap: 1rem;
+$rb-radius: 8px;
+
+$rb-bg: rgba(255, 255, 255, 0.05);
+$rb-border: rgb(170, 228, 219);
+$rb-text: #1e2523;
+$rb-hover-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+
+$rb-icon-size: clamp(2rem, 5vw, 4rem);
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(40%, 1fr));
+  gap: 0.5rem;
+  // offset for fixed header
+  margin-top: $header-offset; // offset for fixed header
+  padding: 1rem;
+  // fit into viewport without scroll
+  height: calc(100vh - #{$header-offset}); // fit into viewport without scroll
+  /* Radial background inspired by '/raub1' */
+  background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
+}
+
+.room-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $rb-gap;
+
+  padding: $rb-padding;
+  background: $rb-bg;
+  border: 1px solid $rb-border;
+  border-radius: $rb-radius;
+  color: $rb-text;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: box-shadow 0.3s;
+
+  .mat-icon {
+    transform: scale(2.0);
+  }
+  span {
+    color: $rb-text;
+  }
+
+  &:not(:disabled):hover {
+    box-shadow: $rb-hover-shadow;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+}

@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use '../../../../../../../../styles/palette' as *;
+@use '../../../../../../styles/palette' as *;
 
 // Container styled with soft glow inspired by '/raub1'
 .tv-info-line {
@@ -81,6 +81,17 @@
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+// Style select dropdowns to visually match the glowing buttons
+.tv-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 2rem;
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white'><path d='M4 6l4 4 4-4'/></svg>");
 }
 
 .green-icon {

@@ -1,21 +1,20 @@
 import { Routes } from '@angular/router';
+import {BudeComponent} from '@bude/bude-component/bude.component';
 import { RoomMenuComponent } from './features/dashboard/room-menu/room-menu-component';
-// Login & Zuhause components are new views introduced for authentication flow
-import { LoginComponent } from './features/auth/login-component/login-component';
-import { ZuhauseComponent } from './features/home/zuhause-component/zuhause-component';
-// Guard to prevent access to protected routes without authentication
-import { authGuard } from './services/auth.guard';
+import { ZuhauseComponent } from '@rooms/zuhause_flur/zuhause-component/zuhause-component';
+import { authGuard } from '@services/auth.guard';
 
 export const routes: Routes = [
-  // Root route now displays the login page
+  // Home page shown after login
   {
     path: '',
-    component: LoginComponent
-  },
-  // After login the user lands on '/zuhause'
-  {
-    path: 'zuhause',
     component: ZuhauseComponent,
+    canActivate: [authGuard]
+  },
+  // Root route now displays the login page
+  {
+    path: 'raeuberbude',
+   component: BudeComponent,
     canActivate: [authGuard]
   },
   // Previous root content moved to '/raub1'
@@ -28,22 +27,17 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () =>
-      import('./features/control/dashboard-component/dashboard-component').then(
-        m => m.DashboardComponent
+      import('@rooms/bude/bude-component/bude.component').then(
+        m => m.BudeComponent
       ),
     canActivate: [authGuard]
   },
   {
     path: 'raub2',
     loadComponent: () =>
-      import('./features/control/dashboard-component/dashboard-component').then(
-        m => m.DashboardComponent
+      import('@rooms/bude/bude-component/bude.component').then(
+        m => m.BudeComponent
       ),
     canActivate: [authGuard]
-  },
-  {
-    path: 'control',
-    loadChildren: () =>
-      import('./features/control/control.routes').then(m => m.routes)
   },
 ];
