@@ -35,11 +35,11 @@ export class AuthService {
   }
 
   /**
-   * Clears the login token and navigates back to the login page.
+   * Entfernt das Login-Token und leitet zur Login-Seite weiter.
    */
   logout(): void {
     localStorage.removeItem( this.tokenKey );
-    this.router.navigate( ['/'] );
+    this.router.navigate( ['/login'] ); // zurück zum Login
   }
 
   getUserName(): string {
