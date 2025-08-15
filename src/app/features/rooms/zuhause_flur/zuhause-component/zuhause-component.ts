@@ -27,7 +27,8 @@ export class ZuhauseComponent implements OnInit {
   rooms = [
     { name: 'Wohnzimmer', icon: 'living' },
     { name: 'Schlafzimmer', icon: 'king_bed' },
-    { name: 'Räuberbude', route: '/raub2', icon: 'single_bed' },
+    // Clicking the Räuberbude button navigates to its route
+    { name: 'Räuberbude', route: '/raeuberbude', icon: 'single_bed' },
     { name: 'Küche', icon: 'chef_hat' },
     { name: 'Büro', icon: 'desktop_cloud_stack' },
     { name: 'Flur', icon: 'nest_multi_room' }
