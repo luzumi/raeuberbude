@@ -1,8 +1,12 @@
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-  padding: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(40%, 1fr));
+  gap: 0.5rem;
+  margin-top: 80px; // offset for fixed header
+  padding: 1rem;
+  height: calc(100vh - 80px); // fit into viewport without scroll
+  /* Radial background inspired by '/raub1' */
+  background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
 }
 
 .room-button {
