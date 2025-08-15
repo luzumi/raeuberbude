@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import {MatIcon} from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '@services/auth.service';
-import { HeaderComponent } from '@shared/components/header/header.component';
-import { LogoutButtonComponent } from '@shared/components/logout-button/logout-button';
+import {HeaderComponent} from '@shared/components/header/header.component';
 
 /**
  * Landing page after login showing available rooms as a grid.
@@ -12,7 +11,7 @@ import { LogoutButtonComponent } from '@shared/components/logout-button/logout-b
 @Component({
   selector: 'app-zuhause',
   standalone: true,
-  imports: [CommonModule, RouterModule, LogoutButtonComponent, MatIcon, HeaderComponent],
+  imports: [CommonModule, RouterModule,  MatIcon, HeaderComponent],
   templateUrl: './zuhause-component.html',
   styleUrl: './zuhause-component.scss'
 })
