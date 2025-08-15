@@ -34,14 +34,15 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - CORS-Probleme durch `proxy.conf.json` mit `/api`-Rewrite gelöst
 - Standalone-Komponenten korrekt mit Imports und Routing integriert
 - Fehlerbehandlung beim Lampenschalter verbessert (subscribe mit next/error)
-- **Login & Routing:** Einfache Benutzeranmeldung mit Weiterleitung nach `/zuhause`; Inhalte der bisherigen Startseite liegen nun unter `/raub1`, das Dashboard ist zusätzlich über `/raub2` erreichbar.
+ - **Login & Routing:** Einfache Benutzeranmeldung mit Weiterleitung nach `/`; Räume sind nun unter `/rooms/:id` erreichbar und Einstellungen unter `/settings`.
 - **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
 - **TV-Steuerung:** Samsung-TV-Komponente im Stil von `/raub1` mit WebSocket-Anbindung und Dropdowns für FireTV- und Samsung-Befehle.
 
 ### 5. Struktur reorganisiert
-- Komponenten für wiederverwendbare UI-Elemente liegen nun unter `src/app/shared/components`.
-- Raumansichten (z. B. *Bude*) und ihre Geräte befinden sich unter `src/app/features/rooms/`.
-- Globale Services werden per Alias (`@services`, `@shared`, `@rooms`) importiert.
+ - Komponenten für wiederverwendbare UI-Elemente liegen nun unter `src/app/shared/components`.
+ - Raumansichten (z. B. *Bude*) und ihre Geräte befinden sich unter `src/app/features/rooms/`.
+ - Globale Services werden per Alias (`@services`, `@shared`, `@rooms`) importiert.
+ - Routen-Komponenten liegen in `src/app/components/` und werden lazy geladen (`/`, `/settings`, `/rooms/:id`).
 
 ---
 

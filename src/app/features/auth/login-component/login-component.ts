@@ -6,7 +6,7 @@ import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 
 /**
- * Login form presented at the root route. Redirects to '/zuhause' on success.
+ * Login form presented at '/login'. Redirects to the home route '/' on success.
  */
 @Component({
   selector: 'app-login',
@@ -32,24 +32,24 @@ export class LoginComponent implements OnInit {
 
 
   /**
-   * On submit we validate credentials and navigate to '/zuhause'.
+   * On submit we validate credentials and navigate to '/'.
    */
   submit(): void {
     const { username, password } = this.form.value;
-    if (this.auth.login(username ?? '', password ?? '')) {
-      this.router.navigate( ['/zuhause'] ).then();
-    } else {
-      this.error = 'Ungültige Zugangsdaten';
+      if (this.auth.login(username ?? '', password ?? '')) {
+        this.router.navigate( ['/'] ).then();
+      } else {
+        this.error = 'Ungültige Zugangsdaten';
+      }
     }
-  }
 
   /**
-   * If already logged in, skip the form and go to '/zuhause'.
+   * If already logged in, skip the form and go to '/'.
    */
   ngOnInit(): void {
-    if (this.auth.isLoggedIn()) {
-      this.router.navigate(['/zuhause']).then();
-    } else {
+      if (this.auth.isLoggedIn()) {
+        this.router.navigate(['/']).then();
+      } else {
       const users = localStorage.getItem('users');
       if (users) {
         const parsedUsers = JSON.parse(users);
