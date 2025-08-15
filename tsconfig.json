@@ -15,12 +15,13 @@
     "target": "ES2022",
     "module": "preserve",
     "baseUrl": "src",
-    "paths": {
-      "@shared/*": ["app/shared/*"],
-      "@services/*": ["app/services/*"],
-      "@rooms/*": ["app/features/rooms/*"]
-    }
-  },
+      "paths": {
+        "@shared/*": ["app/shared/*"],
+        "@services/*": ["app/services/*"],
+        "@rooms/*": ["app/features/rooms/*"],
+        "@components/*": ["app/components/*"]
+      }
+    },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,

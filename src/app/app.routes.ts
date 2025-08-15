@@ -1,44 +1,38 @@
 import { Routes } from '@angular/router';
-import { RoomMenuComponent } from './features/dashboard/room-menu/room-menu-component';
-// Login & Zuhause components are new views introduced for authentication flow
 import { LoginComponent } from './features/auth/login-component/login-component';
-import { ZuhauseComponent } from './features/rooms/zuhause_flur/zuhause-component/zuhause-component';
-// Guard to prevent access to protected routes without authentication
 import { authGuard } from './services/auth.guard';
 
+/**
+ * Application wide routes.
+ * Components under 'components/' are lazy loaded to reduce bundle size.
+ */
 export const routes: Routes = [
-  // Root route now displays the login page
+  // Public route for login
   {
-    path: '',
+    path: 'login',
     component: LoginComponent
   },
-  // After login the user lands on '/zuhause'
+  // Home page shown after login
   {
-    path: 'zuhause',
-    component: ZuhauseComponent,
-    canActivate: [authGuard]
-  },
-  // Previous root content moved to '/raub1'
-  {
-    path: 'raub1',
-    component: RoomMenuComponent,
-    canActivate: [authGuard]
-  },
-  // Original dashboard component now additionally reachable via '/raub2'
-  {
-    path: 'dashboard',
+    path: '',
     loadComponent: () =>
-      import('@rooms/bude/bude-component/bude.component').then(
-        m => m.BudeComponent
-      ),
+      import('./components/home/home.component').then(m => m.HomeComponent),
     canActivate: [authGuard]
   },
+  // Global settings
   {
-    path: 'raub2',
+    path: 'settings',
     loadComponent: () =>
-      import('@rooms/bude/bude-component/bude.component').then(
-        m => m.BudeComponent
-      ),
+      import('./components/settings/settings.component').then(m => m.SettingsComponent),
     canActivate: [authGuard]
   },
+  // Dynamic room route: '/rooms/bude', '/rooms/zuhause', ...
+  {
+    path: 'rooms/:id',
+    loadComponent: () =>
+      import('./components/rooms/rooms.component').then(m => m.RoomsComponent),
+    canActivate: [authGuard]
+  },
+  // Fallback redirects unknown paths to home
+  { path: '**', redirectTo: '' }
 ];
