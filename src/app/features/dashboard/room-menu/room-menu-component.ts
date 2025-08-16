@@ -14,7 +14,9 @@ import { FunctionMenuComponent } from './function-menu/function-menu';
 import { PixelMinimal }       from '@rooms/bude/devices/pixel/pixel-minimal/pixel-minimal';
 import { OrangeLightMinimal } from '@rooms/bude/devices/orange-light/orange-light-minimal/orange-light-minimal';
 import { FiretvMinimal }      from '@rooms/bude/devices/firetv/firetv-minimal/firetv-minimal';
-import { SamsungTvMinimal }   from '@bude/devices/samsung-tv-parts/samsung-tv-minimal/samsung-tv-minimal';
+
+// Import der kompakten Samsung-TV-Ansicht direkt aus dem gemeinsamen Samsung-Ordner
+import { SamsungTvMinimal }   from '@bude/devices/samsung-tv/samsung-tv-minimal/samsung-tv-minimal';
 import { CreatorMinimal }     from '@rooms/bude/devices/creator/creator-minimal/creator-minimal';
 import { LaptopMinimal }      from '@rooms/bude/devices/laptop/laptop-minimal/laptop-minimal';
 
@@ -28,12 +30,6 @@ import { LaptopMinimal }      from '@rooms/bude/devices/laptop/laptop-minimal/la
     HeaderComponent,
     FunctionMenuComponent,
     RouterLink,
-    OrangeLightMinimal,
-    FiretvMinimal,
-    SamsungTvMinimal,
-    CreatorMinimal,
-    LaptopMinimal,
-    PixelMinimal
   ],
   templateUrl: './room-menu-component.html',
   styleUrls: ['./room-menu-component.scss'],

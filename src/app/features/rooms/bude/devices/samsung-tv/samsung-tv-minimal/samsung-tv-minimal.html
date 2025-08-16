@@ -1,12 +1,15 @@
+
+<!-- Kompakte Samsung-TV-Kachel mit Status, Lautstärke und Quelle -->
 <div class="device samsung-tv-minimal">
   @if (samsung) {
     <div class="controls">
       <app-button
         [active]="isOn"
-        [color]="'grey'"
+        [color]="'red'"
         [backgroundColor]="'green'"
+        [activeColor]="'green'"
         [glowOn]="false"
-        [size]="'1rem'"
+        [size]="'1.5rem'"
         [icon]="'power_settings_new'"
         (click)="$event.stopPropagation(); togglePower();"
       ></app-button>
@@ -23,6 +26,7 @@
       <button mat-icon-button (click)="$event.stopPropagation(); channelUp()">
         <mat-icon>arrow_upward</mat-icon>
       </button>
+
       <select [(ngModel)]="selectedSource"
               (click)="$event.stopPropagation()"
               (change)="$event.stopPropagation(); changeSource(selectedSource)">
@@ -31,26 +35,37 @@
         }
       </select>
     </div>
-    <!-- Statusanzeige mit Icons und grafischer Lautstärke -->
-    <div class="status">
-      <div class="status-row">
-        <mat-icon class="status-icon">tv</mat-icon>
-        <span class="status-label">{{ name }}</span>
+
+
+    <!-- Statusanzeige im Kachel-Layout -->
+    <div class="status-grid">
+      <!-- Geräte-Name über volle Breite -->
+      <div class="tile device-tile">
+        <mat-icon>tv</mat-icon>
+        <span>{{ name }}</span>
       </div>
-      <div class="status-row">
-        <mat-icon class="status-icon" [class.on]="isOn">power_settings_new</mat-icon>
-        <span class="status-label">{{ state }}</span>
+
+      <!-- Status mit Icon und Zeitstempel -->
+      <div class="tile state-tile">
+        <mat-icon class="state-icon" [class.on]="isOn">power_settings_new</mat-icon>
+        <div class="state-text">
+          <div>{{ state }}</div>
+          <div class="since">{{ statusSince }}</div>
+        </div>
       </div>
-      <div class="status-row">
-        <mat-icon class="status-icon">settings_input_hdmi</mat-icon>
-        <span class="status-label">{{ currentSource }}</span>
-      </div>
-      <div class="status-row volume">
-        <mat-icon class="status-icon">volume_up</mat-icon>
+
+      <!-- Lautstärke mit grafischer Anzeige und Zahl -->
+      <div class="tile volume-tile">
         <div class="bar">
           <div class="fill" [style.width.%]="volume"></div>
         </div>
-        <span class="status-label">{{ volume }}%</span>
+        <span class="volume-value">{{ volume }}%</span>
+      </div>
+
+      <!-- Source über volle Breite -->
+      <div class="tile source-tile">
+        <mat-icon>settings_input_hdmi</mat-icon>
+        <span>{{ currentSource }}</span>
       </div>
     </div>
   } @else {
