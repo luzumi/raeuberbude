@@ -1,10 +1,12 @@
 // src/app/shared/components/header/header.component.ts
 
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import {CommonModule, NgOptimizedImage} from '@angular/common';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { AppButtonComponent } from '../app-button/app-button';
 import { RoomEntityButton } from '../../../features/dashboard/room-menu/room-entity-button';
-import {LogoutButtonComponent} from '../logout-button/logout-button';
+import { LogoutButtonComponent } from '../logout-button/logout-button';
 
 @Component({
   selector: 'app-header',
@@ -19,6 +21,7 @@ import {LogoutButtonComponent} from '../logout-button/logout-button';
   styleUrls: ['./header.component.scss']
 })
 export class HeaderComponent {
+  constructor(private router: Router, private location: Location) {}
   /** Name des aktuellen Nutzers */
   @Input() userName: string = 'Gast';
 
@@ -49,7 +52,13 @@ export class HeaderComponent {
 
   /** Methode: Zurück-Button anklicken */
   onBack(): void {
-    this.back.emit();
+    this.back.emit();       // inform parent components
+    this.location.back();  // navigate to previous page
+  }
+
+  /** Methode: Benutzer-Icon anklicken */
+  onUserProfile(): void {
+    this.router.navigate(['/user-profile']);
   }
 
   /** Tageszeiten-Begrüßung */
