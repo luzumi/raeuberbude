@@ -42,6 +42,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Komponenten für wiederverwendbare UI-Elemente liegen nun unter `src/app/shared/components`.
 - Raumansichten (z. B. *Bude*) und ihre Geräte befinden sich unter `src/app/features/rooms/`.
 - Globale Services werden per Alias (`@services`, `@shared`, `@rooms`) importiert.
+- "Dumb" Presentational Components ohne API-Calls leben unter `src/app/components` und werden von Containern in `features/` gesteuert.
 
 ---
 
