@@ -37,6 +37,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - **Login & Routing:** Login-Seite unter `/login`; erfolgreiche Anmeldung führt zur Startseite `/`, die Ansicht "Bude" ist über `/raeuberbude` erreichbar.
 - **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
 - **TV-Steuerung:** Samsung-TV-Komponente im Stil von `/raub1` mit WebSocket-Anbindung und Dropdowns für FireTV- und Samsung-Befehle.
+- **RoomMenu:** Minimalansicht des Samsung-TV mit Grundfunktionen (Power, Lautstärke, Sender, Quelle).
 
 ### 5. Struktur reorganisiert
 - Komponenten für wiederverwendbare UI-Elemente liegen nun unter `src/app/shared/components`.
