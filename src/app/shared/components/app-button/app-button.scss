@@ -20,6 +20,7 @@
   --active-glow-blur-outer: calc(var(--btn-size, 150px) * 0.133);
   --active-glow-spread-outer: calc(var(--btn-size, 150px) * 0.15);
   --active-glow-inset-blur: calc(var(--btn-size, 150px) * 0.01);
+  --active-glow-color: ;
 
   /* Base glow - only shown when glowOn class is present */
   &.glow-enabled::before {

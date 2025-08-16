@@ -27,7 +27,7 @@ export class SamsungTvMinimal implements OnInit {
   /** Liste verfügbarer Quellen des TVs. */
   sources: string[] = [];
   /** Gewählte Quelle im Dropdown. */
-  selectedSource?: string;
+  selectedSource: string = '';
 
   constructor(private readonly hass: HomeAssistantService) {}
 
@@ -43,7 +43,7 @@ export class SamsungTvMinimal implements OnInit {
       this.samsung = entity;
       this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
       this.sources = entity.attributes['source_list'] ?? [];
-      this.selectedSource = entity.attributes['source'];
+      this.selectedSource = <string>entity.attributes['source'];
     });
   }
 
@@ -95,7 +95,7 @@ export class SamsungTvMinimal implements OnInit {
 
   /** Liefert den aktuellen Status des TVs. */
   get state(): string {
-    return this.samsung?.state ?? '-';
+    return this.samsung?.state === 'unavailable' ? '': this.samsung?.state ?? '-';
   }
 
   /**

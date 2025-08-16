@@ -4,10 +4,11 @@
     <div class="controls">
       <app-button
         [active]="isOn"
-        [color]="'grey'"
+        [color]="'red'"
         [backgroundColor]="'green'"
+        [activeColor]="'green'"
         [glowOn]="false"
-        [size]="'1rem'"
+        [size]="'1.5rem'"
         [icon]="'power_settings_new'"
         (click)="$event.stopPropagation(); togglePower();"
       ></app-button>
@@ -32,6 +33,8 @@
         }
       </select>
     </div>
+
+
     <!-- Statusanzeige im Kachel-Layout -->
     <div class="status-grid">
       <!-- Geräte-Name über volle Breite -->
