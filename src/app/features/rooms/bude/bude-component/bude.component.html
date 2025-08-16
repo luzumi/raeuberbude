@@ -14,38 +14,38 @@
   </div>
 
   <!-- Wenn Menü geöffnet: MenuComponent einblenden -->
-  @if(menuOpen){
+  @if (menuOpen) {
     <app-menu
       [ngStyle]="getMenuComponentStyle()"
       [closeCallback]="closeMenu.bind(this)"
     ></app-menu>
   }
   <!-- Geräte via @for-Block (nur, wenn Menü geschlossen) -->
-    @if(!menuOpen){
+  @if (!menuOpen) {
     @for (device of devices; track $index) {
-      @switch (device.type){
+      @switch (device.type) {
         @case ('pixel') {
           <app-pixel
             [ngStyle]="getStyle(device, $index)"
             [style.background]="getGradient(device.type)"
             (click)="onClick($index)"
           ></app-pixel>
-          }
-        @case('orange-light') {
+        }
+        @case ('orange-light') {
           <app-orange-light
             [ngStyle]="getStyle(device, $index)"
             [style.background]="getGradient(device.type)"
             (click)="onClick($index)"
           ></app-orange-light>
         }
-        @case('laptop'){
+        @case ('laptop') {
           <app-laptop
             [ngStyle]="getStyle(device, $index)"
             [style.background]="getGradient(device.type)"
             (click)="onClick($index)"
           ></app-laptop>
         }
-        @case('creator'){
+        @case ('creator') {
           <app-creator
             [ngStyle]="getStyle(device, $index)"
             [style.background]="getGradient(device.type)"

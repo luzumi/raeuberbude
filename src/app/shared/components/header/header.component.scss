@@ -6,6 +6,23 @@
   display: block;
 }
 
+.back-button {
+  margin-left: 24px;
+}
+
+.user-info {
+  margin-left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.options {
+  margin-right: 60px;
+  display: flex;
+  align-items: center;
+  gap: 60px;
+}
 .app-header {
   position: fixed;
   top: 0;
@@ -14,7 +31,6 @@
   height: 80px;            // feste Höhe
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0 1rem;
   background: radial-gradient(circle at center, #787163 0%, #cdbc9c 100%);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -33,6 +49,8 @@
   flex-direction: column;
   gap: 0.2rem;
 }
+  gap: 1rem;
+}
 
 .avatar {
   width: 40px;
@@ -41,6 +59,12 @@
   object-fit: cover;
   border: 2px solid rgba(0, 0, 0, 0.1);
   cursor: pointer;
+}
+
+.text-block {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
 }
 
 .greet-text {
@@ -56,3 +80,6 @@
   line-height: 1;
 }
 
+.spacer {
+  flex: 1 1 auto;
+}

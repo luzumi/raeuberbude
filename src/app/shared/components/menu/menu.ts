@@ -1,5 +1,6 @@
 // Verschoben aus den Control-Features in den Shared-Bereich
 import {Component, Input} from '@angular/core';
+import {Location} from '@angular/common';
 
 @Component({
   selector: 'app-menu',
@@ -27,10 +28,22 @@ import {Component, Input} from '@angular/core';
   `]
 })
 export class MenuComponent {
-  // Der Dashboard-Parent setzt diese Funktion per @Output oder Callback.
-  @Input() closeCallback!: OmitThisParameter<() => void>;
+  /**
+   * Optionales Callback, das vom Parent gesetzt werden kann,
+   * um das Menü zu schließen. Ist keins definiert, geht es eine Seite zurück.
+   */
+  @Input() closeCallback?: OmitThisParameter<() => void>;
 
+  constructor(private readonly location: Location) {}
+
+  /**
+   * Führt das optionale Schließen-Callback aus oder navigiert zurück.
+   */
   close() {
-    this.closeCallback();
+    if (this.closeCallback) {
+      this.closeCallback();
+    } else {
+      this.location.back();
+    }
   }
 }

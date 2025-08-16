@@ -15,7 +15,7 @@ import { Pixel }         from '@rooms/bude/devices/pixel/pixel';
 import { OrangeLight }   from '@rooms/bude/devices/orange-light/orange-light';
 import { FiretvComponent } from '@rooms/bude/devices/firetv/fire-tv-component';
 // Verwende die minimale Samsung-TV-Komponente im RoomMenu
-import { SamsungTvMinimal } from '@rooms/bude/devices/samsung-tv-minimal/samsung-tv-minimal';
+import { SamsungTvMinimal } from '@bude/devices/samsung-tv-parts/samsung-tv-minimal/samsung-tv-minimal';
 import { Creator }       from '@rooms/bude/devices/creator/creator';
 import { Laptop }        from '@rooms/bude/devices/laptop/laptop';
 

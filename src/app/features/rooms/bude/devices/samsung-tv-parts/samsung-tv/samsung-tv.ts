@@ -6,10 +6,8 @@ import { HorizontalSlider } from '@shared/components/horizontal-slider/horizonta
 import { FormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { FiretvComponent } from '../firetv/fire-tv-component';
+import { FiretvComponent } from '../../firetv/fire-tv-component';
 import { KeyPadComponent } from '@shared/components/key-pad-component/key-pad.component';
-// Import the FireTv command enum so we can list all possible commands in a select
-import { FireTvCommand } from '@services/home-assistant/fire-tv-control';
 
 @Component({
   selector: 'app-samsung-tv',

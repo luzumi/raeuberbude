@@ -5,7 +5,6 @@ import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { AppButtonComponent } from '../app-button/app-button';
-import { RoomEntityButton } from '../../../features/dashboard/room-menu/room-entity-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
 
 @Component({
@@ -21,38 +20,30 @@ import { LogoutButtonComponent } from '../logout-button/logout-button';
   styleUrls: ['./header.component.scss']
 })
 export class HeaderComponent {
-  constructor(private router: Router, private location: Location) {}
   /** Name des aktuellen Nutzers */
   @Input() userName: string = 'Gast';
 
-  /** Steuert, ob Phase 4 (Detail-Ansicht) aktiv ist */
-  @Input() flightPhase: boolean = false;
+  constructor(private readonly router: Router, private readonly location: Location) {}
 
-  /** Liste aller Entities für die Button-Leiste */
-  @Input() entities: RoomEntityButton[] = [];
-
-  /** Event, um das Wheel zu togglen */
-  @Output() toggleWheel = new EventEmitter<void>();
-
-  /** Event, wenn ein Entity-Button im Header geklickt wird */
-  @Output() entityClick = new EventEmitter<number>();
-
-  /** Event für den Zurück-Button */
-  @Output() back = new EventEmitter<void>();
-
-  /** Methode: Menu-Icon anklicken */
-  onToggleMenu(): void {
-    this.toggleWheel.emit();
+  /**
+   * Navigiert zur Profilseite des Nutzers.
+   */
+  goToProfile(): void {
+    this.router.navigate(['/profile']);
   }
 
-  /** Methode: Entity-Button im Header anklicken */
-  onEntityClick(index: number): void {
-    this.entityClick.emit(index);
+  /**
+   * Öffnet die Menüseite.
+   */
+  goToMenu(): void {
+    this.router.navigate(['/menu']);
   }
 
-  /** Methode: Zurück-Button anklicken */
-  onBack(): void {
-    this.back.emit();       // inform parent components
+  /**
+   * Navigiert zur vorherigen Seite.
+   */
+  goBack(): void {
+    this.location.back();       // inform parent components
     this.location.back();  // navigate to previous page
   }
 

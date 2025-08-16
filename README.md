@@ -80,6 +80,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - ✅ Routing funktioniert standalone
 - ✅ Material-Design eingebunden
 - ✅ "Bude" nutzt nun den radialen Hintergrund der Raumübersicht; Gerätekacheln behalten ihre Farben mit sanftem Gradient
+- ✅ App-Header mit Profil-Link, Menü-Routing und Logout-Schaltfläche
 
 ---
 
