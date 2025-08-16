@@ -1,0 +1,30 @@
+@if (samsung) {
+  <div class="controls">
+    <button mat-icon-button (click)="togglePower()">
+      <mat-icon>power_settings_new</mat-icon>
+    </button>
+    <button mat-icon-button (click)="volumeDown()">
+      <mat-icon>volume_down</mat-icon>
+    </button>
+    <button mat-icon-button (click)="volumeUp()">
+      <mat-icon>volume_up</mat-icon>
+    </button>
+    <button mat-icon-button (click)="channelDown()">
+      <mat-icon>arrow_downward</mat-icon>
+    </button>
+    <button mat-icon-button (click)="channelUp()">
+      <mat-icon>arrow_upward</mat-icon>
+    </button>
+    <select [(ngModel)]="selectedSource" (change)="changeSource(selectedSource!)">
+      <option *ngFor="let src of sources" [value]="src">{{ src }}</option>
+    </select>
+  </div>
+  <div class="status">
+    <span>{{ name }}</span>
+    <span>Status: {{ state }}</span>
+    <span>Quelle: {{ currentSource }}</span>
+    <span>Lautstärke: {{ volume }}%</span>
+  </div>
+} @else {
+  <div class="status">TV nicht gefunden</div>
+}

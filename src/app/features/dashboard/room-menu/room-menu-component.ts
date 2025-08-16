@@ -14,7 +14,8 @@ import { FunctionMenuComponent } from './function-menu/function-menu';
 import { Pixel }         from '@rooms/bude/devices/pixel/pixel';
 import { OrangeLight }   from '@rooms/bude/devices/orange-light/orange-light';
 import { FiretvComponent } from '@rooms/bude/devices/firetv/fire-tv-component';
-import { SamsungTv }     from '@rooms/bude/devices/samsung-tv/samsung-tv';
+// Minimalansicht für Samsung TV im RoomMenu
+import { SamsungTvMinimal } from '@rooms/bude/devices/samsung-tv/samsung-tv-minimal';
 import { Creator }       from '@rooms/bude/devices/creator/creator';
 import { Laptop }        from '@rooms/bude/devices/laptop/laptop';
 
@@ -51,7 +52,8 @@ export class RoomMenuComponent implements OnInit {
   componentMappings: Record<string, Type<unknown>> = {
     Light:       OrangeLight,
     FireTV:      FiretvComponent,
-    SamsungTV:   SamsungTv,
+    // Zeigt im RoomMenu die reduzierte Samsung-TV-Komponente
+    SamsungTV:   SamsungTvMinimal,
     PC:          Creator,
     Laptop:      Laptop,
     Pixel8Pro:   Pixel
