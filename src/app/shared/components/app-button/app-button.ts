@@ -11,25 +11,29 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class AppButtonComponent {
   @Input() name = '';
-  @Input() icon = '';             // Material Icon Fallback
+  @Input() icon = '';
   @Input() svgIcon?: string;
   @Input() color = '#ccc';
+  @Input() backgroundColor = '#000';
   @Input() activeColor = '#fff';
   @Input() active = false;
   @Input() size = '70px';
   @Input() fontSize = '10px';
+  @Input() glowOn= true;
 
-  @Output() click = new EventEmitter<void>();
-  @Output() hold  = new EventEmitter<void>();
+  @Output() click = new EventEmitter<MouseEvent>();  // Changed to emit MouseEvent
+  @Output() hold = new EventEmitter<void>();
 
   private holdTimeout: any;
 
-  onClick(): void {
-    this.click.emit();
+  onClick(event: MouseEvent): void {  // Accept event parameter
+    event.stopPropagation();  // Stop propagation at source
+    this.click.emit(event);   // Pass event to parent
   }
 
-  @HostListener('mousedown')
-  onHoldStart(): void {
+  @HostListener('mousedown', ['$event'])
+  onHoldStart(event: MouseEvent): void {
+    event.stopPropagation();
     this.holdTimeout = setTimeout(() => this.hold.emit(), 600);
   }
 
