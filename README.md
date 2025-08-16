@@ -45,6 +45,10 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Globale Services werden per Alias (`@services`, `@shared`, `@rooms`) importiert.
 - "Dumb" Presentational Components ohne API-Calls leben unter `src/app/components` und werden von Containern in `features/` gesteuert.
 
+### 6. Benutzerprofil & Header-Navigation
+- Neuer `UserProfileComponent` unter `src/app/components/user-profile`.
+- Avatar im Header führt zur Profilansicht; Menu-, Zurück- und Logout-Buttons sind klar angeordnet.
+
 ---
 
 ## Warum haben wir das so gemacht?
@@ -76,6 +80,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - ✅ Routing funktioniert standalone
 - ✅ Material-Design eingebunden
 - ✅ "Bude" nutzt nun den radialen Hintergrund der Raumübersicht; Gerätekacheln behalten ihre Farben mit sanftem Gradient
+- ✅ App-Header mit Profil-Link, Menü-Routing und Logout-Schaltfläche
 
 ---
 
