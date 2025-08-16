@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
-import { SamsungTv } from '@bude/devices/samsung-tv/samsung-tv/samsung-tv';
+
 // Minimalansicht des Samsung-TVs liegt nun im gleichen Ordner wie die Vollansicht
 import { SamsungTvMinimal } from '@bude/devices/samsung-tv/samsung-tv-minimal/samsung-tv-minimal';
 import { PixelMinimal } from '@rooms/bude/devices/pixel/pixel-minimal/pixel-minimal';

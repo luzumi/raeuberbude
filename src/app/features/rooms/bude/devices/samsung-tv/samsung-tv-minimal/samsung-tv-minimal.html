@@ -1,3 +1,4 @@
+
 <!-- Kompakte Samsung-TV-Kachel mit Status, Lautstärke und Quelle -->
 <div class="device samsung-tv-minimal">
   @if (samsung) {
@@ -25,6 +26,7 @@
       <button mat-icon-button (click)="$event.stopPropagation(); channelUp()">
         <mat-icon>arrow_upward</mat-icon>
       </button>
+
       <select [(ngModel)]="selectedSource"
               (click)="$event.stopPropagation()"
               (change)="$event.stopPropagation(); changeSource(selectedSource)">

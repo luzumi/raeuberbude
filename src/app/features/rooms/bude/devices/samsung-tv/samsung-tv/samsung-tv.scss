@@ -1,8 +1,6 @@
 @use 'sass:map';
 @use '../../../../../../../styles/tokens' as t;
 
-// Haupt-Styles der Samsung-TV-Vollansicht, vormals in einem separaten Unterordner
-// Container styled with soft glow inspired by '/raub1'
 .tv-info-line {
   cursor: pointer;
   font-size: 0.95rem;
@@ -87,7 +85,6 @@
 // Style select dropdowns to visually match the glowing buttons
 .tv-select {
   -webkit-appearance: none;
-  -moz-appearance: none;
   appearance: none;
   padding-right: 2rem;
   background-position: right 0.5rem center;

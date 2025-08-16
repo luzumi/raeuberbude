@@ -1,16 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatIconButton } from '@angular/material/button';
 import { HomeAssistantService, Entity } from '@services/home-assistant/home-assistant.service';
-import {AppButtonComponent} from '@shared/components/app-button/app-button';
-import { map } from 'rxjs';
+
+import { AppButtonComponent } from '@shared/components/app-button/app-button';
+import { interval, map, Subscription } from 'rxjs';
+
 
 /**
  * Minimalansicht der Samsung-TV-Steuerung für das RoomMenu.
  * Bietet nur grundlegende Bedienelemente wie Power, Lautstärke und Kanal.
- * Liegt gemeinsam mit der Vollansicht im Ordner `samsung-tv`.
  */
 @Component({
   selector: 'app-samsung-tv-minimal',
@@ -19,7 +21,8 @@ import { map } from 'rxjs';
   templateUrl: './samsung-tv-minimal.html',
   styleUrls: ['./samsung-tv-minimal.scss']
 })
-export class SamsungTvMinimal implements OnInit {
+
+export class SamsungTvMinimal implements OnInit, OnDestroy {
   /** Aktuelle Samsung-TV Entität. */
   samsung?: Entity;
   /** Prozentuale Lautstärke (0-100). */
@@ -27,7 +30,9 @@ export class SamsungTvMinimal implements OnInit {
   /** Liste verfügbarer Quellen des TVs. */
   sources: string[] = [];
   /** Gewählte Quelle im Dropdown. */
-  selectedSource: string = '';
+  selectedSource?: string;
+  /** Timer zur Aktualisierung der Statusdauer. */
+  private sinceSub?: Subscription;
 
   constructor(private readonly hass: HomeAssistantService) {}
 
@@ -45,6 +50,13 @@ export class SamsungTvMinimal implements OnInit {
       this.sources = entity.attributes['source_list'] ?? [];
       this.selectedSource = <string>entity.attributes['source'];
     });
+
+    // Triggert regelmäßige Change Detection, damit "an/aus seit" aktuell bleibt.
+    this.sinceSub = interval(60_000).subscribe();
+  }
+
+  ngOnDestroy(): void {
+    this.sinceSub?.unsubscribe();
   }
 
   /** Schaltet den Fernseher an oder aus. */
@@ -111,20 +123,35 @@ export class SamsungTvMinimal implements OnInit {
     return this.samsung?.attributes['source'] ?? '-';
   }
 
+  /**
+   * Gibt den Zeitraum seit der letzten Statusänderung zurück, z.B. "an seit 5m".
+   */
+  get statusSince(): string {
+    const last = this.samsung?.last_changed;
+    if (!last) {
+      return '';
+    }
+    const diffMs = Date.now() - new Date(last).getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    let duration: string;
+    if (diffDay > 0) {
+      duration = `${diffDay}d`;
+    } else if (diffHour > 0) {
+      duration = `${diffHour}h`;
+    } else if (diffMin > 0) {
+      duration = `${diffMin}m`;
+    } else {
+      duration = `${diffSec}s`;
+    }
+    return `${this.isOn ? 'an' : 'aus'} seit ${duration}`;
+  }
+
   /** Anzeigename aus den Entity-Attributen. */
   get name(): string {
     return this.samsung?.attributes.friendly_name ?? 'Unbekannt';
-  }
-
-  /**
-   * Beschreibt, seit wann der aktuelle Zustand (an/aus) besteht.
-   * Gibt z. B. "an seit 12:34" zurück.
-   */
-  get statusSince(): string {
-    const changed = this.samsung?.last_changed;
-    if (!changed) { return '-'; }
-    const label = this.isOn ? 'an seit' : 'aus seit';
-    return `${label} ${new Date(changed).toLocaleString()}`;
   }
 }
 
