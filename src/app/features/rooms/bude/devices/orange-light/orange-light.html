@@ -1,13 +1,8 @@
-<!-- Button zum Ein-/Ausschalten der Orangen Lampe -->
+<!-- Delegates rendering to presentational LampToggleComponent -->
 <div class="device orange-light">
-  <!-- Schaltfläche im Geräte-Stil -->
-  <app-button
-    name="Orange"
-    icon="lightbulb"
-    size="100%"
-    color="#e67e22"
-    activeColor="#ffa64d"
-    [active]="isOn"
-    (click)="toggle()"
-  ></app-button>
+  <app-lamp-toggle
+    [lampState]="isOn"
+    [loading]="loading"
+    (toggled)="toggle()"
+  ></app-lamp-toggle>
 </div>
