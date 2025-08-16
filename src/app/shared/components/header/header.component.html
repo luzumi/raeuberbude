@@ -3,10 +3,10 @@
 <header class="app-header">
   <div class="greeting">
     <img
-      src="/assets/avatar.png"
+      ngSrc="/assets/avatar.png"
       alt="Avatar"
       class="avatar"
-    />
+      height="1024" width="1024"/>
     <div>
       <div class="greet-text">{{ greeting }},</div>
       <div class="user-name">{{ userName }}!</div>
@@ -23,7 +23,7 @@
     ></app-button>
 
     <!-- in Phase 4: alle Entities -->
-    @if (flightPhase) {
+    @if (true) {
       @for (e of entities; track e.name; let i = $index){
         <app-button
           [name]="e.name"
