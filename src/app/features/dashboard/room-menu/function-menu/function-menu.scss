@@ -1,4 +1,4 @@
-@use '../../../../../../src/styles/_variables' as v;
+@use '../../../../../styles/tokens' as t;
 
 .function-menu {
   position: absolute;
@@ -19,9 +19,9 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background-color: v.$color-center;
+    background-color: t.$color-center;
     color: white;
-    box-shadow: v.$glow-on;
+    box-shadow: t.$glow-on;
     display: flex;
     align-items: center;
     justify-content: center;

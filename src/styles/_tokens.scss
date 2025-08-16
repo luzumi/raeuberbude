@@ -1,56 +1,77 @@
-// src/styles/_palette.scss – Theme: Elegant & Gemütlich (helle Pastelltöne)
+// src/styles/_tokens.scss
+// Central design tokens: colors, spacing, radii, shadows, z-indices and fonts.
 
-// Primärfarbpalette: warmes Türkis, sanft & lebendig
+// Color palette
 $color-primary: #b3f0e6;
 $color-primary-light: #d6faf3;
 $color-primary-dark: #82e2d3;
-
-// Akzent: softes Koralle-Rosa
 $color-accent: #f9b8b8;
 $color-accent-light: #fddede;
 $color-accent-dark: #f58c8c;
-
-// Sekundärfarben: sanftes Apricot und elegantes Lila
 $color-secondary: #fdd9b5;
 $color-highlight: #e1d1f0;
-
-// Warn-/Feedbackfarben
 $color-warn: #f08080;
 $color-success: #b9e4c9;
 $color-info: #b0d8f0;
 
-// Graustufen – für zurückhaltende UI-Elemente
+// Entity specific colors
+$color-light: #fdf0b3;
+$color-firetv: #fca97a;
+$color-samsungtv: #b3d9f9;
+$color-laptop: #cfe4c3;
+$color-pixel: #fdc7a2;
+$color-pc: #bcddee;
+$color-center: #f89e3d;
+
+// Greys & surfaces
 $gray-50: #fefefe;
 $gray-100: #f7f7f7;
 $gray-200: #eeeeee;
 $gray-400: #cccccc;
 $gray-600: #999999;
 $gray-800: #4a4a4a;
-
-// Hintergrundflächen & Oberflächen
 $background: #fdfdfd;
 $surface: #ffffff;
 $overlay: rgba(240, 240, 240, 0.95);
 
-// Textfarben
+// Text colors
 $text-default: #333;
 $text-muted: #777;
 $text-inverse: #fff;
 
-// Interaktive Elemente
-$button-bg: $color-primary;
-$button-fg: $text-default;
-$button-hover: $color-primary-dark;
+// Spacing scale
+$spacing-1: 4px;
+$spacing-2: 8px;
+$spacing-3: 16px;
+$spacing-4: 24px;
+$spacing-5: 32px;
 
-$table-header-bg: $color-primary-light;
-$table-border: $gray-200;
-$table-row-hover: $color-accent-light;
+// Radii
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 16px;
 
-$slider-track: $gray-200;
-$slider-thumb: $color-accent;
-$slider-thumb-glow: $color-accent-dark;
+// Shadows
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+$shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
+$glow-on: 0 0 10px rgba(255, 193, 7, 0.6);
+$glow-off: none;
 
-// Zentrale Map zur optionalen Nutzung
+// Z-indices
+$z-base: 0;
+$z-dropdown: 1000;
+$z-overlay: 1100;
+$z-modal: 1200;
+$z-toast: 1300;
+
+// Fonts
+$font-primary: 'Roboto', sans-serif;
+$font-secondary: 'Poppins', sans-serif;
+$headings-font: $font-secondary;
+$body-font: $font-primary;
+
+// Central color map for optional lookups
 $theme-colors: (
   primary: $color-primary,
   primary-light: $color-primary-light,
@@ -72,13 +93,5 @@ $theme-colors: (
   text: $text-default,
   text-muted: $text-muted,
   text-inverse: $text-inverse,
-  button-bg: $button-bg,
-  button-fg: $button-fg,
-  button-hover: $button-hover,
-  table-header-bg: $table-header-bg,
-  table-border: $table-border,
-  table-row-hover: $table-row-hover,
-  slider-track: $slider-track,
-  slider-thumb: $slider-thumb,
-  slider-thumb-glow: $slider-thumb-glow
+  center: $color-center,
 );

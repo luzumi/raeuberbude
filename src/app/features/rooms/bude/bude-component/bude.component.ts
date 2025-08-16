@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
+import {SamsungTvMinimal} from '@bude/devices/samsung-tv-parts/samsung-tv-minimal/samsung-tv-minimal';
 // Aliases erleichtern den Überblick nach der Umstrukturierung
 import { AuthService } from '@services/auth.service';
 import { HeaderComponent } from '@shared/components/header/header.component';
@@ -8,7 +9,7 @@ import { Creator } from '@rooms/bude/devices/creator/creator';
 import { Laptop } from '@rooms/bude/devices/laptop/laptop';
 import { OrangeLight } from '@rooms/bude/devices/orange-light/orange-light';
 import { Pixel } from '@rooms/bude/devices/pixel/pixel';
-import { SamsungTv } from '@rooms/bude/devices/samsung-tv/samsung-tv';
+import { SamsungTv } from '@bude/devices/samsung-tv-parts/samsung-tv/samsung-tv';
 
 interface Device {
   id: number;
@@ -30,7 +31,8 @@ interface Device {
     MenuComponent,
     NgStyle,
     NgClass,
-    HeaderComponent
+    HeaderComponent,
+    SamsungTvMinimal
   ],
   templateUrl: './bude.component.html',
   styleUrls: ['./bude.component.scss']
@@ -177,6 +179,21 @@ export class BudeComponent implements OnInit {
   }
 
   /**
+   * Erzeugt einen radialen Gradient für den übergebenen Gerätetyp,
+   * damit die Kacheln farblich bleiben, aber stilistisch zur Roomübersicht passen.
+   */
+  getGradient(type: Device['type']): string {
+    return this.gradientFrom(this.getColor(type));
+  }
+
+  /**
+   * Hilfsfunktion zur Erstellung eines radialen Gradients auf Basis einer Farbe.
+   */
+  private gradientFrom(color: string): string {
+    return `radial-gradient(circle at center, ${color}, rgba(0, 0, 0, 0.8))`;
+  }
+
+  /**
    * Inline-Styles für den Menü-Button selbst:
    * - Wenn Menü geschlossen und kein Gerät aktiv → 10 % × 10 % zentriert.
    * - Wenn Menü offen oder ein Gerät aktiv   → Button wie ein kleines Gerät in der Leiste oben.
@@ -193,7 +210,7 @@ export class BudeComponent implements OnInit {
         transform: 'translate(-50%, -50%)',
         'border-radius': '50%',
         transition: 'all 0.3s ease',
-        'background-color': '#34495e',
+        background: this.gradientFrom('#34495e'),
         'z-index': '2'
       };
     }
@@ -208,7 +225,7 @@ export class BudeComponent implements OnInit {
       top: '0%',
       'border-radius': '8px',  // eckig wie die Geräte
       transition: 'all 0.3s ease',
-      'background-color': '#34495e',
+      background: this.gradientFrom('#34495e'),
       'z-index': '4'
     };
   }

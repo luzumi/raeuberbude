@@ -1,9 +1,9 @@
-@use '../../../../styles/palette' as color;
+@use '../../../../styles/tokens' as t;
 @use 'sass:map';
 
 
 .slider-fingerprint ::ng-deep .mat-slider-track-fill {
-background-color: map.get(color.$theme-colors, background);
+  background-color: map.get(t.$theme-colors, background);
   border-radius: 999px;
   height: 8px;
   margin-top: 8px;

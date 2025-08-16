@@ -3,7 +3,7 @@
   <mat-card-content>
     <mat-slide-toggle
       [checked]="lampState"
-      (change)="toggleLamp()"
+      (change)="onToggle()"
       [disabled]="loading"
     >{{ lampState ? 'On' : 'Off' }}</mat-slide-toggle>
   </mat-card-content>

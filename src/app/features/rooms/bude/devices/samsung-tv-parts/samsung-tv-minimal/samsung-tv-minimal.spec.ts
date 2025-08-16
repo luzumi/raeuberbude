@@ -1,19 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
 
-import { MenuComponent } from './menu';
+import { SamsungTvMinimal } from './samsung-tv-minimal';
 
-describe('Menu', () => {
-  let component: MenuComponent;
-  let fixture: ComponentFixture<MenuComponent>;
+describe('SamsungTvMinimal', () => {
+  let component: SamsungTvMinimal;
+  let fixture: ComponentFixture<SamsungTvMinimal>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MenuComponent, RouterTestingModule]
+      imports: [SamsungTvMinimal]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(MenuComponent);
+    fixture = TestBed.createComponent(SamsungTvMinimal);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

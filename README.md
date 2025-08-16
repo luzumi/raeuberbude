@@ -34,7 +34,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - CORS-Probleme durch `proxy.conf.json` mit `/api`-Rewrite gelöst
 - Standalone-Komponenten korrekt mit Imports und Routing integriert
 - Fehlerbehandlung beim Lampenschalter verbessert (subscribe mit next/error)
-- **Login & Routing:** Einfache Benutzeranmeldung mit Weiterleitung nach `/zuhause`; Inhalte der bisherigen Startseite liegen nun unter `/raub1`, das Dashboard ist zusätzlich über `/raub2` erreichbar.
+- **Login & Routing:** Login-Seite unter `/login`; erfolgreiche Anmeldung führt zur Startseite `/`, die Ansicht "Bude" ist über `/raeuberbude` erreichbar.
 - **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
 - **TV-Steuerung:** Samsung-TV-Komponente im Stil von `/raub1` mit WebSocket-Anbindung und Dropdowns für FireTV- und Samsung-Befehle.
 
@@ -42,6 +42,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Komponenten für wiederverwendbare UI-Elemente liegen nun unter `src/app/shared/components`.
 - Raumansichten (z. B. *Bude*) und ihre Geräte befinden sich unter `src/app/features/rooms/`.
 - Globale Services werden per Alias (`@services`, `@shared`, `@rooms`) importiert.
+- "Dumb" Presentational Components ohne API-Calls leben unter `src/app/components` und werden von Containern in `features/` gesteuert.
 
 ---
 
@@ -61,6 +62,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - App läuft vollständig standalone, `AppComponent` bootstrapped direkt (`bootstrapApplication()`)
 - Kein klassisches `AppModule` oder `NgModule` nötig
 - Default-Login: `admin` / `secret` (lokale Demo-Datenbank)
+- Globale Styles liegen in `src/styles/styles.scss`, wiederverwendbare Design-Tokens in `src/styles/_tokens.scss` und Mixins in `src/styles/_mixins.scss`.
 
 ---
 
@@ -72,6 +74,8 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - ✅ Proxy für CORS eingerichtet und stabil
 - ✅ Routing funktioniert standalone
 - ✅ Material-Design eingebunden
+- ✅ "Bude" nutzt nun den radialen Hintergrund der Raumübersicht; Gerätekacheln behalten ihre Farben mit sanftem Gradient
+- ✅ App-Header mit Profil-Link, Menü-Routing und Logout-Schaltfläche
 
 ---
 

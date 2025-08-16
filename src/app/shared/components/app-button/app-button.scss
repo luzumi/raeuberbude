@@ -1,4 +1,4 @@
-@use '../../../../../src/styles/variables' as v;
+@use '../../../../styles/tokens' as t;
 
 .app-button {
   position: absolute;
@@ -74,7 +74,7 @@
 
     text {
       font-size: 14px;
-      font-family: v.$font-secondary;
+      font-family: t.$font-secondary;
       font-weight: bolder;
       fill: #333;
       letter-spacing: 0.5px;

@@ -3,7 +3,7 @@ const { constants } = require('karma');
 
 // Ensure Karma uses a Chromium binary if available; developers can override
 // CHROME_BIN to point at their local Chrome installation.
-process.env.CHROME_BIN = process.env.CHROME_BIN || 'chromium';
+process.env.CHROME_BIN = process.env.CHROME_BIN || '/usr/bin/google-chrome';
 
 module.exports = function (config) {
   config.set({
