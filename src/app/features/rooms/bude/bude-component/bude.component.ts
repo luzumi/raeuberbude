@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
 import {SamsungTvMinimal} from '@bude/devices/samsung-tv-parts/samsung-tv-minimal/samsung-tv-minimal';
-// Aliases erleichtern den Überblick nach der Umstrukturierung
 import { AuthService } from '@services/auth.service';
 import { HeaderComponent } from '@shared/components/header/header.component';
 import { MenuComponent } from '@shared/components/menu/menu';
@@ -9,7 +8,6 @@ import { Creator } from '@rooms/bude/devices/creator/creator';
 import { Laptop } from '@rooms/bude/devices/laptop/laptop';
 import { OrangeLight } from '@rooms/bude/devices/orange-light/orange-light';
 import { Pixel } from '@rooms/bude/devices/pixel/pixel';
-import { SamsungTv } from '@bude/devices/samsung-tv-parts/samsung-tv/samsung-tv';
 
 interface Device {
   id: number;
@@ -27,12 +25,12 @@ interface Device {
     OrangeLight,
     Laptop,
     Creator,
-    SamsungTv,
     MenuComponent,
     NgStyle,
     NgClass,
     HeaderComponent,
-    SamsungTvMinimal
+    SamsungTvMinimal,
+    SamsungTvMinimal,
   ],
   templateUrl: './bude.component.html',
   styleUrls: ['./bude.component.scss']
@@ -79,6 +77,12 @@ export class BudeComponent implements OnInit {
 
   onClick(idx: number) {
     // Wenn Gerät angeklickt, Menü schließen und Gerät aktivieren
+    this.menuOpen = false;
+    this.activeIndex = this.activeIndex === idx ? null : idx;
+  }
+
+  onClickSamsung(idx: number) {
+    // Samsung TV angeklickt, Menü schließen und Gerät aktivieren
     this.menuOpen = false;
     this.activeIndex = this.activeIndex === idx ? null : idx;
   }

@@ -1,23 +1,25 @@
 <div class="device pixel">
   @if (samsung) {
     <div class="controls">
-      <button mat-icon-button (click)="togglePower()">
+      <button mat-icon-button (click)="$event.stopPropagation(); togglePower()">
         <mat-icon>power_settings_new</mat-icon>
       </button>
-      <button mat-icon-button (click)="volumeDown()">
+      <button mat-icon-button (click)="$event.stopPropagation(); volumeDown()">
         <mat-icon>volume_down</mat-icon>
       </button>
-      <button mat-icon-button (click)="volumeUp()">
+      <button mat-icon-button (click)="$event.stopPropagation(); volumeUp()">
         <mat-icon>volume_up</mat-icon>
       </button>
-      <button mat-icon-button (click)="channelDown()">
+      <button mat-icon-button (click)="$event.stopPropagation(); channelDown()">
         <mat-icon>arrow_downward</mat-icon>
       </button>
-      <button mat-icon-button (click)="channelUp()">
+      <button mat-icon-button (click)="$event.stopPropagation(); channelUp()">
         <mat-icon>arrow_upward</mat-icon>
       </button>
-      <select [(ngModel)]="selectedSource" (change)="changeSource(selectedSource!)">
-        <option *ngFor="let src of sources" [value]="src">{{ src }}</option>
+      <select [(ngModel)]="selectedSource">
+        @for (src of sources; track src) {
+          <option [value]="src" (click)="$event.stopPropagation(); changeSource(src)">{{ src }}</option>
+        }
       </select>
     </div>
     <!-- Statusanzeige mit Icons und grafischer Lautstärke -->
