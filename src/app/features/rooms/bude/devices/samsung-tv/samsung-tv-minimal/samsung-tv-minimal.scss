@@ -1,5 +1,7 @@
 @use '../../../../../../../styles/tokens' as t;
 
+// Styles der kompakten Samsung-TV-Anzeige
+
 .device.samsung-tv-minimal {
   padding: 1rem;
   color: t.$color-primary-light;

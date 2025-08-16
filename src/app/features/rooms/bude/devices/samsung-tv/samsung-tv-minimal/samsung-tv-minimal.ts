@@ -10,6 +10,7 @@ import { map } from 'rxjs';
 /**
  * Minimalansicht der Samsung-TV-Steuerung für das RoomMenu.
  * Bietet nur grundlegende Bedienelemente wie Power, Lautstärke und Kanal.
+ * Liegt gemeinsam mit der Vollansicht im Ordner `samsung-tv`.
  */
 @Component({
   selector: 'app-samsung-tv-minimal',
