@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
+import {SamsungTvMinimal} from '@bude/devices/samsung-tv-minimal/samsung-tv-minimal';
 // Aliases erleichtern den Überblick nach der Umstrukturierung
 import { AuthService } from '@services/auth.service';
 import { HeaderComponent } from '@shared/components/header/header.component';
@@ -30,7 +31,8 @@ interface Device {
     MenuComponent,
     NgStyle,
     NgClass,
-    HeaderComponent
+    HeaderComponent,
+    SamsungTvMinimal
   ],
   templateUrl: './bude.component.html',
   styleUrls: ['./bude.component.scss']

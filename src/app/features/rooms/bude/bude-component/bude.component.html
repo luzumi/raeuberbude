@@ -53,11 +53,11 @@
           ></app-creator>
         }
         @case('samsung-tv'){
-          <app-samsung-tv
+          <app-samsung-tv-minimal
             [ngStyle]="getStyle(device, $index)"
             [style.background]="getGradient(device.type)"
-            (deviceClicked)="onClick($index)"
-          ></app-samsung-tv>
+            (click)="onClick($index)"
+          ></app-samsung-tv-minimal>
         }
       }
 
