@@ -10,4 +10,39 @@
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.9rem;
+
+  // Einzelne Statuszeilen mit Icon und Text
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+
+    .status-icon {
+      font-size: 1rem;
+      line-height: 1;
+
+      &.on {
+        // Grün gefärbtes Power-Icon bei eingeschaltetem TV
+        color: #4caf50;
+      }
+    }
+
+    // Einfacher Balken für die Lautstärkeanzeige
+    .bar {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.2);
+      height: 4px;
+      border-radius: 2px;
+      overflow: hidden;
+
+      .fill {
+        height: 100%;
+        background: #3f51b5;
+      }
+    }
+
+    &.volume {
+      gap: 0.5rem;
+    }
+  }
 }

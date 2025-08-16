@@ -19,11 +19,27 @@
       <option *ngFor="let src of sources" [value]="src">{{ src }}</option>
     </select>
   </div>
+  <!-- Statusanzeige mit Icons und grafischer Lautstärke -->
   <div class="status">
-    <span>{{ name }}</span>
-    <span>Status: {{ state }}</span>
-    <span>Quelle: {{ currentSource }}</span>
-    <span>Lautstärke: {{ volume }}%</span>
+    <div class="status-row">
+      <mat-icon class="status-icon">tv</mat-icon>
+      <span class="status-label">{{ name }}</span>
+    </div>
+    <div class="status-row">
+      <mat-icon class="status-icon" [class.on]="isOn">power_settings_new</mat-icon>
+      <span class="status-label">{{ state }}</span>
+    </div>
+    <div class="status-row">
+      <mat-icon class="status-icon">settings_input_hdmi</mat-icon>
+      <span class="status-label">{{ currentSource }}</span>
+    </div>
+    <div class="status-row volume">
+      <mat-icon class="status-icon">volume_up</mat-icon>
+      <div class="bar">
+        <div class="fill" [style.width.%]="volume"></div>
+      </div>
+      <span class="status-label">{{ volume }}%</span>
+    </div>
   </div>
 } @else {
   <div class="status">TV nicht gefunden</div>

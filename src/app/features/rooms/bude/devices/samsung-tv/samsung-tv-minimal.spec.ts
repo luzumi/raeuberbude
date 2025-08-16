@@ -51,6 +51,11 @@ describe('SamsungTvMinimal', () => {
     expect(mockHomeAssistant.callService).toHaveBeenCalled();
   });
 
+  it('should report tv as on', () => {
+    // Der Mock-Status ist 'on', daher erwartet man true
+    expect(component.isOn).toBeTrue();
+  });
+
   it('should change source', () => {
     component.changeSource('Netflix');
     expect(mockHomeAssistant.callService).toHaveBeenCalledWith(

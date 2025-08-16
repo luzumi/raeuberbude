@@ -96,6 +96,14 @@ export class SamsungTvMinimal implements OnInit {
     return this.samsung?.state ?? '-';
   }
 
+  /**
+   * True, wenn der Fernseher eingeschaltet oder im Idle ist.
+   * Dient zur farblichen Kennzeichnung des Power-Icons.
+   */
+  get isOn(): boolean {
+    return this.state === 'on' || this.state === 'idle';
+  }
+
   /** Liefert die aktuell gewählte Quelle. */
   get currentSource(): string {
     return this.samsung?.attributes['source'] ?? '-';
