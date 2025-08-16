@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 1rem;
-  background: linear-gradient(90deg, #f9e4b7 0%, #ffdca3 100%);
+  background: radial-gradient(circle at center, #787163 0%, #cdbc9c 100%);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
 }

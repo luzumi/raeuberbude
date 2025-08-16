@@ -1,7 +1,7 @@
 // src/app/shared/components/header/header.component.ts
 
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {CommonModule, NgOptimizedImage} from '@angular/common';
 import { AppButtonComponent } from '../app-button/app-button';
 import { RoomEntityButton } from '../../../features/dashboard/room-menu/room-entity-button';
 import {LogoutButtonComponent} from '../logout-button/logout-button';
@@ -12,7 +12,8 @@ import {LogoutButtonComponent} from '../logout-button/logout-button';
   imports: [
     CommonModule,
     AppButtonComponent,
-    LogoutButtonComponent
+    LogoutButtonComponent,
+    NgOptimizedImage
   ],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
