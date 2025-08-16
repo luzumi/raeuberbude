@@ -1,29 +1,22 @@
 @use '../../../../../styles/tokens' as t;
 
-
-.dashboard-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 32px;
-  min-height: 70vh;
-  min-width: 80vw;
-  align-items: center;
-  justify-content: center;
-  background-color: t.$gray-400; // z. B. aus deinen Tokens
-}
-
+// Container der Räuberbude: Layout und Hintergrund
 .dashboard-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 24px;
   padding: 2rem;
   justify-items: center;
+
+  // An das Styling der Raumübersicht angelehnter radialer Hintergrund
+  background: radial-gradient(circle at center,
+      rgba(0, 150, 136, 0.2),
+      rgba(0, 0, 0, 0.9));
 }
 
 .menu-button {
   position: absolute;
-  background-color: #34495e;
+  // Farbe wird per Inline-Gradient gesetzt
   border-radius: 50%;
   cursor: pointer;
   aspect-ratio: 1;

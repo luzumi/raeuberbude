@@ -74,6 +74,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - ✅ Proxy für CORS eingerichtet und stabil
 - ✅ Routing funktioniert standalone
 - ✅ Material-Design eingebunden
+- ✅ "Bude" nutzt nun den radialen Hintergrund der Raumübersicht; Gerätekacheln behalten ihre Farben mit sanftem Gradient
 
 ---
 

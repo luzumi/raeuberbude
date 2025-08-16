@@ -27,35 +27,35 @@
         @case ('pixel') {
           <app-pixel
             [ngStyle]="getStyle(device, $index)"
-            [style.background-color]="getColor(device.type)"
+            [style.background]="getGradient(device.type)"
             (click)="onClick($index)"
           ></app-pixel>
           }
         @case('orange-light') {
           <app-orange-light
             [ngStyle]="getStyle(device, $index)"
-            [style.background-color]="getColor(device.type)"
+            [style.background]="getGradient(device.type)"
             (click)="onClick($index)"
           ></app-orange-light>
         }
         @case('laptop'){
           <app-laptop
             [ngStyle]="getStyle(device, $index)"
-            [style.background-color]="getColor(device.type)"
+            [style.background]="getGradient(device.type)"
             (click)="onClick($index)"
           ></app-laptop>
         }
         @case('creator'){
           <app-creator
             [ngStyle]="getStyle(device, $index)"
-            [style.background-color]="getColor(device.type)"
+            [style.background]="getGradient(device.type)"
             (click)="onClick($index)"
           ></app-creator>
         }
         @case('samsung-tv'){
           <app-samsung-tv
             [ngStyle]="getStyle(device, $index)"
-            [style.background-color]="getColor(device.type)"
+            [style.background]="getGradient(device.type)"
             (deviceClicked)="onClick($index)"
           ></app-samsung-tv>
         }

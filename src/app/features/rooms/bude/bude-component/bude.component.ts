@@ -177,6 +177,21 @@ export class BudeComponent implements OnInit {
   }
 
   /**
+   * Erzeugt einen radialen Gradient für den übergebenen Gerätetyp,
+   * damit die Kacheln farblich bleiben, aber stilistisch zur Roomübersicht passen.
+   */
+  getGradient(type: Device['type']): string {
+    return this.gradientFrom(this.getColor(type));
+  }
+
+  /**
+   * Hilfsfunktion zur Erstellung eines radialen Gradients auf Basis einer Farbe.
+   */
+  private gradientFrom(color: string): string {
+    return `radial-gradient(circle at center, ${color}, rgba(0, 0, 0, 0.8))`;
+  }
+
+  /**
    * Inline-Styles für den Menü-Button selbst:
    * - Wenn Menü geschlossen und kein Gerät aktiv → 10 % × 10 % zentriert.
    * - Wenn Menü offen oder ein Gerät aktiv   → Button wie ein kleines Gerät in der Leiste oben.
@@ -193,7 +208,7 @@ export class BudeComponent implements OnInit {
         transform: 'translate(-50%, -50%)',
         'border-radius': '50%',
         transition: 'all 0.3s ease',
-        'background-color': '#34495e',
+        background: this.gradientFrom('#34495e'),
         'z-index': '2'
       };
     }
@@ -208,7 +223,7 @@ export class BudeComponent implements OnInit {
       top: '0%',
       'border-radius': '8px',  // eckig wie die Geräte
       transition: 'all 0.3s ease',
-      'background-color': '#34495e',
+      background: this.gradientFrom('#34495e'),
       'z-index': '4'
     };
   }
