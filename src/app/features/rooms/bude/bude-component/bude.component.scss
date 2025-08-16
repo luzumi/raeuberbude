@@ -1,4 +1,4 @@
-@use '../../../../../styles/palette' as color;
+@use '../../../../../styles/tokens' as t;
 
 
 .dashboard-container {
@@ -10,7 +10,7 @@
   min-width: 80vw;
   align-items: center;
   justify-content: center;
-  background-color: color.$gray-400; // z. B. aus deiner Palette
+  background-color: t.$gray-400; // z. B. aus deinen Tokens
 }
 
 .dashboard-container {

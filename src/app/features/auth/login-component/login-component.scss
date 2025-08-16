@@ -1,4 +1,4 @@
-@use '../../../../styles/palette' as color;
+@use '../../../../styles/tokens' as t;
 
 .login-wrapper {
   display: flex;
@@ -15,17 +15,17 @@
   gap: 1rem;
   padding: 2rem;
   background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(color.$color-primary-dark);
+  border: 1px solid t.$color-primary-dark;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-  color: var(color.$color-primary-dark);
+  color: t.$color-primary-dark;
 }
 
 .login-form input {
   padding: 0.5rem;
   background: transparent;
-  border: 1px solid var(color.$color-primary-dark);
-  color: var(color.$color-primary-dark);
+  border: 1px solid t.$color-primary-dark;
+  color: t.$color-primary-dark;
 }
 
 .login-button {

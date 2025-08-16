@@ -1,6 +1,6 @@
 /* src/app/shared/components/header/header.component.scss */
 
-@use '../../../../../src/styles/variables' as v;
+@use '../../../../styles/tokens' as t;
 
 :host {
   display: block;
@@ -40,7 +40,7 @@
   }
 
   .user-name {
-    font-family: v.$font-primary;
+    font-family: t.$font-primary;
     font-size: 1.5rem;
     font-weight: 600;
     color: #333;
