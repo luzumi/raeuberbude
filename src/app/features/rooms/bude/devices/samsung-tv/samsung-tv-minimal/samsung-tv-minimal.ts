@@ -1,11 +1,14 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatIconButton } from '@angular/material/button';
 import { HomeAssistantService, Entity } from '@services/home-assistant/home-assistant.service';
+
 import { AppButtonComponent } from '@shared/components/app-button/app-button';
 import { interval, map, Subscription } from 'rxjs';
+
 
 /**
  * Minimalansicht der Samsung-TV-Steuerung für das RoomMenu.
@@ -18,6 +21,7 @@ import { interval, map, Subscription } from 'rxjs';
   templateUrl: './samsung-tv-minimal.html',
   styleUrls: ['./samsung-tv-minimal.scss']
 })
+
 export class SamsungTvMinimal implements OnInit, OnDestroy {
   /** Aktuelle Samsung-TV Entität. */
   samsung?: Entity;
@@ -44,7 +48,7 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
       this.samsung = entity;
       this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
       this.sources = entity.attributes['source_list'] ?? [];
-      this.selectedSource = entity.attributes['source'];
+      this.selectedSource = <string>entity.attributes['source'];
     });
 
     // Triggert regelmäßige Change Detection, damit "an/aus seit" aktuell bleibt.
@@ -103,7 +107,7 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
 
   /** Liefert den aktuellen Status des TVs. */
   get state(): string {
-    return this.samsung?.state ?? '-';
+    return this.samsung?.state === 'unavailable' ? '': this.samsung?.state ?? '-';
   }
 
   /**

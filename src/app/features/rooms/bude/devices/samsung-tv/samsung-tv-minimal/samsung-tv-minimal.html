@@ -1,13 +1,15 @@
+
+<!-- Kompakte Samsung-TV-Kachel mit Status, Lautstärke und Quelle -->
 <div class="device samsung-tv-minimal">
   @if (samsung) {
-    <!-- Erste Reihe: Gerätesteuerung -->
-    <div class="controls" (click)="$event.stopPropagation()">
+    <div class="controls">
       <app-button
         [active]="isOn"
-        [color]="'grey'"
+        [color]="'red'"
         [backgroundColor]="'green'"
+        [activeColor]="'green'"
         [glowOn]="false"
-        [size]="'1rem'"
+        [size]="'1.5rem'"
         [icon]="'power_settings_new'"
         (click)="$event.stopPropagation(); togglePower();"
       ></app-button>
@@ -24,36 +26,47 @@
       <button mat-icon-button (click)="$event.stopPropagation(); channelUp()">
         <mat-icon>arrow_upward</mat-icon>
       </button>
-    </div>
 
-    <!-- Zweite Reihe: Status und Lautstärke als Kacheln -->
-    <div class="info-row">
-      <div class="tile status-tile">
-        <mat-icon class="status-icon" [class.on]="isOn">power_settings_new</mat-icon>
-        <div class="status-text">{{ isOn ? 'An' : 'Aus' }}</div>
-        <div class="status-since">{{ statusSince }}</div>
-      </div>
-
-      <div class="tile volume-tile" (click)="$event.stopPropagation()">
-        <div class="volume-bar">
-          <div class="volume-fill" [style.width.%]="volume"></div>
-        </div>
-        <div class="volume-value">{{ volume }}%</div>
-      </div>
-    </div>
-
-    <!-- Dritte Reihe: Aktuelle Quelle mit Auswahl -->
-    <div class="tile source-tile" (click)="$event.stopPropagation()">
-      <mat-icon>settings_input_hdmi</mat-icon>
-      <span class="source-label">{{ currentSource }}</span>
-      <select class="source-select"
-              [(ngModel)]="selectedSource"
+      <select [(ngModel)]="selectedSource"
               (click)="$event.stopPropagation()"
-              (change)="$event.stopPropagation(); changeSource(selectedSource!)">
+              (change)="$event.stopPropagation(); changeSource(selectedSource)">
         @for (src of sources; track src) {
           <option [value]="src">{{ src }}</option>
         }
       </select>
+    </div>
+
+
+    <!-- Statusanzeige im Kachel-Layout -->
+    <div class="status-grid">
+      <!-- Geräte-Name über volle Breite -->
+      <div class="tile device-tile">
+        <mat-icon>tv</mat-icon>
+        <span>{{ name }}</span>
+      </div>
+
+      <!-- Status mit Icon und Zeitstempel -->
+      <div class="tile state-tile">
+        <mat-icon class="state-icon" [class.on]="isOn">power_settings_new</mat-icon>
+        <div class="state-text">
+          <div>{{ state }}</div>
+          <div class="since">{{ statusSince }}</div>
+        </div>
+      </div>
+
+      <!-- Lautstärke mit grafischer Anzeige und Zahl -->
+      <div class="tile volume-tile">
+        <div class="bar">
+          <div class="fill" [style.width.%]="volume"></div>
+        </div>
+        <span class="volume-value">{{ volume }}%</span>
+      </div>
+
+      <!-- Source über volle Breite -->
+      <div class="tile source-tile">
+        <mat-icon>settings_input_hdmi</mat-icon>
+        <span>{{ currentSource }}</span>
+      </div>
     </div>
   } @else {
     <div class="status">TV nicht gefunden</div>

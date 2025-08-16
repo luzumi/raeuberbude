@@ -38,6 +38,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
 - **TV-Steuerung:** Samsung-TV-Komponente im Stil von `/raub1` mit WebSocket-Anbindung und Dropdowns für FireTV- und Samsung-Befehle.
 - **RoomMenu:** Minimalansicht des Samsung-TV mit Grundfunktionen (Power, Lautstärke, Sender, Quelle).
+- **Samsung-TV Minimal:** Überarbeitete Statuskacheln mit Gerät, Zustand (inkl. letzter Änderung), Lautstärke und Quelle.
 
 ### 5. Struktur reorganisiert
 - Komponenten für wiederverwendbare UI-Elemente liegen nun unter `src/app/shared/components`.
