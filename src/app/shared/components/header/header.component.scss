@@ -6,6 +6,23 @@
   display: block;
 }
 
+.back-button {
+  margin-left: 24px;
+}
+
+.user-info {
+  margin-left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.options {
+  margin-right: 60px;
+  display: flex;
+  align-items: center;
+  gap: 60px;
+}
 .app-header {
   position: fixed;
   top: 0;

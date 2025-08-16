@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { NgClass, NgStyle } from '@angular/common';
+import {SamsungTvMinimal} from '@bude/devices/samsung-tv-parts/samsung-tv-minimal/samsung-tv-minimal';
 // Aliases erleichtern den Überblick nach der Umstrukturierung
 import { AuthService } from '@services/auth.service';
 import { HeaderComponent } from '@shared/components/header/header.component';
@@ -8,7 +9,7 @@ import { Creator } from '@rooms/bude/devices/creator/creator';
 import { Laptop } from '@rooms/bude/devices/laptop/laptop';
 import { OrangeLight } from '@rooms/bude/devices/orange-light/orange-light';
 import { Pixel } from '@rooms/bude/devices/pixel/pixel';
-import { SamsungTv } from '@rooms/bude/devices/samsung-tv/samsung-tv';
+import { SamsungTv } from '@bude/devices/samsung-tv-parts/samsung-tv/samsung-tv';
 
 interface Device {
   id: number;
@@ -30,7 +31,8 @@ interface Device {
     MenuComponent,
     NgStyle,
     NgClass,
-    HeaderComponent
+    HeaderComponent,
+    SamsungTvMinimal
   ],
   templateUrl: './bude.component.html',
   styleUrls: ['./bude.component.scss']

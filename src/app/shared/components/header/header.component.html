@@ -1,34 +1,41 @@
 <!-- src/app/shared/components/header/header.component.html -->
 
 <header class="app-header">
-  <app-button
-    name="Zurück"
-    icon="arrow_back"
-    size="2.5rem"
-    (click)="goBack()"
-  ></app-button>
+  <div class="back-button">
+    <app-button
+      name="Zurück"
+      icon="arrow_back"
+      size="2.5rem"
+      (click)="goBack()"
+    ></app-button>
+  </div>
 
-  <img
-    ngSrc="/assets/avatar.png"
-    alt="Avatar"
-    class="avatar"
-    height="1024" width="1024"
-    (click)="goToProfile()"
-  />
+  <div class="user-info">
+    <img
+      ngSrc="/assets/avatar.png"
+      alt="Avatar"
+      class="avatar"
+      height="1024" width="1024"
+      (click)="goToProfile()"
+    />
 
-  <div class="text-block">
-    <div class="greet-text">{{ greeting }},</div>
-    <div class="user-name">{{ userName }}!</div>
+    <div class="text-block">
+      <div class="greet-text">{{ greeting }},</div>
+      <div class="user-name">{{ userName }}!</div>
+    </div>
   </div>
 
   <div class="spacer"></div>
 
-  <app-button
-    name="Menu"
-    icon="settings"
-    size="2.5rem"
-    (click)="goToMenu()"
-  ></app-button>
+  <div class="options">
+    <app-button
+      name="Menu"
+      icon="settings"
+      size="2.5rem"
+      (click)="goToMenu()"
+    ></app-button>
 
-  <app-logout-button size="2.5rem"></app-logout-button>
+    <app-logout-button size="2.5rem"></app-logout-button>
+  </div>
+
 </header>
