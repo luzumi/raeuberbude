@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatIconButton } from '@angular/material/button';
 import { HomeAssistantService, Entity } from '@services/home-assistant/home-assistant.service';
+import {AppButtonComponent} from '@shared/components/app-button/app-button';
 import { map } from 'rxjs';
 
 /**
@@ -13,7 +14,7 @@ import { map } from 'rxjs';
 @Component({
   selector: 'app-samsung-tv-minimal',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MatIconButton],
+  imports: [CommonModule, FormsModule, MatIconModule, MatIconButton, AppButtonComponent],
   templateUrl: './samsung-tv-minimal.html',
   styleUrls: ['./samsung-tv-minimal.scss']
 })
@@ -27,7 +28,7 @@ export class SamsungTvMinimal implements OnInit {
   /** Gewählte Quelle im Dropdown. */
   selectedSource?: string;
 
-  constructor(private hass: HomeAssistantService) {}
+  constructor(private readonly hass: HomeAssistantService) {}
 
   ngOnInit(): void {
     // Beobachtet Änderungen der TV-Entität und aktualisiert Statuswerte.

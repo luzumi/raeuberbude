@@ -12,36 +12,41 @@
   z-index: 1;
   overflow: visible;
 
-  /* 1) Permanente, dezente Basis-Aura */
-  &::before {
+  /* Glow size calculations */
+  --base-glow-blur: calc(var(--btn-size, 150px) * 0.04);
+  --base-glow-spread: calc(var(--btn-size, 150px) * 0.02);
+  --active-glow-blur-inner: calc(var(--btn-size, 150px) * 0.03);
+  --active-glow-spread-inner: calc(var(--btn-size, 150px) * 0.07);
+  --active-glow-blur-outer: calc(var(--btn-size, 150px) * 0.133);
+  --active-glow-spread-outer: calc(var(--btn-size, 150px) * 0.15);
+  --active-glow-inset-blur: calc(var(--btn-size, 150px) * 0.01);
+
+  /* Base glow - only shown when glowOn class is present */
+  &.glow-enabled::before {
     content: '';
     position: absolute;
-    /* direkt an der Kante */
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    /* leichter Weiß-Glow */
-    box-shadow: 0 0 6px 4px rgba(255,255,255,0.1);
+    box-shadow: 0 0 var(--base-glow-blur) var(--base-glow-spread) var(--color);
     z-index: 0;
   }
 
-  /* 2) Kräftige, aktive Aura */
-  &.active::after {
+  /* Active glow - only shown when active AND glowOn class is present */
+  &.active.glow-enabled::after {
     content: '';
     position: absolute;
-    /* auch direkt an der Kante starten */
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    /* mehrschichtiger Glow wie gehabt */
     box-shadow:
-      0 0 12px 4px rgba(255,255,255,0.3),      /* weicher Weiß-Nebel */
-      0 0 20px 25px var(--color-active),       /* farbige Aura */
-      inset 0 0 8px rgba(255,255,255,0.4);     /* Innenglanz */
+      0 0 var(--active-glow-blur-inner) var(--active-glow-spread-inner) var(--color-active),
+      0 0 var(--active-glow-blur-outer) var(--active-glow-spread-outer) var(--color-active),
+      inset 0 0 var(--active-glow-inset-blur) var(--color-active);
     z-index: 0;
   }
 

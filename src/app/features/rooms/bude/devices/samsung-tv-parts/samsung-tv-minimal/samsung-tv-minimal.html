@@ -1,9 +1,16 @@
-<div class="device pixel">
+<div class="device samsung-tv-minimal">
   @if (samsung) {
     <div class="controls">
-      <button mat-icon-button (click)="$event.stopPropagation(); togglePower()">
-        <mat-icon>power_settings_new</mat-icon>
-      </button>
+      <app-button
+        [active]="isOn"
+        [color]="'grey'"
+        [backgroundColor]="'green'"
+        [glowOn]="false"
+        [size]="'1rem'"
+        [icon]="'power_settings_new'"
+        (click)="$event.stopPropagation(); togglePower();"
+      ></app-button>
+
       <button mat-icon-button (click)="$event.stopPropagation(); volumeDown()">
         <mat-icon>volume_down</mat-icon>
       </button>
@@ -16,9 +23,11 @@
       <button mat-icon-button (click)="$event.stopPropagation(); channelUp()">
         <mat-icon>arrow_upward</mat-icon>
       </button>
-      <select [(ngModel)]="selectedSource">
+      <select [(ngModel)]="selectedSource"
+              (click)="$event.stopPropagation()"
+              (change)="$event.stopPropagation(); changeSource(selectedSource)">
         @for (src of sources; track src) {
-          <option [value]="src" (click)="$event.stopPropagation(); changeSource(src)">{{ src }}</option>
+          <option [value]="src">{{ src }}</option>
         }
       </select>
     </div>
