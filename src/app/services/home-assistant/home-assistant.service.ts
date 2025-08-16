@@ -8,6 +8,8 @@ import {environment} from '../../../environments/environments';
 export interface Entity {
   entity_id: string;
   state: string;
+  /** ISO-String mit dem Zeitpunkt der letzten Statusänderung. */
+  last_changed?: string;
   attributes: {
     friendly_name?: string;
     source?: string;

@@ -114,5 +114,16 @@ export class SamsungTvMinimal implements OnInit {
   get name(): string {
     return this.samsung?.attributes.friendly_name ?? 'Unbekannt';
   }
+
+  /**
+   * Beschreibt, seit wann der aktuelle Zustand (an/aus) besteht.
+   * Gibt z. B. "an seit 12:34" zurück.
+   */
+  get statusSince(): string {
+    const changed = this.samsung?.last_changed;
+    if (!changed) { return '-'; }
+    const label = this.isOn ? 'an seit' : 'aus seit';
+    return `${label} ${new Date(changed).toLocaleString()}`;
+  }
 }
 
