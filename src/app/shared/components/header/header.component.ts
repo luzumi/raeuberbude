@@ -1,8 +1,9 @@
 // src/app/shared/components/header/header.component.ts
 
-import { Component, Input } from '@angular/core';
-import { CommonModule, NgOptimizedImage, Location } from '@angular/common';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { AppButtonComponent } from '../app-button/app-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
 
@@ -42,7 +43,13 @@ export class HeaderComponent {
    * Navigiert zur vorherigen Seite.
    */
   goBack(): void {
-    this.location.back();
+    this.location.back();       // inform parent components
+    this.location.back();  // navigate to previous page
+  }
+
+  /** Methode: Benutzer-Icon anklicken */
+  onUserProfile(): void {
+    this.router.navigate(['/user-profile']);
   }
 
   /** Tageszeiten-Begrüßung */

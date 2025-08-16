@@ -1,3 +1,60 @@
-<div class="device pixel">
-  <!-- einmaliger Platzhalter-Text, kann leer bleiben -->
+<div class="device samsung-tv-minimal">
+  @if (samsung) {
+    <div class="controls">
+      <app-button
+        [active]="isOn"
+        [color]="'grey'"
+        [backgroundColor]="'green'"
+        [glowOn]="false"
+        [size]="'1rem'"
+        [icon]="'power_settings_new'"
+        (click)="$event.stopPropagation(); togglePower();"
+      ></app-button>
+
+      <button mat-icon-button (click)="$event.stopPropagation(); volumeDown()">
+        <mat-icon>volume_down</mat-icon>
+      </button>
+      <button mat-icon-button (click)="$event.stopPropagation(); volumeUp()">
+        <mat-icon>volume_up</mat-icon>
+      </button>
+      <button mat-icon-button (click)="$event.stopPropagation(); channelDown()">
+        <mat-icon>arrow_downward</mat-icon>
+      </button>
+      <button mat-icon-button (click)="$event.stopPropagation(); channelUp()">
+        <mat-icon>arrow_upward</mat-icon>
+      </button>
+      <select [(ngModel)]="selectedSource"
+              (click)="$event.stopPropagation()"
+              (change)="$event.stopPropagation(); changeSource(selectedSource)">
+        @for (src of sources; track src) {
+          <option [value]="src">{{ src }}</option>
+        }
+      </select>
+    </div>
+    <!-- Statusanzeige mit Icons und grafischer Lautstärke -->
+    <div class="status">
+      <div class="status-row">
+        <mat-icon class="status-icon">tv</mat-icon>
+        <span class="status-label">{{ name }}</span>
+      </div>
+      <div class="status-row">
+        <mat-icon class="status-icon" [class.on]="isOn">power_settings_new</mat-icon>
+        <span class="status-label">{{ state }}</span>
+      </div>
+      <div class="status-row">
+        <mat-icon class="status-icon">settings_input_hdmi</mat-icon>
+        <span class="status-label">{{ currentSource }}</span>
+      </div>
+      <div class="status-row volume">
+        <mat-icon class="status-icon">volume_up</mat-icon>
+        <div class="bar">
+          <div class="fill" [style.width.%]="volume"></div>
+        </div>
+        <span class="status-label">{{ volume }}%</span>
+      </div>
+    </div>
+  } @else {
+    <div class="status">TV nicht gefunden</div>
+  }
+
 </div>

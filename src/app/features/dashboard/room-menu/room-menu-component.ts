@@ -11,12 +11,12 @@ import { HeaderComponent }  from '@shared/components/header/header.component';
 import { RoomEntityButton } from './room-entity-button';
 import { FunctionMenuComponent } from './function-menu/function-menu';
 
-import { Pixel }         from '@rooms/bude/devices/pixel/pixel';
-import { OrangeLight }   from '@rooms/bude/devices/orange-light/orange-light';
-import { FiretvComponent } from '@rooms/bude/devices/firetv/fire-tv-component';
-import { SamsungTv }     from '@bude/devices/samsung-tv-parts/samsung-tv/samsung-tv';
-import { Creator }       from '@rooms/bude/devices/creator/creator';
-import { Laptop }        from '@rooms/bude/devices/laptop/laptop';
+import { PixelMinimal }       from '@rooms/bude/devices/pixel/pixel-minimal/pixel-minimal';
+import { OrangeLightMinimal } from '@rooms/bude/devices/orange-light/orange-light-minimal/orange-light-minimal';
+import { FiretvMinimal }      from '@rooms/bude/devices/firetv/firetv-minimal/firetv-minimal';
+import { SamsungTvMinimal }   from '@bude/devices/samsung-tv-parts/samsung-tv-minimal/samsung-tv-minimal';
+import { CreatorMinimal }     from '@rooms/bude/devices/creator/creator-minimal/creator-minimal';
+import { LaptopMinimal }      from '@rooms/bude/devices/laptop/laptop-minimal/laptop-minimal';
 
 @Component({
   selector: 'app-room-menu',
@@ -27,7 +27,13 @@ import { Laptop }        from '@rooms/bude/devices/laptop/laptop';
     AppButtonComponent,
     HeaderComponent,
     FunctionMenuComponent,
-    RouterLink
+    RouterLink,
+    OrangeLightMinimal,
+    FiretvMinimal,
+    SamsungTvMinimal,
+    CreatorMinimal,
+    LaptopMinimal,
+    PixelMinimal
   ],
   templateUrl: './room-menu-component.html',
   styleUrls: ['./room-menu-component.scss'],
@@ -48,13 +54,15 @@ export class RoomMenuComponent implements OnInit {
   isFlying     = false;
   flightPhase  = false;
 
+  // Verknüpft die Buttons mit ihren Minimal-Komponenten
   componentMappings: Record<string, Type<unknown>> = {
-    Light:       OrangeLight,
-    FireTV:      FiretvComponent,
-    SamsungTV:   SamsungTv,
-    PC:          Creator,
-    Laptop:      Laptop,
-    Pixel8Pro:   Pixel
+    Light:       OrangeLightMinimal,
+    FireTV:      FiretvMinimal,
+    // Zeigt statt der vollständigen TV-Komponente eine reduzierte Variante
+    SamsungTV:   SamsungTvMinimal,
+    PC:          CreatorMinimal,
+    Laptop:      LaptopMinimal,
+    Pixel8Pro:   PixelMinimal
   };
 
   ngOnInit(): void {

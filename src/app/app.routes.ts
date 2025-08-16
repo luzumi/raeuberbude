@@ -32,6 +32,11 @@ export const routes: Routes = [
     component: LoginComponent, // Öffentlicher Login ohne Guard
   },
   {
+    path: 'user-profile',
+    component: UserProfileComponent,
+    canActivate: [authGuard], // Nur für eingeloggte Nutzer
+  },
+  {
     path: '**',
     redirectTo: '', // Fallback leitet auf die Startseite
   },
