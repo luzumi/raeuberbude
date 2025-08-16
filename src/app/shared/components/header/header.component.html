@@ -1,45 +1,34 @@
 <!-- src/app/shared/components/header/header.component.html -->
 
 <header class="app-header">
-  <div class="greeting">
-    <img
-      ngSrc="/assets/avatar.png"
-      alt="Avatar"
-      class="avatar"
-      height="1024" width="1024"/>
-    <div>
-      <div class="greet-text">{{ greeting }},</div>
-      <div class="user-name">{{ userName }}!</div>
-    </div>
+  <app-button
+    name="Zurück"
+    icon="arrow_back"
+    size="2.5rem"
+    (click)="goBack()"
+  ></app-button>
+
+  <img
+    ngSrc="/assets/avatar.png"
+    alt="Avatar"
+    class="avatar"
+    height="1024" width="1024"
+    (click)="goToProfile()"
+  />
+
+  <div class="text-block">
+    <div class="greet-text">{{ greeting }},</div>
+    <div class="user-name">{{ userName }}!</div>
   </div>
 
-  <div class="header-buttons">
-    <!-- immer links: Menu -->
-    <app-button
-      name="Menu"
-      icon="settings"
-      size="4rem"
-      (click)="onToggleMenu()"
-    ></app-button>
+  <div class="spacer"></div>
 
-    <!-- in Phase 4: alle Entities -->
-    @if (true) {
-      @for (e of entities; track e.name; let i = $index){
-        <app-button
-          [name]="e.name"
-          [svgIcon]="e.svgIcon"
-          size="4rem"
-          (click)="onEntityClick(i)"
-        ></app-button>
-      }
-      <!-- ganz rechts: Zurück -->
-      <app-button
-        name="Zurück"
-        icon="arrow_back"
-        size="4rem"
-        (click)="onBack()"
-      ></app-button>
-    }
-    <app-logout-button size="2rem"></app-logout-button>
-  </div>
+  <app-button
+    name="Menu"
+    icon="settings"
+    size="2.5rem"
+    (click)="goToMenu()"
+  ></app-button>
+
+  <app-logout-button size="2.5rem"></app-logout-button>
 </header>
