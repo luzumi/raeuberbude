@@ -1,6 +1,7 @@
 @if (samsung) {
   <div class="tv-info-line" (click)="onDeviceClick()">
-    <button class="back-button" (click)="back.emit(); $event.stopPropagation()">Zurück</button>
+    <button class="back-button" (click)="back.emit(); $event.stopPropagation()"><mat-icon>west</mat-icon></button>
+
     <button mat-icon-button class="tv-button" (click)="togglePower(); $event.stopPropagation()">
       <mat-icon [ngClass]="{ 'green-icon': state !== 'off', 'gray-icon': state === 'off' }">
         power
