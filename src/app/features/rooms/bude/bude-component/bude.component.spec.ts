@@ -50,24 +50,24 @@ describe('BudeComponent (with Menu)', () => {
       expect(style['z-index']).toBe('2');
     });
 
-    it('should return 20%×20% at left=80%, top=0% when menuOpen=true', () => {
+    it('should return 20%×33% at left=80%, top=0% when menuOpen=true', () => {
       component.menuOpen = true;
       component.activeIndex = null;
       const style = component.getMenuStyle();
       expect(style['width']).toBe('20%');
-      expect(style['height']).toBe('20%');
+      expect(style['height']).toBe('33%');
       expect(style['left']).toBe('80%');
       expect(style['top']).toBe('0%');
       expect(style['border-radius']).toBe('8px');
       expect(style['z-index']).toBe('4');
     });
 
-    it('should also return 20%×20% at left=80%, top=0% when a device is active', () => {
+    it('should also return 20%×33% at left=80%, top=0% when a device is active', () => {
       component.menuOpen = false;
       component.activeIndex = 1;
       const style = component.getMenuStyle();
       expect(style['width']).toBe('20%');
-      expect(style['height']).toBe('20%');
+      expect(style['height']).toBe('33%');
       expect(style['left']).toBe('80%');
       expect(style['top']).toBe('0%');
       expect(style['border-radius']).toBe('8px');
@@ -76,12 +76,12 @@ describe('BudeComponent (with Menu)', () => {
   });
 
   describe('getMenuComponentStyle()', () => {
-    it('should return full-width × 80% height at left=0%, top=20%', () => {
+    it('should return full-width × 67% height at left=0%, top=33%', () => {
       const style = component.getMenuComponentStyle();
       expect(style['width']).toBe('100%');
-      expect(style['height']).toBe('80%');
+      expect(style['height']).toBe('67%');
       expect(style['left']).toBe('0%');
-      expect(style['top']).toBe('20%');
+      expect(style['top']).toBe('33%');
       expect(style['border-radius']).toBe('8px');
       expect(style['z-index']).toBe('5');
     });
@@ -122,7 +122,7 @@ describe('BudeComponent (with Menu)', () => {
       });
     });
 
-    it('should stack the other four devices in top 20% bar when a device is active', () => {
+    it('should stack the other four devices in top 33% bar when a device is active', () => {
       component.activeIndex = 2;
       const inactiveOrder = component.devices
         .map((_, i) => i)
@@ -131,7 +131,7 @@ describe('BudeComponent (with Menu)', () => {
       inactiveOrder.forEach((idx, pos) => {
         const style = component.getStyle(component.devices[idx], idx);
         expect(style['width']).toBe('20%');
-        expect(style['height']).toBe('20%');
+        expect(style['height']).toBe('33%');
         const expectedLeft = pos * 20;
         expect(style['left']).toBe(`${expectedLeft}%`);
         expect(style['top']).toBe('0%');
@@ -139,14 +139,14 @@ describe('BudeComponent (with Menu)', () => {
       });
     });
 
-    it('should expand the clicked device to full width and 80% height under the bar', () => {
+    it('should expand the clicked device to full width and 67% height under the bar', () => {
       component.activeIndex = 1;
       const style = component.getStyle(component.devices[1], 1);
       expect(style['position']).toBe('absolute');
       expect(style['width']).toBe('100%');
-      expect(style['height']).toBe('80%');
+      expect(style['height']).toBe('67%');
       expect(style['left']).toBe('0%');
-      expect(style['top']).toBe('20%');
+      expect(style['top']).toBe('33%');
       expect(style['z-index']).toBe('5');
     });
   });

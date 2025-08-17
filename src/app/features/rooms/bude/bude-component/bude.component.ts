@@ -113,8 +113,8 @@ export class BudeComponent implements OnInit {
   /**
    * Inline-Styles für Geräte:
    * 1) Kein Gerät aktiv + kein Menü geöffnet → Kreis (20 % × 20 %).
-   * 2) Gerät aktiv                    → 100 % × 80 % (links 0, top 20).
-   * 3) Inaktive Geräte                → 20 %-Leiste oben nebeneinander.
+   * 2) Gerät aktiv                    → 100 % × 67 % (links 0, top 33).
+   * 3) Inaktive Geräte                → 33 %-Leiste oben nebeneinander.
    * 4) (Wenn Menü offen, Geräte unsichtbar: Breite/Höhe = 0)
    */
   getStyle(device: Device, idx: number): { [key: string]: string } {
@@ -146,27 +146,30 @@ export class BudeComponent implements OnInit {
       };
     }
 
-    // 2) Aktives Gerät → breite Fläche unterhalb der 20 %-Leiste
+    // 2) Aktives Gerät → breite Fläche unterhalb der 33 %-Leiste
     if (this.activeIndex === idx) {
       return {
         position: 'absolute',
         width: '100%',  // füllt volle Breite
-        height: '80%',  // unterhalb von top=20%
+        // 67% Höhe, da oben 0.5fr (~33%) für die Leiste reserviert sind
+        height: '67%',
         left: '0%',
-        top: '20%',
+        // Leiste liegt bei 33% der Höhe
+        top: '33%',
         transition: 'all 0.3s ease',
         'z-index': '5',
         'border-radius': '8px'
       };
     }
 
-    // 3) Inaktive Geräte → in 20 %-Leiste oben nebeneinander
+    // 3) Inaktive Geräte → in 33 %-Leiste oben nebeneinander
     const inactiveOrder = this.getInactiveOrder(idx); // 0..3
     const leftPercent = inactiveOrder * 20;            // 0 %,20 %,40 %,60 %
     return {
       position: 'absolute',
       width: '20%',
-      height: '20%',
+      // Höhe der Leiste auf 33% der Gesamtfläche angehoben
+      height: '33%',
       left: `${leftPercent}%`,
       top: '0%',
       transition: 'all 0.3s ease',
@@ -213,7 +216,7 @@ export class BudeComponent implements OnInit {
   /**
    * Inline-Styles für den Menü-Button selbst:
    * - Wenn Menü geschlossen und kein Gerät aktiv → 10 % × 10 % zentriert.
-   * - Wenn Menü offen oder ein Gerät aktiv   → Button wie ein kleines Gerät in der Leiste oben.
+   * - Wenn Menü offen oder ein Gerät aktiv   → Button wie ein kleines Gerät in der 33 %-Leiste oben.
    */
   getMenuStyle(): { [key: string]: string } {
     // 1) Menü geschlossen & kein Gerät aktiv → zentriert 10 % × 10 %
@@ -232,12 +235,13 @@ export class BudeComponent implements OnInit {
       };
     }
 
-    // 2) Sonst (Gerät aktiv oder Menü offen) → Button in 20 %-Leiste oben als 20 % × 20 %
+    // 2) Sonst (Gerät aktiv oder Menü offen) → Button in 33 %-Leiste oben als 20 % × 33 %
     //    (kommt in dieselbe Leiste wie inaktive Geräte, ganz rechts: left=80%)
     return {
       position: 'absolute',
       width: '20%',
-      height: '20%',
+      // Höhe an neue Leistenhöhe (33%) angepasst
+      height: '33%',
       left: '80%',   // ganz rechts in der Leiste
       top: '0%',
       'border-radius': '8px',  // eckig wie die Geräte
@@ -249,15 +253,17 @@ export class BudeComponent implements OnInit {
 
   /**
    * Inline-Styles für die Menü-Komponente selbst:
-   * (wird wie ein aktives Gerät unterhalb der 20 %-Leiste angezeigt)
+   * (wird wie ein aktives Gerät unterhalb der 33 %-Leiste angezeigt)
    */
   getMenuComponentStyle(): { [key: string]: string } {
     return {
       position: 'absolute',
       width: '100%',
-      height: '80%',
+      // Restfläche unterhalb der Leiste: 67%
+      height: '67%',
       left: '0%',
-      top: '20%',
+      // Leiste benötigt 33% Höhe
+      top: '33%',
       transition: 'all 0.3s ease',
       'z-index': '5',
       'border-radius': '8px'
