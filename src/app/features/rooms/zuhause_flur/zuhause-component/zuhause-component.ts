@@ -1,9 +1,9 @@
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {MatIcon} from '@angular/material/icon';
-import { RouterModule } from '@angular/router';
+import { MatIcon } from '@angular/material/icon';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '@services/auth.service';
-import {HeaderComponent} from '@shared/components/header/header.component';
+import { HeaderComponent } from '@shared/components/header/header.component';
 
 /**
  * Landing page after login showing available rooms as a grid.
@@ -17,7 +17,11 @@ import {HeaderComponent} from '@shared/components/header/header.component';
 })
 export class ZuhauseComponent implements OnInit {
   public userName: string = '';
-  constructor(public auth: AuthService) {}
+
+  // Index der aktuell animierten Raumkachel
+  public clickedIndex: number | null = null;
+
+  constructor(public auth: AuthService, private readonly router: Router) {}
 
   public ngOnInit(): void {
     this.userName = this.auth.getUserName();
@@ -33,5 +37,16 @@ export class ZuhauseComponent implements OnInit {
     { name: 'Büro', icon: 'desktop_cloud_stack' },
     { name: 'Flur', icon: 'nest_multi_room' }
   ];
+
+  /**
+   * Startet die Klickanimation und navigiert nach kurzer Verzögerung zum Raum.
+   */
+  onRoomClick(index: number, route?: string): void {
+    if (!route) {
+      return; // Räume ohne Route sind deaktiviert
+    }
+    this.clickedIndex = index;
+    setTimeout(() => this.router.navigateByUrl(route), 300);
+  }
 
 }

@@ -23,6 +23,11 @@ $rb-icon-size: clamp(2rem, 5vw, 4rem);
   height: calc(100vh - #{$header-offset}); // fit into viewport without scroll
   /* Radial background inspired by '/raub1' */
   background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
+
+  &.expanded .room-button:not(.active) {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 .room-button {
@@ -39,7 +44,7 @@ $rb-icon-size: clamp(2rem, 5vw, 4rem);
   color: $rb-text;
   text-transform: uppercase;
   cursor: pointer;
-  transition: box-shadow 0.3s;
+  transition: box-shadow 0.3s, transform 0.3s;
 
   .mat-icon {
     transform: scale(2.0);
@@ -55,6 +60,12 @@ $rb-icon-size: clamp(2rem, 5vw, 4rem);
   &:disabled {
     opacity: 0.4;
     cursor: default;
+  }
+
+  &.active {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    transform: scale(1.05);
   }
 
 }

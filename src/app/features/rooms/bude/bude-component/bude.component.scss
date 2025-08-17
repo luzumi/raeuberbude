@@ -1,16 +1,15 @@
 @use '../../../../../styles/tokens' as t;
 
 // Container der Räuberbude: Layout und Hintergrund
+// Kacheln werden wie auf der Startseite als Grid dargestellt
 .dashboard-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 24px;
-  padding: 2rem;
-  justify-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(40%, 1fr));
+  gap: 0.5rem;
+  padding: 1rem;
 
   // An das Styling der Raumübersicht angelehnter radialer Hintergrund
   background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
-
 }
 
 .menu-button {

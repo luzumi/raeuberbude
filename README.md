@@ -82,6 +82,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - ✅ Material-Design eingebunden
 - ✅ "Bude" nutzt nun den radialen Hintergrund der Raumübersicht; Gerätekacheln behalten ihre Farben mit sanftem Gradient
 - ✅ App-Header mit Profil-Link, Menü-Routing und Logout-Schaltfläche
+- ✅ Gerätekacheln in der Räuberbude und auf der Startseite nutzen nun ein gemeinsames Grid mit animiertem Zoom-Effekt
 
 ---
 

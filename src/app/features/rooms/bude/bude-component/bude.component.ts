@@ -14,12 +14,13 @@ import { Creator } from '@rooms/bude/devices/creator/creator';
 import { Laptop } from '@rooms/bude/devices/laptop/laptop';
 import { OrangeLight } from '@rooms/bude/devices/orange-light/orange-light';
 import { Pixel } from '@rooms/bude/devices/pixel/pixel';
+import { SamsungTv } from '@bude/devices/samsung-tv/samsung-tv/samsung-tv';
 
+// Beschreibung eines Gerätes im Grid. Positionen werden nicht mehr benötigt,
+// da die Kacheln nun über CSS Grid angeordnet werden.
 interface Device {
   id: number;
   type: 'pixel' | 'orange-light' | 'laptop' | 'creator' | 'samsung-tv';
-  left: number;
-  top: number;
 }
 
 @Component({
@@ -55,8 +56,7 @@ export class BudeComponent implements OnInit {
   // Öffnungszustand des Menüs
   menuOpen = false;
 
-  private readonly radiusPercent = 30;
-  private readonly center = 50;
+  // Gerätekacheln im Grid definieren
   private readonly types: Device['type'][] = [
     'pixel',
     'orange-light',
@@ -69,17 +69,11 @@ export class BudeComponent implements OnInit {
   constructor(
     private readonly auth: AuthService,
   ) {
-    // Geräte kreisförmig verteilen
-    for (let i = 0; i < 5; i++) {
-      const angleDeg = -90 + (360 / 5) * i;
-      const rad = (angleDeg * Math.PI) / 180;
-      const left = this.center + Math.cos(rad) * this.radiusPercent;
-      const top = this.center + Math.sin(rad) * this.radiusPercent;
+    // Geräte einfach der Reihe nach in das Grid einfügen
+    for (let i = 0; i < this.types.length; i++) {
       this.devices.push({
         id: i,
-        type: this.types[i],
-        left,
-        top
+        type: this.types[i]
       });
     }
   }
@@ -111,78 +105,51 @@ export class BudeComponent implements OnInit {
   }
 
   /**
-   * Inline-Styles für Geräte:
-   * 1) Kein Gerät aktiv + kein Menü geöffnet → Kreis (20 % × 20 %).
-   * 2) Gerät aktiv                    → 100 % × 80 % (links 0, top 20).
-   * 3) Inaktive Geräte                → 20 %-Leiste oben nebeneinander.
-   * 4) (Wenn Menü offen, Geräte unsichtbar: Breite/Höhe = 0)
+   * Inline-Styles für die Gerätekacheln im Grid.
+   * 1) Wenn kein Gerät aktiv → Kacheln füllen ihren Grid-Bereich.
+   * 2) Aktives Gerät spannt über das gesamte Grid.
+   * 3) Inaktive Geräte blenden sich aus, um Platz für die Animation zu machen.
+   * 4) Menü offen → alle Geräte verstecken.
    */
-  getStyle(device: Device, idx: number): { [key: string]: string } {
+  getStyle(idx: number): { [key: string]: string } {
     // 4) Wenn Menü offen, Geräte ausblenden
     if (this.menuOpen) {
       return {
-        position: 'absolute',
-        width: '0%',
-        height: '0%',
-        left: '0%',
-        top: '0%',
-        transition: 'all 0.3s ease',
-        'z-index': '0'
+        width: '0',
+        height: '0',
+        opacity: '0',
+        transition: 'all 0.3s ease'
       };
     }
 
-    // 1) Kein Gerät aktiv → Kreis
+    // 1) Kein Gerät aktiv → normale Grid-Kachel
     if (this.activeIndex === null) {
       return {
-        position: 'absolute',
-        width: '20%',
-        height: '20%',
-        left: `${device.left}%`,
-        top: `${device.top}%`,
-        transform: 'translate(-50%, -50%)',
-        transition: 'all 0.3s ease',
-        'z-index': '1',
-        'border-radius': '8px'
+        width: '100%',
+        height: '100%',
+        transition: 'all 0.3s ease'
       };
     }
 
-    // 2) Aktives Gerät → breite Fläche unterhalb der 20 %-Leiste
+    // 2) Aktives Gerät → über gesamtes Grid spannen
     if (this.activeIndex === idx) {
       return {
-        position: 'absolute',
-        width: '100%',  // füllt volle Breite
-        height: '80%',  // unterhalb von top=20%
-        left: '0%',
-        top: '20%',
+        gridColumn: '1 / -1',
+        gridRow: '1 / -1',
+        width: '100%',
+        height: '100%',
         transition: 'all 0.3s ease',
-        'z-index': '5',
-        'border-radius': '8px'
+        'z-index': '5'
       };
     }
 
-    // 3) Inaktive Geräte → in 20 %-Leiste oben nebeneinander
-    const inactiveOrder = this.getInactiveOrder(idx); // 0..3
-    const leftPercent = inactiveOrder * 20;            // 0 %,20 %,40 %,60 %
+    // 3) Inaktive Geräte → ausblenden
     return {
-      position: 'absolute',
-      width: '20%',
-      height: '20%',
-      left: `${leftPercent}%`,
-      top: '0%',
-      transition: 'all 0.3s ease',
-      'z-index': '3',
-      'border-radius': '8px'
+      width: '0',
+      height: '0',
+      opacity: '0',
+      transition: 'all 0.3s ease'
     };
-  }
-
-  private getInactiveOrder(idx: number): number {
-    const arr: number[] = [];
-    this.devices.forEach((_, i) => {
-      if (i !== this.activeIndex) {
-        arr.push(i);
-      }
-    });
-    return arr.indexOf(idx);
   }
 
   getColor(type: Device['type']): string {

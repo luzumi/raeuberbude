@@ -1,8 +1,12 @@
 <app-header [userName]="userName"></app-header>
 
-<div class="rooms-grid">
-  @for (room of rooms; track room.name) {
-    <button class="room-button" [routerLink]="room.route" [disabled]="!room.route">
+<div class="rooms-grid" [ngClass]="{ expanded: clickedIndex !== null }">
+  @for (room of rooms; track room.name; let i = $index) {
+    <button
+      class="room-button"
+      [disabled]="!room.route"
+      (click)="onRoomClick(i, room.route)"
+      [ngClass]="{ active: clickedIndex === i }">
       <mat-icon>{{ room.icon }}</mat-icon>
       <span>{{ room.name }}</span>
     </button>

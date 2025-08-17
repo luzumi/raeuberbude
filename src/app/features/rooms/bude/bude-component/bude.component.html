@@ -27,13 +27,13 @@
         @case ('pixel') {
           @if (activeIndex === $index) {
             <app-pixel
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClick($index)"
             ></app-pixel>
           } @else {
             <app-pixel-minimal
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClick($index)"
             ></app-pixel-minimal>
@@ -42,13 +42,13 @@
         @case ('orange-light') {
           @if (activeIndex === $index) {
             <app-orange-light
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClick($index)"
             ></app-orange-light>
           } @else {
             <app-orange-light-minimal
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClick($index)"
             ></app-orange-light-minimal>
@@ -57,13 +57,13 @@
         @case ('laptop') {
           @if (activeIndex === $index) {
             <app-laptop
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClick($index)"
             ></app-laptop>
           } @else {
             <app-laptop-minimal
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClick($index)"
             ></app-laptop-minimal>
@@ -72,13 +72,13 @@
         @case ('creator') {
           @if (activeIndex === $index) {
             <app-creator
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClick($index)"
             ></app-creator>
           } @else {
             <app-creator-minimal
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClick($index)"
             ></app-creator-minimal>
@@ -87,13 +87,13 @@
         @case('samsung-tv'){
           @if (activeIndex === $index) {
             <app-samsung-tv
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClickSamsung($index)"
             ></app-samsung-tv>
           } @else {
             <app-samsung-tv-minimal
-              [ngStyle]="getStyle(device, $index)"
+              [ngStyle]="getStyle($index)"
               [style.background]="getGradient(device.type)"
               (click)="onClickSamsung($index)"
             ></app-samsung-tv-minimal>

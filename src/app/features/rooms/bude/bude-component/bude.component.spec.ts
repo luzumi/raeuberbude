@@ -93,12 +93,12 @@ describe('BudeComponent (with Menu)', () => {
       component.activeIndex = null;
     });
 
-    it('should hide devices by setting width and height to 0%', () => {
-      component.devices.forEach((dev, idx) => {
-        const style = component.getStyle(dev, idx);
-        expect(style['width']).toBe('0%');
-        expect(style['height']).toBe('0%');
-        expect(style['z-index']).toBe('0');
+    it('should hide devices by setting width and height to 0', () => {
+      component.devices.forEach((_, idx) => {
+        const style = component.getStyle(idx);
+        expect(style['width']).toBe('0');
+        expect(style['height']).toBe('0');
+        expect(style['opacity']).toBe('0');
       });
     });
   });
@@ -108,46 +108,27 @@ describe('BudeComponent (with Menu)', () => {
       component.menuOpen = false;
     });
 
-    it('should place all devices in circle when none is active', () => {
+    it('should show all devices filling grid cells when none is active', () => {
       component.activeIndex = null;
-      component.devices.forEach((dev, idx) => {
-        const style = component.getStyle(dev, idx);
-        expect(style['position']).toBe('absolute');
-        expect(style['width']).toBe('20%');
-        expect(style['height']).toBe('20%');
-        expect(style['left']).toBe(`${dev.left}%`);
-        expect(style['top']).toBe(`${dev.top}%`);
-        expect(style['transform']).toBe('translate(-50%, -50%)');
-        expect(style['z-index']).toBe('1');
+      component.devices.forEach((_, idx) => {
+        const style = component.getStyle(idx);
+        expect(style['width']).toBe('100%');
+        expect(style['height']).toBe('100%');
       });
     });
 
-    it('should stack the other four devices in top 20% bar when a device is active', () => {
-      component.activeIndex = 2;
-      const inactiveOrder = component.devices
-        .map((_, i) => i)
-        .filter(i => i !== 2);
-
-      inactiveOrder.forEach((idx, pos) => {
-        const style = component.getStyle(component.devices[idx], idx);
-        expect(style['width']).toBe('20%');
-        expect(style['height']).toBe('20%');
-        const expectedLeft = pos * 20;
-        expect(style['left']).toBe(`${expectedLeft}%`);
-        expect(style['top']).toBe('0%');
-        expect(style['z-index']).toBe('3');
-      });
-    });
-
-    it('should expand the clicked device to full width and 80% height under the bar', () => {
+    it('should hide inactive devices and expand the active one', () => {
       component.activeIndex = 1;
-      const style = component.getStyle(component.devices[1], 1);
-      expect(style['position']).toBe('absolute');
-      expect(style['width']).toBe('100%');
-      expect(style['height']).toBe('80%');
-      expect(style['left']).toBe('0%');
-      expect(style['top']).toBe('20%');
-      expect(style['z-index']).toBe('5');
+      component.devices.forEach((_, idx) => {
+        const style = component.getStyle(idx);
+        if (idx === 1) {
+          expect(style['gridColumn']).toBe('1 / -1');
+          expect(style['gridRow']).toBe('1 / -1');
+        } else {
+          expect(style['width']).toBe('0');
+          expect(style['height']).toBe('0');
+        }
+      });
     });
   });
 });
