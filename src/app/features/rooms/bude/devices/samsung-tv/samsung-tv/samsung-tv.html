@@ -1,56 +1,67 @@
 @if (samsung) {
-  <div class="tv-info-line" (click)="onDeviceClick()">
+  <!-- Hauptcontainer im Geräte-Stil; Kacheln strukturieren die Steuerung -->
+  <div class="device samsung-tv" (click)="onDeviceClick()">
     <button class="back-button" (click)="back.emit(); $event.stopPropagation()"><mat-icon>west</mat-icon></button>
 
-    <button mat-icon-button class="tv-button" (click)="togglePower(); $event.stopPropagation()">
-      <mat-icon [ngClass]="{ 'green-icon': state !== 'off', 'gray-icon': state === 'off' }">
-        power
-      </mat-icon>
-    </button>
-    <span class="block"><strong>{{ name }}</strong></span>
-    <span class="block">Status: {{ state }}</span>
-    <span class="block">Lautstärke: {{ volume }}%</span>
+    <div class="tiles">
+      <!-- Status- und Lautstärke-Kachel -->
+      <div class="tile" (click)="$event.stopPropagation()">
+        <button mat-icon-button class="tv-button" (click)="togglePower(); $event.stopPropagation()">
+          <mat-icon [ngClass]="{ 'green-icon': state !== 'off', 'gray-icon': state === 'off' }">power</mat-icon>
+        </button>
+        <span class="block"><strong>{{ name }}</strong></span>
+        <span class="block">Status: {{ state }}</span>
+        <span class="block">Lautstärke: {{ volume }}%</span>
 
-    <div class="slider-wrapper" (click)="$event.stopPropagation()">
-      <app-horizontal-slider
-        [value]="volume"
-        [min]="0"
-        [max]="100"
-        [step]="1"
-        (valueChange)="setVolume($event)">
-      </app-horizontal-slider>
+        <div class="slider-wrapper">
+          <app-horizontal-slider
+            [value]="volume"
+            [min]="0"
+            [max]="100"
+            [step]="1"
+            (valueChange)="setVolume($event)">
+          </app-horizontal-slider>
+        </div>
+        <span class="block">Mute: {{ isMuted }}</span>
+      </div>
+
+      <!-- Befehls-Kachel mit Schnellzugriffen und Dropdowns -->
+      <div class="tile" (click)="$event.stopPropagation()">
+        <div class="remote-controls">
+          <button class="tv-button" (click)="sendSamsungCommand('KEY_MUTE'); $event.stopPropagation();">🔇 Mute</button>
+          <button class="tv-button" (click)="sendSamsungCommand('KEY_LEFT'); $event.stopPropagation();"><span><<<</span>🔁</button>
+          <button class="tv-button" (click)="sendSamsungCommand('KEY_SOURCE'); $event.stopPropagation();">🔁 Source wechseln</button>
+          <button class="tv-button" (click)="sendSamsungCommand('KEY_RIGHT'); $event.stopPropagation();">🔁>>></button>
+        </div>
+
+        <!-- Einfache Keypad-Demo -->
+        <app-keypad (keyPressed)="sendSamsungCommand('KEY_RIGHT')" [columns]="1" [keys]="['>']"></app-keypad>
+
+        <div class="select-wrapper">
+          <!-- FireTV command selector -->
+          <select class="tv-select" [(ngModel)]="selectedFireCommand" (change)="sendFireTvCommand(selectedFireCommand!)">
+            <option value="" disabled selected>FireTV Befehl</option>
+            <option *ngFor="let cmd of fireTvCommands" [value]="cmd">{{ cmd }}</option>
+          </select>
+
+          <!-- Samsung TV command selector -->
+          <select class="tv-select" [(ngModel)]="selectedSamsungCommand" (change)="sendSamsungCommand(selectedSamsungCommand!)">
+            <option value="" disabled selected>Samsung Befehl</option>
+            <option *ngFor="let cmd of samsungCommands" [value]="cmd">{{ cmd }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Eingebettete FireTV-Komponente füllt freie Kachel -->
+      <div class="tile firetv-tile" (click)="$event.stopPropagation()">
+        <app-firetv (onDeviceClick)="onDeviceClick()"></app-firetv>
+      </div>
     </div>
-
-
-    <!-- redesigned buttons inspired by '/raub1' -->
-      <button class="tv-button" (click)="sendSamsungCommand('KEY_MUTE'); $event.stopPropagation();">🔇 Mute</button>
-      <button class="tv-button" (click)="sendSamsungCommand('KEY_LEFT'); $event.stopPropagation();"><span><<<</span>🔁 </button>
-      <button class="tv-button" (click)="sendSamsungCommand('KEY_SOURCE'); $event.stopPropagation();">🔁 Source wechseln</button>
-      <button class="tv-button" (click)="sendSamsungCommand('KEY_RIGHT'); $event.stopPropagation();">🔁>>></button>
-      <button class="tv-button" (click)="$event.stopPropagation();">
-        <app-keypad (keyPressed)="sendSamsungCommand('KEY_RIGHT');" [columns]="1" [keys]="['>']"></app-keypad>
-      </button>
-
-    <div class="select-wrapper" (click)="$event.stopPropagation()">
-      <!-- FireTV command selector -->
-        <select class="tv-select" [(ngModel)]="selectedFireCommand" (change)="sendFireTvCommand(selectedFireCommand!)">
-          <option value="" disabled selected>FireTV Befehl</option>
-          <option *ngFor="let cmd of fireTvCommands" [value]="cmd">{{ cmd }}</option>
-        </select>
-
-      <!-- Samsung TV command selector -->
-        <select class="tv-select" [(ngModel)]="selectedSamsungCommand" (change)="sendSamsungCommand(selectedSamsungCommand!)">
-          <option value="" disabled selected>Samsung Befehl</option>
-          <option *ngFor="let cmd of samsungCommands" [value]="cmd">{{ cmd }}</option>
-        </select>
-    </div>
-
-    <span class="block">Mute: {{ isMuted }}</span>
   </div>
-  <app-firetv (onDeviceClick)="onDeviceClick()"></app-firetv>
 } @else {
-  <div class="tv-info-line">
+  <div class="device samsung-tv">
     <button class="back-button" (click)="back.emit()">Zurück</button>
     TV nicht gefunden
   </div>
 }
+
