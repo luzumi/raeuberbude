@@ -7,7 +7,12 @@
   //  ganz leichter gradient
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.01) 100%);
   color: t.$color-primary;
-  height: 90%;
+  // volle Höhe der Kachel nutzen, damit nichts hinausläuft
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .container-wrapper {
@@ -25,8 +30,11 @@
 .status-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  // flex:1 sorgt dafür, dass der Gridbereich sich an die verfügbare Höhe anpasst
+  flex: 1;
+  gap: 1rem;
   font-size: 14px;
+  overflow: hidden;
 }
 
 .tile {

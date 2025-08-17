@@ -2,6 +2,7 @@
 @use '../../../../../../../styles/tokens' as t;
 
 .tv-info-line {
+  position: relative; // für Zurück-Button
   cursor: pointer;
   font-size: 0.95rem;
   line-height: 1.4;
@@ -98,4 +99,10 @@
 
 .gray-icon {
   color: t.$color-warn;
+}
+
+.back-button {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
 }

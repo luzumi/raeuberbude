@@ -1,9 +1,13 @@
 <app-header [userName]="userName"></app-header>
 
 <div class="dashboard-container" [class.detail-view]="menuOpen || activeIndex !== null">
-  <!-- Menu Button takes one grid cell; in detail view it joins the top row -->
-  <div class="grid-item menu-button" (click)="onMenuButtonClick()" [ngClass]="{ active: menuOpen || activeIndex !== null }">
-    <span class="menu-label">Menu</span>
+  <!-- Menü-Kachel als eigenes Minimal-Component -->
+  <div
+    class="grid-item menu-button"
+    (click)="onMenuButtonClick()"
+    [ngClass]="{ active: menuOpen || activeIndex !== null }"
+    [style.background]="getMenuGradient()">
+    <app-menu-minimal></app-menu-minimal>
   </div>
 
   <!-- When the menu itself is active, it fills the lower area -->
@@ -20,35 +24,35 @@
         @switch (device.type) {
           @case ('pixel') {
             @if (activeIndex === $index) {
-              <app-pixel></app-pixel>
+              <app-pixel (back)="onBack()"></app-pixel>
             } @else {
               <app-pixel-minimal></app-pixel-minimal>
             }
           }
           @case ('orange-light') {
             @if (activeIndex === $index) {
-              <app-orange-light></app-orange-light>
+              <app-orange-light (back)="onBack()"></app-orange-light>
             } @else {
               <app-orange-light-minimal></app-orange-light-minimal>
             }
           }
           @case ('laptop') {
             @if (activeIndex === $index) {
-              <app-laptop></app-laptop>
+              <app-laptop (back)="onBack()"></app-laptop>
             } @else {
               <app-laptop-minimal></app-laptop-minimal>
             }
           }
           @case ('creator') {
             @if (activeIndex === $index) {
-              <app-creator></app-creator>
+              <app-creator (back)="onBack()"></app-creator>
             } @else {
               <app-creator-minimal></app-creator-minimal>
             }
           }
           @case('samsung-tv'){
             @if (activeIndex === $index) {
-              <app-samsung-tv></app-samsung-tv>
+              <app-samsung-tv (back)="onBack()"></app-samsung-tv>
             } @else {
               <app-samsung-tv-minimal></app-samsung-tv-minimal>
             }

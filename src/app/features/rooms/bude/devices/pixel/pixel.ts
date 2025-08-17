@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 
 @Component({
   selector: 'app-pixel',
@@ -8,5 +8,6 @@ import { Component } from '@angular/core';
   styleUrl: './pixel.scss'
 })
 export class Pixel {
-
+  /** Event zum Zurücknavigieren in die Geräteübersicht. */
+  @Output() back = new EventEmitter<void>();
 }

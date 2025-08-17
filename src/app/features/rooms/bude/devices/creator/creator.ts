@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 
 @Component({
   selector: 'app-creator',
@@ -8,5 +8,6 @@ import { Component } from '@angular/core';
   styleUrl: './creator.scss'
 })
 export class Creator {
-
+  /** Event zum Zurückkehren zum Grid. */
+  @Output() back = new EventEmitter<void>();
 }
