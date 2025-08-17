@@ -1,22 +1,22 @@
 <app-header [userName]="userName"></app-header>
 
-<div class="dashboard-container">
-  <!-- Menu Button takes one grid cell -->
+<div class="dashboard-container" [class.detail-view]="menuOpen || activeIndex !== null">
+  <!-- Menu Button takes one grid cell; in detail view it joins the top row -->
   <div class="grid-item menu-button" (click)="onMenuButtonClick()" [ngClass]="{ active: menuOpen || activeIndex !== null }">
     <span class="menu-label">Menu</span>
   </div>
 
-  <!-- When menu is open, it spans across the grid -->
+  <!-- When the menu itself is active, it fills the lower area -->
   @if (menuOpen) {
-    <div class="grid-item" style="grid-column: span 2; grid-row: 2 / span 1;">
+    <div class="grid-item active-content">
       <app-menu [closeCallback]="closeMenu.bind(this)"></app-menu>
     </div>
   }
 
-  <!-- When menu is closed, devices take their grid cells -->
+  <!-- When the menu is closed, devices take their grid cells -->
   @if (!menuOpen) {
     @for (device of devices; track $index) {
-      <div class="grid-item" [style.background]="getGradient(device.type)" (click)="device.type === 'samsung-tv' ? onClickSamsung($index) : onClick($index)">
+      <div class="grid-item" [ngClass]="{ 'active-content': activeIndex === $index }" [style.background]="getGradient(device.type)" (click)="device.type === 'samsung-tv' ? onClickSamsung($index) : onClick($index)">
         @switch (device.type) {
           @case ('pixel') {
             @if (activeIndex === $index) {

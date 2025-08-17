@@ -3,12 +3,19 @@
 // Container der Räuberbude: Layout und Hintergrund
 .dashboard-container {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* 2 columns */
-    grid-template-rows: 1fr 1fr 1fr;    /* 2 rows */
+  grid-template-columns: 1fr 1fr; /* Grundlayout: 2 Spalten */
+  grid-template-rows: 1fr 1fr 1fr; /* Grundlayout: 3 Zeilen */
   gap: 6px;
   padding: 2rem;
   height: calc(100vh - 64px);
   background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
+
+  &.detail-view {
+    /* Bei aktiver Detailansicht: top row 0.5fr, Rest füllt der Inhalt */
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-template-rows: 0.5fr 1fr;
+    grid-auto-flow: column;
+  }
 }
 
 .grid-item {
@@ -46,9 +53,9 @@
   }
 
   &.active {
-    /* Wenn Menü offen oder Gerät aktiv: 20% × 20%, in der Leiste oben ganz rechts */
-    width: 20%;
-    height: 20%;
+    /* In der Detailansicht füllt der Button seine Zelle in der oberen Reihe */
+    width: 100%;
+    height: 100%;
     left: 0;
     top: 0;
     transform: none;
@@ -56,13 +63,25 @@
     z-index: 4;
 
     .menu-label {
-      /* Label klein in die Mitte des 20%-Feldes */
+      /* Label mittig platzieren */
       position: absolute;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
       font-size: 0.9rem;
     }
+  }
+}
+
+/* Detailansicht: Alle inaktiven Grid-Items bleiben oben, aktiver Inhalt füllt die untere Reihe */
+.dashboard-container.detail-view {
+  .grid-item {
+    grid-row: 1;
+  }
+
+  .grid-item.active-content {
+    grid-row: 2;
+    grid-column: 1 / -1;
   }
 }
 
