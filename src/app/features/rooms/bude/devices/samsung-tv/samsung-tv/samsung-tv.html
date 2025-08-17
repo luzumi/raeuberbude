@@ -1,5 +1,6 @@
 @if (samsung) {
   <div class="tv-info-line" (click)="onDeviceClick()">
+    <button class="back-button" (click)="back.emit(); $event.stopPropagation()">Zurück</button>
     <button mat-icon-button class="tv-button" (click)="togglePower(); $event.stopPropagation()">
       <mat-icon [ngClass]="{ 'green-icon': state !== 'off', 'gray-icon': state === 'off' }">
         power
@@ -47,5 +48,8 @@
   </div>
   <app-firetv (onDeviceClick)="onDeviceClick()"></app-firetv>
 } @else {
-  <div class="tv-info-line">TV nicht gefunden</div>
+  <div class="tv-info-line">
+    <button class="back-button" (click)="back.emit()">Zurück</button>
+    TV nicht gefunden
+  </div>
 }

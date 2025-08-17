@@ -27,6 +27,8 @@ export class SamsungTv implements OnInit {
   selectedSamsungCommand?: string;
 
   @Output() deviceClicked = new EventEmitter<void>();
+  /** Ermöglicht das Zurücknavigieren zur Geräteübersicht. */
+  @Output() back = new EventEmitter<void>();
 
   constructor(public hass: HomeAssistantService) {
   }

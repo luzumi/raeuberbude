@@ -1,14 +1,17 @@
+
+// Grid-Layout für die Geräteübersicht (2 Spalten × 3 Zeilen)
 .dashboard-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15.3vw, 1fr)); // gleichmäßig auffüllen
-  grid-template-rows: auto 1fr; // obere Reihe (Auto-Höhe), untere füllt Rest
-  gap: 6px;
-  padding: 2rem;
-  height: calc(100vh - 64px);
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 80px; // Platz für den fixierten Header
+  padding: 1rem;
+  height: calc(100vh - 80px);
   background: radial-gradient(circle at center, rgba(0,150,136,.2), rgba(0,0,0,.9));
 
-  // Standard: alle Items in Zeile 1, „Hauptinhalt“ markiert sich selbst
-  .grid-item { min-width: 0; } // Grid-freundlich, verhindert Overflow
+  // Grid-freundlich, verhindert Overflow
+  .grid-item { min-width: 0; }
 }
 
 /* Detailansicht OHNE Auto-Flow, damit nichts „spaltenweise“ wegläuft */
@@ -34,29 +37,17 @@
 }
 
 /* Verhindert das „Verschieben“ der Buttons, das Platz links übrig lässt */
+// Menü-Kachel orientiert sich optisch an den Geräte-Kacheln
 .menu-button {
   position: relative;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  // DEFAULT: KEINE Offsets – sie nehmen sonst Platz ein, obwohl sie optisch verschoben sind
-  left: auto;
-  top: auto;
-  transform: none;
-  width: 100%;              // füllt die zugewiesene Grid-Zelle
-  height: auto;
-
-  .menu-label {
-    position: absolute;
-    inset: 50% auto auto 50%;
-    transform: translate(-50%, -50%);
-  }
+  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &.active {
-    width: 100%;
-    height: 100%;
-    left: auto;
-    top: auto;
-    transform: none;
     border-radius: 8px;
   }
 }
@@ -71,7 +62,8 @@
 :host ::ng-deep app-creator,
 :host ::ng-deep app-creator-minimal,
 :host ::ng-deep app-samsung-tv,
-:host ::ng-deep app-samsung-tv-minimal {
+:host ::ng-deep app-samsung-tv-minimal,
+:host ::ng-deep app-menu-minimal {
   display: block;
   width: 100%;
   height: 100%;

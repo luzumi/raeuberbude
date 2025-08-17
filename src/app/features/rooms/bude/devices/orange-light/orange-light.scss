@@ -1,5 +1,6 @@
 /* Einfaches Layout für den Device-Button */
 .device.orange-light {
+  position: relative; // Raum für den Zurück-Button
   width: 100%;
   height: 100%;
   /* Farbe kommt über dynamischen Gradient */
@@ -7,4 +8,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.back-button {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
 }

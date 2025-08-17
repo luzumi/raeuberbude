@@ -1,6 +1,14 @@
 .device.pixel {
+  position: relative; // ermöglicht absolute Positionierung des Zurück-Buttons
   width: 100%;
   height: 100%;
   /* Farbe stammt aus dem dynamischen Gradient */
   border-radius: 8px;
+}
+
+// Einfacher Zurück-Button
+.back-button {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
 }
