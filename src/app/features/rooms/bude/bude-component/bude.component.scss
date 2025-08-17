@@ -2,15 +2,37 @@
 
 // Container der Räuberbude: Layout und Hintergrund
 .dashboard-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 24px;
+  position: relative;
   padding: 2rem;
-  justify-items: center;
 
   // An das Styling der Raumübersicht angelehnter radialer Hintergrund
   background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
+}
 
+// Raster für Gerätekacheln analog zur Raumübersicht
+.devices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 24px;
+  justify-items: center;
+}
+
+// Wrapper für jede Gerätekachel mit Klickanimation
+.device-wrapper {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  display: block;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &.active {
+    transform: scale(1.05);
+  }
 }
 
 .menu-button {
