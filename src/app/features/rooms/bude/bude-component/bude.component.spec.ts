@@ -75,79 +75,29 @@ describe('BudeComponent (with Menu)', () => {
     });
   });
 
-  describe('getMenuComponentStyle()', () => {
-    it('should return full-width × 80% height at left=0%, top=20%', () => {
-      const style = component.getMenuComponentStyle();
-      expect(style['width']).toBe('100%');
-      expect(style['height']).toBe('80%');
-      expect(style['left']).toBe('0%');
-      expect(style['top']).toBe('20%');
-      expect(style['border-radius']).toBe('8px');
-      expect(style['z-index']).toBe('5');
-    });
-  });
-
-  describe('getStyle() when menuOpen=true', () => {
-    beforeEach(() => {
-      component.menuOpen = true;
-      component.activeIndex = null;
-    });
-
-    it('should hide devices by setting width and height to 0%', () => {
-      component.devices.forEach((dev, idx) => {
-        const style = component.getStyle(dev, idx);
-        expect(style['width']).toBe('0%');
-        expect(style['height']).toBe('0%');
-        expect(style['z-index']).toBe('0');
-      });
-    });
-  });
-
-  describe('getStyle() when menuOpen=false', () => {
-    beforeEach(() => {
-      component.menuOpen = false;
-    });
-
-    it('should place all devices in circle when none is active', () => {
-      component.activeIndex = null;
-      component.devices.forEach((dev, idx) => {
-        const style = component.getStyle(dev, idx);
-        expect(style['position']).toBe('absolute');
-        expect(style['width']).toBe('20%');
-        expect(style['height']).toBe('20%');
-        expect(style['left']).toBe(`${dev.left}%`);
-        expect(style['top']).toBe(`${dev.top}%`);
-        expect(style['transform']).toBe('translate(-50%, -50%)');
-        expect(style['z-index']).toBe('1');
+    describe('getMenuComponentStyle()', () => {
+      it('should return full-width × 80% height at left=0%, top=20%', () => {
+        const style = component.getMenuComponentStyle();
+        expect(style['width']).toBe('100%');
+        expect(style['height']).toBe('80%');
+        expect(style['left']).toBe('0%');
+        expect(style['top']).toBe('20%');
+        expect(style['border-radius']).toBe('8px');
+        expect(style['z-index']).toBe('5');
       });
     });
 
-    it('should stack the other four devices in top 20% bar when a device is active', () => {
-      component.activeIndex = 2;
-      const inactiveOrder = component.devices
-        .map((_, i) => i)
-        .filter(i => i !== 2);
+    describe('onTileClick()', () => {
+      it('should toggle activeIndex and close the menu', () => {
+        // stellt sicher, dass beim Klick im Grid die Kachel aktiviert
+        // und das Menü geschlossen wird
+        component.menuOpen = true;
+        component.onTileClick(1);
+        expect(component.menuOpen).toBeFalse();
+        expect(component.activeIndex).toBe(1);
 
-      inactiveOrder.forEach((idx, pos) => {
-        const style = component.getStyle(component.devices[idx], idx);
-        expect(style['width']).toBe('20%');
-        expect(style['height']).toBe('20%');
-        const expectedLeft = pos * 20;
-        expect(style['left']).toBe(`${expectedLeft}%`);
-        expect(style['top']).toBe('0%');
-        expect(style['z-index']).toBe('3');
+        component.onTileClick(1);
+        expect(component.activeIndex).toBeNull();
       });
     });
-
-    it('should expand the clicked device to full width and 80% height under the bar', () => {
-      component.activeIndex = 1;
-      const style = component.getStyle(component.devices[1], 1);
-      expect(style['position']).toBe('absolute');
-      expect(style['width']).toBe('100%');
-      expect(style['height']).toBe('80%');
-      expect(style['left']).toBe('0%');
-      expect(style['top']).toBe('20%');
-      expect(style['z-index']).toBe('5');
-    });
-  });
 });

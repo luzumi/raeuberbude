@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { NgClass, NgStyle } from '@angular/common';
+import { NgClass } from '@angular/common';
 
 // Minimalansicht des Samsung-TVs liegt nun im gleichen Ordner wie die Vollansicht
 import { SamsungTvMinimal } from '@bude/devices/samsung-tv/samsung-tv-minimal/samsung-tv-minimal';
+import { SamsungTv } from '@rooms/bude/devices/samsung-tv/samsung-tv/samsung-tv';
 import { PixelMinimal } from '@rooms/bude/devices/pixel/pixel-minimal/pixel-minimal';
 import { OrangeLightMinimal } from '@rooms/bude/devices/orange-light/orange-light-minimal/orange-light-minimal';
 import { LaptopMinimal } from '@rooms/bude/devices/laptop/laptop-minimal/laptop-minimal';
@@ -16,10 +17,14 @@ import { OrangeLight } from '@rooms/bude/devices/orange-light/orange-light';
 import { Pixel } from '@rooms/bude/devices/pixel/pixel';
 
 interface Device {
+  /**
+   * Eindeutige ID des Geräts
+   */
   id: number;
+  /**
+   * Typ des Geräts; bestimmt die zu verwendende Komponentenvariante
+   */
   type: 'pixel' | 'orange-light' | 'laptop' | 'creator' | 'samsung-tv';
-  left: number;
-  top: number;
 }
 
 @Component({
@@ -41,7 +46,6 @@ interface Device {
     SamsungTvMinimal,
     // Allgemeine Bestandteile
     MenuComponent,
-    NgStyle,
     NgClass,
     HeaderComponent,
   ],
@@ -55,8 +59,8 @@ export class BudeComponent implements OnInit {
   // Öffnungszustand des Menüs
   menuOpen = false;
 
-  private readonly radiusPercent = 30;
-  private readonly center = 50;
+  // Gerätekacheln werden nun im Grid angezeigt; es sind keine
+  // berechneten Kreispositionen mehr erforderlich
   private readonly types: Device['type'][] = [
     'pixel',
     'orange-light',
@@ -69,33 +73,21 @@ export class BudeComponent implements OnInit {
   constructor(
     private readonly auth: AuthService,
   ) {
-    // Geräte kreisförmig verteilen
-    for (let i = 0; i < 5; i++) {
-      const angleDeg = -90 + (360 / 5) * i;
-      const rad = (angleDeg * Math.PI) / 180;
-      const left = this.center + Math.cos(rad) * this.radiusPercent;
-      const top = this.center + Math.sin(rad) * this.radiusPercent;
-      this.devices.push({
-        id: i,
-        type: this.types[i],
-        left,
-        top
-      });
-    }
+    // Geräteliste aufbauen; Positionen werden vom Grid übernommen
+    this.types.forEach((type, i) => {
+      this.devices.push({ id: i, type });
+    });
   }
 
   ngOnInit(): void {
     this.userName = this.auth.getUserName();
   }
 
-  onClick(idx: number) {
-    // Wenn Gerät angeklickt, Menü schließen und Gerät aktivieren
-    this.menuOpen = false;
-    this.activeIndex = this.activeIndex === idx ? null : idx;
-  }
-
-  onClickSamsung(idx: number) {
-    // Samsung TV angeklickt, Menü schließen und Gerät aktivieren
+  /**
+   * Generischer Klick-Handler für Gerätekacheln
+   */
+  onTileClick(idx: number) {
+    // Menü schließen und angeklicktes Gerät aktivieren/deaktivieren
     this.menuOpen = false;
     this.activeIndex = this.activeIndex === idx ? null : idx;
   }
@@ -110,80 +102,8 @@ export class BudeComponent implements OnInit {
     this.menuOpen = false;
   }
 
-  /**
-   * Inline-Styles für Geräte:
-   * 1) Kein Gerät aktiv + kein Menü geöffnet → Kreis (20 % × 20 %).
-   * 2) Gerät aktiv                    → 100 % × 80 % (links 0, top 20).
-   * 3) Inaktive Geräte                → 20 %-Leiste oben nebeneinander.
-   * 4) (Wenn Menü offen, Geräte unsichtbar: Breite/Höhe = 0)
-   */
-  getStyle(device: Device, idx: number): { [key: string]: string } {
-    // 4) Wenn Menü offen, Geräte ausblenden
-    if (this.menuOpen) {
-      return {
-        position: 'absolute',
-        width: '0%',
-        height: '0%',
-        left: '0%',
-        top: '0%',
-        transition: 'all 0.3s ease',
-        'z-index': '0'
-      };
-    }
-
-    // 1) Kein Gerät aktiv → Kreis
-    if (this.activeIndex === null) {
-      return {
-        position: 'absolute',
-        width: '20%',
-        height: '20%',
-        left: `${device.left}%`,
-        top: `${device.top}%`,
-        transform: 'translate(-50%, -50%)',
-        transition: 'all 0.3s ease',
-        'z-index': '1',
-        'border-radius': '8px'
-      };
-    }
-
-    // 2) Aktives Gerät → breite Fläche unterhalb der 20 %-Leiste
-    if (this.activeIndex === idx) {
-      return {
-        position: 'absolute',
-        width: '100%',  // füllt volle Breite
-        height: '80%',  // unterhalb von top=20%
-        left: '0%',
-        top: '20%',
-        transition: 'all 0.3s ease',
-        'z-index': '5',
-        'border-radius': '8px'
-      };
-    }
-
-    // 3) Inaktive Geräte → in 20 %-Leiste oben nebeneinander
-    const inactiveOrder = this.getInactiveOrder(idx); // 0..3
-    const leftPercent = inactiveOrder * 20;            // 0 %,20 %,40 %,60 %
-    return {
-      position: 'absolute',
-      width: '20%',
-      height: '20%',
-      left: `${leftPercent}%`,
-      top: '0%',
-      transition: 'all 0.3s ease',
-      'z-index': '3',
-      'border-radius': '8px'
-    };
-  }
-
-  private getInactiveOrder(idx: number): number {
-    const arr: number[] = [];
-    this.devices.forEach((_, i) => {
-      if (i !== this.activeIndex) {
-        arr.push(i);
-      }
-    });
-    return arr.indexOf(idx);
-  }
+  // Layout-Logik für die Gerätekacheln erfolgt jetzt ausschließlich
+  // über CSS-Klassen; die vorherigen Inline-Styles entfallen.
 
   getColor(type: Device['type']): string {
     switch (type) {

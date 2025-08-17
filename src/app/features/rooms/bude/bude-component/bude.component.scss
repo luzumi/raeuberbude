@@ -62,24 +62,32 @@
   }
 }
 
-/* Menü-Komponente füllt die große Fläche unterhalb der 20%-Leiste */
-app-menu {
-  display: block;
-}
+  /* Menü-Komponente füllt die große Fläche unterhalb der 20%-Leiste */
+  app-menu {
+    display: block;
+  }
 
-/* Device-Komponenten füllen ihre gesamte Fläche aus */
-:host ::ng-deep app-pixel,
-:host ::ng-deep app-pixel-minimal,
-:host ::ng-deep app-orange-light,
-:host ::ng-deep app-orange-light-minimal,
-:host ::ng-deep app-laptop,
-:host ::ng-deep app-laptop-minimal,
-:host ::ng-deep app-creator,
-:host ::ng-deep app-creator-minimal,
-:host ::ng-deep app-samsung-tv,
-:host ::ng-deep app-samsung-tv-minimal {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 8px;
-}
+  /* allgemeine Styles für Gerätekacheln im Grid */
+  .device-tile {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+
+    /* klick-Animation wie im Zuhause */
+    &:active {
+      transform: scale(0.95);
+    }
+
+    &.active-tile {
+      transform: scale(1.05);
+    }
+
+    /* eingebettete Gerätekonponenten sollen den verfügbaren Raum nutzen */
+    > * {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+    }
+  }
