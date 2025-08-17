@@ -1,12 +1,13 @@
+import {NgClass} from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { NgClass, NgStyle } from '@angular/common';
+import {SamsungTv} from '@bude/devices/samsung-tv/samsung-tv/samsung-tv';
 
 // Minimalansicht des Samsung-TVs liegt nun im gleichen Ordner wie die Vollansicht
-import { SamsungTvMinimal } from '@bude/devices/samsung-tv/samsung-tv-minimal/samsung-tv-minimal';
 import { PixelMinimal } from '@rooms/bude/devices/pixel/pixel-minimal/pixel-minimal';
 import { OrangeLightMinimal } from '@rooms/bude/devices/orange-light/orange-light-minimal/orange-light-minimal';
 import { LaptopMinimal } from '@rooms/bude/devices/laptop/laptop-minimal/laptop-minimal';
 import { CreatorMinimal } from '@rooms/bude/devices/creator/creator-minimal/creator-minimal';
+import { SamsungTvMinimal } from '@bude/devices/samsung-tv/samsung-tv-minimal/samsung-tv-minimal';
 import { AuthService } from '@services/auth.service';
 import { HeaderComponent } from '@shared/components/header/header.component';
 import { MenuComponent } from '@shared/components/menu/menu';
@@ -27,23 +28,22 @@ interface Device {
   standalone: true,
   // Alle benötigten UI-Bausteine des Raumes
   imports: [
-    // Vollansichten
-    Pixel,
-    OrangeLight,
-    Laptop,
-    Creator,
-    SamsungTv,
     // Minimalansichten für die Kreisübersicht
     PixelMinimal,
     OrangeLightMinimal,
     LaptopMinimal,
     CreatorMinimal,
     SamsungTvMinimal,
-    // Allgemeine Bestandteile
+    HeaderComponent,
+    NgClass,
     MenuComponent,
-    NgStyle,
+    Pixel,
+    OrangeLight,
+    Laptop,
+    Creator,
     NgClass,
     HeaderComponent,
+    SamsungTv,
   ],
   templateUrl: './bude.component.html',
   styleUrls: ['./bude.component.scss']

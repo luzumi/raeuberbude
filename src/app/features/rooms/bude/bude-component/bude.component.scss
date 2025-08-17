@@ -3,18 +3,22 @@
 // Container der Räuberbude: Layout und Hintergrund
 .dashboard-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 24px;
+  grid-template-columns: 1fr 1fr; /* 2 columns */
+    grid-template-rows: 1fr 1fr 1fr;    /* 2 rows */
+  gap: 6px;
   padding: 2rem;
-  justify-items: center;
-
-  // An das Styling der Raumübersicht angelehnter radialer Hintergrund
+  height: calc(100vh - 64px);
   background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
+}
 
+.grid-item {
+  border-radius: 8px;
+  overflow: hidden;
+  pointer-events: auto;
 }
 
 .menu-button {
-  position: absolute;
+  position: relative;
   // Farbe wird per Inline-Gradient gesetzt
   border-radius: 50%;
   cursor: pointer;
