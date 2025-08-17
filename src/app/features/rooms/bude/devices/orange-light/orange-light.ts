@@ -4,7 +4,7 @@
  * Stellt einen Device-Button zum Ein- und Ausschalten der Lampe bereit.
  * Die Kommunikation erfolgt über den HomeAssistantService per WebSocket.
  */
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription, map } from 'rxjs';
 import { LampToggleComponent } from '@components/lamp-toggle/lamp-toggle';
@@ -34,6 +34,9 @@ export class OrangeLight implements OnDestroy {
   /** Subscription auf State-Änderungen */
   private sub: Subscription;
 
+  /** Event zum Zurücknavigieren in die Übersicht. */
+  @Output() back = new EventEmitter<void>();
+
   constructor(private ha: HomeAssistantService) {
     // Bei jedem State-Update den Lampenzustand aktualisieren
     this.sub = this.ha.entities$
@@ -62,4 +65,5 @@ export class OrangeLight implements OnDestroy {
   ngOnDestroy(): void {
     this.sub.unsubscribe();
   }
+
 }

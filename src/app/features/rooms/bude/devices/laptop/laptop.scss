@@ -1,6 +1,13 @@
 .device.laptop {
+  position: relative; // für Zurück-Button
   width: 100%;
   height: 100%;
   /* Farbe wird als Gradient per Inline-Style gesetzt */
   border-radius: 8px;
+}
+
+.back-button {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
 }

@@ -1,5 +1,6 @@
 <!-- Delegates rendering to presentational LampToggleComponent -->
 <div class="device orange-light">
+  <button class="back-button" (click)="back.emit()">Zurück</button>
   <app-lamp-toggle
     [lampState]="isOn"
     [loading]="loading"
