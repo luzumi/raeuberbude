@@ -17,7 +17,9 @@
 /* Detailansicht OHNE Auto-Flow, damit nichts „spaltenweise“ wegläuft */
 .dashboard-container.detail-view {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  grid-template-rows: auto 1fr;
+  // Feste Zeilenanteile sichern konsistente Kachelhöhen,
+  // auch wenn ein Device besonders viel Platz benötigt (z.B. Samsung TV)
+  grid-template-rows: 1fr 2fr; // obere Reihe 1/3, Detailansicht 2/3 der Höhe
   /* WICHTIG: kein grid-auto-flow: column */
 }
 
