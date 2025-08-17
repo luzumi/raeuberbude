@@ -17,9 +17,8 @@
 /* Detailansicht OHNE Auto-Flow, damit nichts „spaltenweise“ wegläuft */
 .dashboard-container.detail-view {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  // Feste Zeilenanteile sichern konsistente Kachelhöhen,
-  // auch wenn ein Device besonders viel Platz benötigt (z.B. Samsung TV)
-  grid-template-rows: 1fr 2fr; // obere Reihe 1/3, Detailansicht 2/3 der Höhe
+  // Erste Zeile fix auf 20vh begrenzen, restlicher Platz für die Detailansicht
+  grid-template-rows: 20vh 1fr;
   /* WICHTIG: kein grid-auto-flow: column */
 }
 
@@ -70,4 +69,17 @@
   width: 100%;
   height: 100%;
   border-radius: 8px;
+}
+
+// Minimalgeräte skalieren ihre Inhalte flexibel und verhindern Überlauf
+:host ::ng-deep app-pixel-minimal .device,
+:host ::ng-deep app-orange-light-minimal .device,
+:host ::ng-deep app-laptop-minimal .device,
+:host ::ng-deep app-creator-minimal .device {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  overflow: hidden;
 }
