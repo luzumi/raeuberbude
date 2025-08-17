@@ -3,10 +3,11 @@
 // Styles der kompakten Samsung-TV-Anzeige
 
 .device.samsung-tv-minimal {
-  padding: 1rem;
+  padding: .7rem;
   //  ganz leichter gradient
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.01) 100%);
   color: t.$color-primary;
+  height: 90%;
 }
 
 .container-wrapper {
@@ -15,6 +16,7 @@
 }
 .controls {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
   margin: 0 1rem 0.2rem 1rem;
@@ -23,31 +25,50 @@
 .status-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.1rem;
+  gap: 1.5rem;
   font-size: 14px;
 }
 
 .tile {
+  height: 100%;
   display: flex;
+  justify-content: center;
   align-items: center;
   padding: 0.5rem;
   border-radius: 0.5rem;
   border: t.$color-green-border 0.2rem solid;
   background: rgba(0, 0, 0, 0.2);
+  gap: 1rem;
 }
 
 .device-tile,
 .source-tile {
   grid-column: span 2;
+  gap: 1rem;
+}
+
+.state-icon{
+  transform: scale(2);
+  font-weight: bold;
 }
 
 .state-icon.on {
   color: t.$color-samsungtv;
 }
 
+.state-tile {
+  flex-direction: column;
+  align-items: center;
+}
+
 .state-tile .state-text {
   display: flex;
   flex-direction: column;
+  margin-top: 1rem;
+}
+
+.since {
+  padding-bottom: 0.5rem;
 }
 
 .volume-tile {
@@ -56,12 +77,13 @@
 }
 
 .volume-tile .bar {
-  width: 100%;
+  width: 66%;
   height: 0.5rem;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 0.25rem;
   overflow: hidden;
   margin-bottom: 0.25rem;
+  align-self: center;
 }
 
 .volume-tile .fill {
@@ -71,4 +93,6 @@
 
 .volume-value {
   text-align: center;
+  font-size: 3rem;
+  font-weight: bold;
 }

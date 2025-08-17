@@ -56,10 +56,10 @@
 
       <!-- Lautstärke mit grafischer Anzeige und Zahl -->
       <div class="tile volume-tile">
+        <span class="volume-value">{{ volume }}%</span>
         <div class="bar">
           <div class="fill" [style.width.%]="volume"></div>
         </div>
-        <span class="volume-value">{{ volume }}%</span>
       </div>
 
       <!-- Source über volle Breite -->

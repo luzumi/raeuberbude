@@ -1,77 +1,67 @@
-@use '../../../../../styles/tokens' as t;
-
-// Container der Räuberbude: Layout und Hintergrund
 .dashboard-container {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* 2 columns */
-    grid-template-rows: 1fr 1fr 1fr;    /* 2 rows */
+  grid-template-columns: repeat(auto-fill, minmax(15.3vw, 1fr)); // gleichmäßig auffüllen
+  grid-template-rows: auto 1fr; // obere Reihe (Auto-Höhe), untere füllt Rest
   gap: 6px;
   padding: 2rem;
   height: calc(100vh - 64px);
-  background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
+  background: radial-gradient(circle at center, rgba(0,150,136,.2), rgba(0,0,0,.9));
+
+  // Standard: alle Items in Zeile 1, „Hauptinhalt“ markiert sich selbst
+  .grid-item { min-width: 0; } // Grid-freundlich, verhindert Overflow
 }
 
-.grid-item {
-  border-radius: 8px;
-  overflow: hidden;
-  pointer-events: auto;
+/* Detailansicht OHNE Auto-Flow, damit nichts „spaltenweise“ wegläuft */
+.dashboard-container.detail-view {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-rows: auto 1fr;
+  /* WICHTIG: kein grid-auto-flow: column */
 }
 
+/* Unterer Content füllt IMMER die komplette Breite */
+.dashboard-container .grid-item.active-content {
+  grid-row: 2;              // untere Zeile
+  grid-column: 1 / -1;      // über alle Spalten
+  margin: 0;                // kein horizontaler Leerraum
+  width: 100%;
+  height: 100%;
+}
+
+/* Obere Reihe: alle „Menü-/Kachel“-Items einfach normal fließen lassen */
+.dashboard-container .grid-item.top-row {
+  grid-row: 1;              // obere Zeile
+  grid-column: auto;        // Grid verteilt gleichmäßig
+}
+
+/* Verhindert das „Verschieben“ der Buttons, das Platz links übrig lässt */
 .menu-button {
   position: relative;
-  // Farbe wird per Inline-Gradient gesetzt
-  border-radius: 50%;
-  cursor: pointer;
   aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.7s ease;
-  z-index: 2;
-
-  /* Default: 10% × 10%, zentriert */
-  width: 10%;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  // DEFAULT: KEINE Offsets – sie nehmen sonst Platz ein, obwohl sie optisch verschoben sind
+  left: auto;
+  top: auto;
+  transform: none;
+  width: 100%;              // füllt die zugewiesene Grid-Zelle
+  height: auto;
 
   .menu-label {
     position: absolute;
-    color: white;
-    font-size: 1rem;
-    user-select: none;
-    left: 50%;
-    top: 50%;
+    inset: 50% auto auto 50%;
     transform: translate(-50%, -50%);
   }
 
   &.active {
-    /* Wenn Menü offen oder Gerät aktiv: 20% × 20%, in der Leiste oben ganz rechts */
-    width: 20%;
-    height: 20%;
-    left: 0;
-    top: 0;
+    width: 100%;
+    height: 100%;
+    left: auto;
+    top: auto;
     transform: none;
-    border-radius:8px;
-    z-index: 4;
-
-    .menu-label {
-      /* Label klein in die Mitte des 20%-Feldes */
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 0.9rem;
-    }
+    border-radius: 8px;
   }
 }
 
-/* Menü-Komponente füllt die große Fläche unterhalb der 20%-Leiste */
-app-menu {
-  display: block;
-}
-
-/* Device-Komponenten füllen ihre gesamte Fläche aus */
+/* Device-Komponenten: volle Fläche, keine inneren Ränder */
 :host ::ng-deep app-pixel,
 :host ::ng-deep app-pixel-minimal,
 :host ::ng-deep app-orange-light,

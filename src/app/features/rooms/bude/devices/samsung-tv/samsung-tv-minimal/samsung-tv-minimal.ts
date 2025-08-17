@@ -30,7 +30,7 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
   /** Liste verfügbarer Quellen des TVs. */
   sources: string[] = [];
   /** Gewählte Quelle im Dropdown. */
-  selectedSource?: string;
+  selectedSource: string = '';
   /** Timer zur Aktualisierung der Statusdauer. */
   private sinceSub?: Subscription;
 
