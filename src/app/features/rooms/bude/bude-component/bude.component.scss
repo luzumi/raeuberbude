@@ -1,85 +1,28 @@
-@use '../../../../../styles/tokens' as t;
+// Grid-Layout der Geräte in der Räuberbude
+$header-offset: 80px;
 
-// Container der Räuberbude: Layout und Hintergrund
-.dashboard-container {
+.devices-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 24px;
-  padding: 2rem;
-  justify-items: center;
-
-  // An das Styling der Raumübersicht angelehnter radialer Hintergrund
+  grid-template-columns: repeat(auto-fit, minmax(40%, 1fr));
+  gap: 0.5rem;
+  margin-top: $header-offset; // Platz für den fixen Header
+  padding: 1rem;
+  height: calc(100vh - #{$header-offset});
   background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
-
 }
 
-.menu-button {
-  position: absolute;
-  // Farbe wird per Inline-Gradient gesetzt
-  border-radius: 50%;
-  cursor: pointer;
-  aspect-ratio: 1;
+.device-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.7s ease;
-  z-index: 2;
-
-  /* Default: 10% × 10%, zentriert */
-  width: 10%;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-
-  .menu-label {
-    position: absolute;
-    color: white;
-    font-size: 1rem;
-    user-select: none;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-  }
-
-  &.active {
-    /* Wenn Menü offen oder Gerät aktiv: 20% × 20%, in der Leiste oben ganz rechts */
-    width: 20%;
-    height: 20%;
-    left: 0;
-    top: 0;
-    transform: none;
-    border-radius:8px;
-    z-index: 4;
-
-    .menu-label {
-      /* Label klein in die Mitte des 20%-Feldes */
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 0.9rem;
-    }
-  }
-}
-
-/* Menü-Komponente füllt die große Fläche unterhalb der 20%-Leiste */
-app-menu {
-  display: block;
-}
-
-/* Device-Komponenten füllen ihre gesamte Fläche aus */
-:host ::ng-deep app-pixel,
-:host ::ng-deep app-pixel-minimal,
-:host ::ng-deep app-orange-light,
-:host ::ng-deep app-orange-light-minimal,
-:host ::ng-deep app-laptop,
-:host ::ng-deep app-laptop-minimal,
-:host ::ng-deep app-creator,
-:host ::ng-deep app-creator-minimal,
-:host ::ng-deep app-samsung-tv,
-:host ::ng-deep app-samsung-tv-minimal {
-  display: block;
-  width: 100%;
-  height: 100%;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgb(170, 228, 219);
   border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease; // Animation beim Klicken
+
+  &:active {
+    transform: scale(0.95);
+  }
 }

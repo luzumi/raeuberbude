@@ -1,106 +1,26 @@
-<app-header
-  [userName]="userName"
-></app-header>
+<app-header [userName]="userName"></app-header>
 
-<div class="dashboard-container">
-  <!-- Menü‐Button -->
-  <div
-    class="menu-button"
-    [ngClass]="{ active: menuOpen || activeIndex !== null }"
-    (click)="onMenuButtonClick()"
-    [ngStyle]="getMenuStyle()"
-  >
-    <span class="menu-label">Menu</span>
-  </div>
-
-  <!-- Wenn Menü geöffnet: MenuComponent einblenden -->
-  @if (menuOpen) {
-    <app-menu
-      [ngStyle]="getMenuComponentStyle()"
-      [closeCallback]="closeMenu.bind(this)"
-    ></app-menu>
-  }
-  <!-- Geräte via @for-Block (nur, wenn Menü geschlossen) -->
-  @if (!menuOpen) {
-    @for (device of devices; track $index) {
+<!-- Grid der Geräte in der Räuberbude -->
+<div class="devices-grid">
+  @for (device of devices; track $index) {
+    <button class="device-button">
       @switch (device.type) {
         @case ('pixel') {
-          @if (activeIndex === $index) {
-            <app-pixel
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClick($index)"
-            ></app-pixel>
-          } @else {
-            <app-pixel-minimal
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClick($index)"
-            ></app-pixel-minimal>
-          }
+          <app-pixel-minimal></app-pixel-minimal>
         }
         @case ('orange-light') {
-          @if (activeIndex === $index) {
-            <app-orange-light
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClick($index)"
-            ></app-orange-light>
-          } @else {
-            <app-orange-light-minimal
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClick($index)"
-            ></app-orange-light-minimal>
-          }
+          <app-orange-light-minimal></app-orange-light-minimal>
         }
         @case ('laptop') {
-          @if (activeIndex === $index) {
-            <app-laptop
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClick($index)"
-            ></app-laptop>
-          } @else {
-            <app-laptop-minimal
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClick($index)"
-            ></app-laptop-minimal>
-          }
+          <app-laptop-minimal></app-laptop-minimal>
         }
         @case ('creator') {
-          @if (activeIndex === $index) {
-            <app-creator
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClick($index)"
-            ></app-creator>
-          } @else {
-            <app-creator-minimal
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClick($index)"
-            ></app-creator-minimal>
-          }
+          <app-creator-minimal></app-creator-minimal>
         }
-        @case('samsung-tv'){
-          @if (activeIndex === $index) {
-            <app-samsung-tv
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClickSamsung($index)"
-            ></app-samsung-tv>
-          } @else {
-            <app-samsung-tv-minimal
-              [ngStyle]="getStyle(device, $index)"
-              [style.background]="getGradient(device.type)"
-              (click)="onClickSamsung($index)"
-            ></app-samsung-tv-minimal>
-          }
+        @case ('samsung-tv') {
+          <app-samsung-tv-minimal></app-samsung-tv-minimal>
         }
       }
-
-    }
+    </button>
   }
 </div>

@@ -39,7 +39,7 @@ $rb-icon-size: clamp(2rem, 5vw, 4rem);
   color: $rb-text;
   text-transform: uppercase;
   cursor: pointer;
-  transition: box-shadow 0.3s;
+  transition: box-shadow 0.3s, transform 0.2s ease; // Animation beim Klicken
 
   .mat-icon {
     transform: scale(2.0);
@@ -50,6 +50,11 @@ $rb-icon-size: clamp(2rem, 5vw, 4rem);
 
   &:not(:disabled):hover {
     box-shadow: $rb-hover-shadow;
+  }
+
+  // Einfacher Klick-Animationseffekt
+  &:active {
+    transform: scale(0.95);
   }
 
   &:disabled {
