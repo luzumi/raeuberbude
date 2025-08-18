@@ -11,6 +11,7 @@
   transition: background-color 0.2s ease;
   z-index: 1;
   overflow: visible;
+  touch-action: manipulation;  /* schnellere Taps auf Mobile */
 
   /* Glow size calculations */
   --base-glow-blur: calc(var(--btn-size, 150px) * 0.04);
@@ -87,3 +88,4 @@
     }
   }
 }
+
