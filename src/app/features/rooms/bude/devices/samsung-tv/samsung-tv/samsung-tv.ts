@@ -47,7 +47,7 @@ export class SamsungTv implements OnInit {
           this.samsung = entity;
           this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
         } else {
-          console.warn('[SamsungTv] Entity media_player.tv_samsung nicht gefunden');
+          console.warn('[SamsungTv] Entity media_player.tv_samsung nicht gefunden' + entity);
         }
       });
 
@@ -112,8 +112,8 @@ export class SamsungTv implements OnInit {
 
 
   private turnOnTV() {
-    this.hass.callService('remote', 'turn_on', {
-      entity_id: 'remote.samsung'
+    this.hass.callService('mediaplayer', 'turn_on', {
+      entity_id: 'mediaplayer.samsung'
     }).subscribe({
       next: () => console.log('[SamsungTv] Einschaltversuch über remote.samsung'),
       error: (err) => {
