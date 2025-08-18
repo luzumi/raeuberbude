@@ -17,6 +17,12 @@
   height: 100%;
 }
 
+// FireTV-Kachel soll immer die gesamte Zeile einnehmen,
+// damit sie sich über die volle Breite erstreckt.
+.firetv-tile {
+  grid-column: 1 / -1;
+}
+
 /* allgemeine Kachelgestaltung */
 .tile {
   font-size: 0.95rem;
