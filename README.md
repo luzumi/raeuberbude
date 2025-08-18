@@ -69,6 +69,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Kein klassisches `AppModule` oder `NgModule` nötig
 - Default-Login: `admin` / `secret` (lokale Demo-Datenbank)
 - Globale Styles liegen in `src/styles/styles.scss`, wiederverwendbare Design-Tokens in `src/styles/_tokens.scss` und Mixins in `src/styles/_mixins.scss`.
+- Responsive Breakpoints und Variablen liegen in `src/styles/_breakpoints.scss` und `src/styles/_responsive.scss`.
 
 ---
 
