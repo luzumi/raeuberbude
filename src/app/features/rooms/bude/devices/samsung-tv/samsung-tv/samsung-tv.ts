@@ -51,23 +51,24 @@ export class SamsungTv implements OnInit {
         }
       });
 
-    // Load available command lists for FireTV and Samsung remote
+    // Nach der Initialisierung die verfügbaren Befehle vom Backend laden
     this.loadCommands();
   }
 
   /**
-   * Requests the command lists for the remotes from Home Assistant via WebSocket.
+   * Lädt die Befehlslisten für FireTV und Samsung-Remote über den
+   * HomeAssistantService. Dadurch bleibt die Komponentenlogik schlank
+   * und alle Remote-spezifischen Aufrufe sind gekapselt.
    */
   private loadCommands(): void {
-    this.hass.getStatesWs().subscribe({
-      next: (states) => {
-        const fire = states.find(e => e.entity_id === 'remote.fire_tv');
-        this.fireTvCommands = fire?.attributes?.['command_list'] ?? [];
+    this.hass.getRemoteCommandList('remote.fire_tv').subscribe({
+      next: (cmds) => this.fireTvCommands = cmds,
+      error: err => console.error('[SamsungTv] Fehler beim Laden der FireTV-Befehle:', err)
+    });
 
-        const samsung = states.find(e => e.entity_id === 'remote.samsung');
-        this.samsungCommands = samsung?.attributes?.['command_list'] ?? [];
-      },
-      error: err => console.error('[SamsungTv] Fehler beim Laden der Befehle:', err)
+    this.hass.getRemoteCommandList('remote.samsung').subscribe({
+      next: (cmds) => this.samsungCommands = cmds,
+      error: err => console.error('[SamsungTv] Fehler beim Laden der Samsung-Befehle:', err)
     });
   }
 
@@ -167,10 +168,7 @@ export class SamsungTv implements OnInit {
   // Forward selected FireTV command to Home Assistant
   sendFireTvCommand(cmd: string): void {
     if (!cmd) return;
-    this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.fire_tv',
-      command: cmd
-    }).subscribe();
+    this.hass.sendRemoteCommand('remote.fire_tv', cmd).subscribe();
   }
 
   /**
@@ -179,10 +177,7 @@ export class SamsungTv implements OnInit {
   // Sends any Samsung TV command chosen from buttons or select
   sendSamsungCommand(cmd: string): void {
     if (!cmd) return;
-    this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.samsung',
-      command: cmd
-    }).subscribe();
+    this.hass.sendRemoteCommand('remote.samsung', cmd).subscribe();
   }
 
 }

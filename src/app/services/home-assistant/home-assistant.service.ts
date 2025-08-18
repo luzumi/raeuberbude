@@ -90,6 +90,31 @@ export class HomeAssistantService {
     );
   }
 
+  /**
+   * Convenience helper to retrieve the list of supported commands for a
+   * given remote entity. Home Assistant exposes the list via the
+   * `command_list` attribute when requested over the WebSocket API.
+   */
+  public getRemoteCommandList(entityId: string): Observable<string[]> {
+    return this.getStatesWs().pipe(
+      map((states) =>
+        states.find((e) => e.entity_id === entityId)?.attributes?.['command_list'] ?? []
+      )
+    );
+  }
+
+  /**
+   * Sends a command to a Home Assistant remote entity. This wrapper
+   * is used by the frontend to execute FireTV or Samsung TV commands
+   * selected from a dropdown list.
+   */
+  public sendRemoteCommand(entityId: string, command: string): Observable<HassServiceResponse> {
+    return this.callService('remote', 'send_command', {
+      entity_id: entityId,
+      command
+    });
+  }
+
 
   public getEntity(id: string): Entity | undefined {
     return this.entitiesMap.get(id);

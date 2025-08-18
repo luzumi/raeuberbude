@@ -37,6 +37,9 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - **Login & Routing:** Login-Seite unter `/login`; erfolgreiche Anmeldung führt zur Startseite `/`, die Ansicht "Bude" ist über `/raeuberbude` erreichbar.
 - **Login-UI:** Überarbeiteter Login-Screen mit Glow-Effekt, der Stilelemente aus `/raub1` übernimmt.
 - **TV-Steuerung:** Samsung-TV-Komponente im Stil von `/raub1` mit WebSocket-Anbindung und Dropdowns für FireTV- und Samsung-Befehle.
+- **Dynamische Fernbedienungsbefehle:** Die Dropdowns für FireTV und Samsung beziehen ihre Befehlslisten nun über den neuen
+  `HomeAssistantService.getRemoteCommandList()`, sodass alle von Home Assistant unterstützten Kommandos im Frontend verfügbar
+  sind.
 - **RoomMenu:** Minimalansicht des Samsung-TV mit Grundfunktionen (Power, Lautstärke, Sender, Quelle).
 - **Samsung-TV Minimal:** Überarbeitete Statuskacheln mit Gerät, Zustand (inkl. letzter Änderung), Lautstärke und Quelle.
 
