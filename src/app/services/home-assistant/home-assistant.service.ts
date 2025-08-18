@@ -33,6 +33,8 @@ export interface HassServiceResponse {
 
 @Injectable({ providedIn: 'root' })
 export class HomeAssistantService {
+  // Basis-URL nun relativ ("/api"), damit auch Clients aus dem Netz
+  // über den Angular-Proxy auf Home Assistant zugreifen können.
   private readonly baseUrl = environment.homeAssistantUrl;
   private readonly token = environment.token;
 
@@ -58,7 +60,8 @@ export class HomeAssistantService {
   }
 
   public refreshEntities(): void {
-    this.http.get<Entity[]>(`${this.baseUrl}/api/states`, { headers: this.headers })
+    // Aufruf erfolgt relativ, da der Dev-Server die Anfrage proxyt.
+    this.http.get<Entity[]>(`${this.baseUrl}/states`, { headers: this.headers })
       .subscribe((entities) => {
         this.entitiesMap.clear();
         for (const e of entities) {
