@@ -35,6 +35,12 @@
         <button (click)="firetv?.select(); $event.stopPropagation()">OK</button>
         <button (click)="firetv?.playPause(); $event.stopPropagation()">Play/Pause</button>
       </div>
+
+      <!-- Dropdown mit zusätzlichen Befehlen vom Home Assistant -->
+      <select *ngIf="commands.length" [(ngModel)]="selectedCommand" (change)="sendCustomCommand(selectedCommand!)">
+        <option value="" disabled selected>Weitere Befehle</option>
+        <option *ngFor="let cmd of commands" [value]="cmd">{{ cmd }}</option>
+      </select>
     </div>
   </div>
 
