@@ -50,7 +50,9 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
         console.warn('[SamsungTvMinimal] Entity media_player.tv_samsung nicht gefunden');
         return;
       }
+      console.info('[SamsungTvMinimal] Entity media_player.tv_samsung gefunden');
       this.samsung = entity;
+      console.log(this.samsung)
       this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
       this.sources = entity.attributes['source_list'] ?? [];
       this.selectedSource = <string>entity.attributes['source'];

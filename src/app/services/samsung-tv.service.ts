@@ -13,6 +13,7 @@ export class SamsungTvService {
   /** Schaltet den Fernseher abhängig vom aktuellen Zustand um. */
   togglePower(currentState: string | undefined): void {
     const state = currentState ?? 'unavailable';
+    console.log( state)
     if (state === 'on' || state === 'idle') {
       this.turnOff();
     } else {
