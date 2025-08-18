@@ -64,6 +64,9 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 ## Was ist wichtig zu wissen / merken?
 
 - Alle API-Aufrufe nutzen `/api/...` (durch Angular Proxy umgeschrieben)
+- Für Zugriffe aus dem Heimnetz: `ng serve --host=0.0.0.0` starten –
+  durch die relative API-URL (`/api`) funktionieren Samsung-TV und Lampen
+  auch auf anderen Geräten.
 - Token liegt aktuell noch im `environment.ts` – später sicherer handhaben
 - App läuft vollständig standalone, `AppComponent` bootstrapped direkt (`bootstrapApplication()`)
 - Kein klassisches `AppModule` oder `NgModule` nötig
