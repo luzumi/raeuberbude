@@ -14,15 +14,30 @@ $rb-icon-size: clamp(2rem, 5vw, 4rem);
 
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(40%, 1fr));
+  // Portrait: 2 Spalten × 3 Zeilen
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   gap: 0.5rem;
   // offset for fixed header
   margin-top: $header-offset; // offset for fixed header
   padding: 1rem;
   // fit into viewport without scroll
-  height: calc(100vh - #{$header-offset}); // fit into viewport without scroll
+  height: calc(100vh - #{$header-offset}); // fit into viewport ohne Scrollen
   /* Radial background inspired by '/raub1' */
   background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
+
+  // Letzte Kachel füllt bei ungerader Anzahl die gesamte Zeile
+  .room-button:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+// Landscape: 3 Spalten × 2 Zeilen für harmonischere Kacheln
+@media (orientation: landscape) {
+  .rooms-grid {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+  }
 }
 
 .room-button {
