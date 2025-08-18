@@ -9,7 +9,7 @@
 /* 2) Container unterhalb des fixen Headers */
 .container {
   position: absolute;
-  top: 80px;    /* Höhe des app-header */
+  top: var(--header-h);    /* Höhe des Headers via Variable */
   bottom: 0;
   left: 0;
   right: 0;
@@ -43,8 +43,8 @@
   pointer-events: none;
   transform-origin: center center;
 
-  /* Radius und Animationsparameter */
-  --r: 200px;
+  /* Radius und Animationsparameter (global variabel) */
+  --r: var(--rm-wheel-radius, 200px);
   --target-delta: 0deg;
   --spin-to-dur: 1s;
 
