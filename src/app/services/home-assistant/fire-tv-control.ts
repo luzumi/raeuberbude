@@ -19,6 +19,12 @@ export interface RemoteEntity {
   attributes: {
     friendly_name?: string;
     supported_features?: number;
+    /**
+     * Home Assistant liefert optional eine Liste aller unterstützten
+     * Befehle der Fernbedienung.  Diese nutzen wir, um das Frontend
+     * dynamisch aufzubauen.
+     */
+    command_list?: string[];
     [key: string]: any;
   };
 }
@@ -72,7 +78,12 @@ export class FireTvController {
     this.send(FireTvCommand.POWER);
   }
 
-  send(command: FireTvCommand): void {
+  /**
+   * Sendet einen beliebigen Fire‑TV‑Befehl an Home Assistant.
+   * Dadurch lassen sich nicht nur die vordefinierten Enum-Werte,
+   * sondern auch dynamisch ermittelte Kommandos ausführen.
+   */
+  sendCommand(command: string): void {
     this.callServiceFn('remote', 'send_command', {
       entity_id: this.remote.entity_id,
       command
@@ -82,6 +93,19 @@ export class FireTvController {
     });
   }
 
+  /**
+   * Convenience-Methode für die klassischen Enum-Werte.
+   */
+  send(command: FireTvCommand): void {
+    this.sendCommand(command);
+  }
+
+  /**
+   * Gibt die von Home Assistant bereitgestellte Befehlsliste zurück.
+   */
+  get availableCommands(): string[] {
+    return this.remote.attributes.command_list ?? [];
+  }
 
   home() { this.send(FireTvCommand.HOME); }
   back() { this.send(FireTvCommand.BACK); }

@@ -8,6 +8,7 @@ import { MatIconButton } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FiretvComponent } from '../../firetv/fire-tv-component';
 import { KeyPadComponent } from '@shared/components/key-pad-component/key-pad.component';
+import { FireTvController, FireTvEntity, RemoteEntity } from '@services/home-assistant/fire-tv-control';
 
 @Component({
   selector: 'app-samsung-tv',
@@ -19,6 +20,12 @@ import { KeyPadComponent } from '@shared/components/key-pad-component/key-pad.co
 export class SamsungTv implements OnInit {
   samsung?: Entity;
   volume: number = 0;
+
+  /**
+   * Wrapper für das Fire‑TV; stellt die verfügbaren Befehle bereit
+   * und versendet Kommandos über den Home‑Assistant‑Service.
+   */
+  fireTv?: FireTvController;
 
   // Command lists fetched dynamically from Home Assistant via WebSocket
   fireTvCommands: string[] = [];
@@ -61,8 +68,14 @@ export class SamsungTv implements OnInit {
   private loadCommands(): void {
     this.hass.getStatesWs().subscribe({
       next: (states) => {
-        const fire = states.find(e => e.entity_id === 'remote.fire_tv');
-        this.fireTvCommands = fire?.attributes?.['command_list'] ?? [];
+        // Initialisiere FireTV‑Controller und übernehme dessen Befehlsliste
+        const firePlayer = states.find(e => e.entity_id === 'media_player.fire_tv') as FireTvEntity | undefined;
+        const fireRemote = states.find(e => e.entity_id === 'remote.fire_tv') as RemoteEntity | undefined;
+        if (firePlayer && fireRemote) {
+          this.fireTv = new FireTvController(firePlayer, fireRemote,
+            (d, s, p) => this.hass.callService(d, s, p));
+          this.fireTvCommands = this.fireTv.availableCommands;
+        }
 
         const samsung = states.find(e => e.entity_id === 'remote.samsung');
         this.samsungCommands = samsung?.attributes?.['command_list'] ?? [];
@@ -167,10 +180,8 @@ export class SamsungTv implements OnInit {
   // Forward selected FireTV command to Home Assistant
   sendFireTvCommand(cmd: string): void {
     if (!cmd) return;
-    this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.fire_tv',
-      command: cmd
-    }).subscribe();
+    // Nutzung des FireTV‑Controllers erlaubt auch dynamische Kommandos
+    this.fireTv?.sendCommand(cmd);
   }
 
   /**

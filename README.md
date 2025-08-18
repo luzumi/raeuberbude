@@ -88,6 +88,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - ✅ "Bude" zeigt seine Geräte nun in einem 2×3-Grid, jedes Gerät besitzt einen Zurück-Button zur Rückkehr in die Übersicht
 - ✅ App-Header mit Profil-Link, Menü-Routing und Logout-Schaltfläche
 - ✅ Samsung-TV Ansicht nutzt jetzt ein Kachel-Layout und bindet eine angepasste FireTV-Steuerung ein
+- ✅ FireTV-Service liest die verfügbare Befehlsliste aus Home Assistant aus und erlaubt das Senden beliebiger Kommandos
 
 ---
 
