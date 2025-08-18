@@ -7,7 +7,7 @@
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(3, 1fr);
   gap: 0.5rem;
-  margin-top: 80px; // Platz für den fixierten Header
+  //margin-top: 80px; // Platz für den fixierten Header
   padding: 1rem;
   height: calc(100vh - 100px);
   background: radial-gradient(circle at center, rgba(0,150,136,.2), rgba(0,0,0,.9));
