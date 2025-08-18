@@ -49,6 +49,16 @@ export class FireTvController {
     private callServiceFn: (domain: string, service: string, data: any) => Observable<any>
   ) {}
 
+  /** Entity-ID des zugehörigen Media Players. */
+  get entityId(): string {
+    return this.entity.entity_id;
+  }
+
+  /** Entity-ID der zugehörigen Remote. */
+  get remoteId(): string {
+    return this.remote.entity_id;
+  }
+
   get name(): string {
     return this.entity.attributes.friendly_name ?? 'Fire TV';
   }
@@ -58,7 +68,6 @@ export class FireTvController {
   }
 
   get isOn(): boolean {
-    console.log(this.state)
     return this.state !== 'off' && this.state !== 'standby';
   }
 

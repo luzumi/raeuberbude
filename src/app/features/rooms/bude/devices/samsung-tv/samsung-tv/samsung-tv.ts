@@ -18,8 +18,19 @@ import { FireTvController, FireTvEntity, RemoteEntity } from '@services/home-ass
   styleUrls: ['./samsung-tv.scss']
 })
 export class SamsungTv implements OnInit {
+  /** Gefundene Samsung Media-Player‑Entität. */
   samsung?: Entity;
+  /** Aktuelle Lautstärke als Prozentwert. */
   volume: number = 0;
+
+  /** Merkt sich die dynamisch ermittelte Entity-ID des Samsung Media‑Players. */
+  private samsungPlayerId?: string;
+  /** Merkt sich die Entity-ID der Samsung‑Remote, falls vorhanden. */
+  private samsungRemoteId?: string;
+
+  /** Entity-IDs des FireTV zur Weiterverwendung (Fallback). */
+  private firePlayerId?: string;
+  private fireRemoteId?: string;
 
   /**
    * Wrapper für das Fire‑TV; stellt die verfügbaren Befehle bereit
@@ -45,16 +56,18 @@ export class SamsungTv implements OnInit {
    * caused by updating template-bound values after the view was initialized.
    */
   ngOnInit(): void {
+    // Suche zur Laufzeit nach einer Media-Player‑Entität mit "samsung" im Namen.
     this.hass.entities$
       .pipe(
-        map((entities) => entities.find(e => e.entity_id === 'media_player.tv_samsung'))
+        map(entities => entities.find(e => e.entity_id.startsWith('media_player.') && e.entity_id.includes('samsung')))
       )
-      .subscribe((entity) => {
+      .subscribe(entity => {
         if (entity) {
           this.samsung = entity;
+          this.samsungPlayerId = entity.entity_id; // spätere Service‑Calls
           this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
         } else {
-          console.warn('[SamsungTv] Entity media_player.tv_samsung nicht gefunden');
+          console.warn('[SamsungTv] Keine Media-Player-Entität mit "samsung" gefunden');
         }
       });
 
@@ -67,18 +80,22 @@ export class SamsungTv implements OnInit {
    */
   private loadCommands(): void {
     this.hass.getStatesWs().subscribe({
-      next: (states) => {
-        // Initialisiere FireTV‑Controller und übernehme dessen Befehlsliste
-        const firePlayer = states.find(e => e.entity_id === 'media_player.fire_tv') as FireTvEntity | undefined;
-        const fireRemote = states.find(e => e.entity_id === 'remote.fire_tv') as RemoteEntity | undefined;
+      next: states => {
+        // FireTV anhand seines Namens bestimmen (media_player + remote)
+        const firePlayer = states.find(e => e.entity_id.startsWith('media_player.') && e.entity_id.includes('fire_tv')) as FireTvEntity | undefined;
+        const fireRemote = states.find(e => e.entity_id.startsWith('remote.') && e.entity_id.includes('fire_tv')) as RemoteEntity | undefined;
         if (firePlayer && fireRemote) {
           this.fireTv = new FireTvController(firePlayer, fireRemote,
             (d, s, p) => this.hass.callService(d, s, p));
           this.fireTvCommands = this.fireTv.availableCommands;
+          this.firePlayerId = firePlayer.entity_id;
+          this.fireRemoteId = fireRemote.entity_id;
         }
 
-        const samsung = states.find(e => e.entity_id === 'remote.samsung');
-        this.samsungCommands = samsung?.attributes?.['command_list'] ?? [];
+        // Samsung‑Remote inklusive Befehlsliste suchen
+        const samsungRemote = states.find(e => e.entity_id.startsWith('remote.') && e.entity_id.includes('samsung'));
+        this.samsungRemoteId = samsungRemote?.entity_id;
+        this.samsungCommands = samsungRemote?.attributes?.['command_list'] ?? [];
       },
       error: err => console.error('[SamsungTv] Fehler beim Laden der Befehle:', err)
     });
@@ -104,12 +121,17 @@ export class SamsungTv implements OnInit {
     this.volume = value;
     const volumeLevel = value / 100;
 
+    if (!this.samsungPlayerId) {
+      console.warn('[SamsungTv] Keine Samsung-Player-ID bekannt, Lautstärke kann nicht gesetzt werden');
+      return;
+    }
+
     this.hass.callService('media_player', 'volume_set', {
-      entity_id: 'media_player.tv_samsung',
+      entity_id: this.samsungPlayerId,
       volume_level: volumeLevel
     }).subscribe({
       next: () => console.log('[SamsungTv] Lautstärke gesetzt:', volumeLevel),
-      error: (err) => console.error('[SamsungTv] Fehler beim Setzen der Lautstärke:', err)
+      error: err => console.error('[SamsungTv] Fehler beim Setzen der Lautstärke:', err)
     });
   }
 
@@ -125,40 +147,48 @@ export class SamsungTv implements OnInit {
 
 
   private turnOnTV() {
+    if (!this.samsungRemoteId) {
+      console.warn('[SamsungTv] Keine Samsung-Remote gefunden');
+      return;
+    }
     this.hass.callService('remote', 'turn_on', {
-      entity_id: 'remote.samsung'
+      entity_id: this.samsungRemoteId
     }).subscribe({
-      next: () => console.log('[SamsungTv] Einschaltversuch über remote.samsung'),
-      error: (err) => {
-        console.warn('[SamsungTv] remote.samsung fehlgeschlagen, versuche FireTV als Fallback:', err);
+      next: () => console.log(`[SamsungTv] Einschaltversuch über ${this.samsungRemoteId}`),
+      error: err => {
+        console.warn(`[SamsungTv] Einschalten über ${this.samsungRemoteId} fehlgeschlagen, versuche FireTV als Fallback:`, err);
 
         // Fallback: FireTV einschalten
         this.hass.callService('remote', 'turn_on', {
-          entity_id: 'remote.fire_tv'
+          entity_id: this.fireRemoteId
         }).subscribe({
           next: () => console.log('[SamsungTv] FireTV als Fallback aktiviert'),
-          error: (err) => console.error('[SamsungTv] FireTV-Fallback fehlgeschlagen:', err)
+          error: err => console.error('[SamsungTv] FireTV-Fallback fehlgeschlagen:', err)
         });
       }
     });
   }
 
   private turnOffTV() {
+    if (!this.samsungRemoteId) {
+      console.warn('[SamsungTv] Keine Samsung-Remote gefunden');
+      return;
+    }
     this.hass.callService('remote', 'turn_off', {
-      entity_id: 'remote.samsung'
+      entity_id: this.samsungRemoteId
     }).subscribe({
       next: () => {
         console.log('[SamsungTv] TV ausgeschaltet');
 
         // Jetzt auch FireTV ausschalten
         this.hass.callService('remote', 'turn_off', {
-          entity_id: 'remote.fire_tv'
+          entity_id: this.fireRemoteId
         }).subscribe({
           next: () => console.log('[SamsungTv] FireTV ausgeschaltet'),
-          error: (err) => console.error('[SamsungTv] Fehler beim FireTV-Ausschalten:', err)
+          error: err => console.error('[SamsungTv] Fehler beim FireTV-Ausschalten:', err)
         });
       },
-      error: (err) => console.error('[SamsungTv] Fehler beim Ausschalten des TVs:', err)
+      error: err => console.error('[SamsungTv] Fehler beim Ausschalten des TVs:', err)
     });
   }
 
@@ -167,8 +197,9 @@ export class SamsungTv implements OnInit {
    * Wird im Test verwendet, daher hier minimal implementiert.
    */
   selectSource(source: string): void {
+    if (!this.samsungPlayerId) return;
     this.hass.callService('media_player', 'select_source', {
-      entity_id: 'media_player.tv_samsung',
+      entity_id: this.samsungPlayerId,
       source
     }).subscribe();
   }
@@ -190,10 +221,14 @@ export class SamsungTv implements OnInit {
   // Sends any Samsung TV command chosen from buttons or select
   sendSamsungCommand(cmd: string): void {
     if (!cmd) return;
+    if (!this.samsungRemoteId) return;
     this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.samsung',
+      entity_id: this.samsungRemoteId,
       command: cmd
-    }).subscribe();
+    }).subscribe({
+      next: () => console.log(`[SamsungTv] Kommando '${cmd}' an ${this.samsungRemoteId} gesendet`),
+      error: err => console.error('[SamsungTv] Fehler beim Senden des Samsung-Kommandos:', err)
+    });
   }
 
 }

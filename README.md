@@ -89,6 +89,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - ✅ App-Header mit Profil-Link, Menü-Routing und Logout-Schaltfläche
 - ✅ Samsung-TV Ansicht nutzt jetzt ein Kachel-Layout und bindet eine angepasste FireTV-Steuerung ein
 - ✅ FireTV-Service liest die verfügbare Befehlsliste aus Home Assistant aus und erlaubt das Senden beliebiger Kommandos
+- ✅ Samsung- und FireTV-Entitäten werden zur Laufzeit anhand ihrer Namen gefunden; feste Entity-IDs sind nicht mehr nötig
 
 ---
 

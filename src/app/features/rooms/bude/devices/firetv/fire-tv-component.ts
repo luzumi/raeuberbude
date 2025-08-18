@@ -18,12 +18,13 @@ export class FiretvComponent {
   @Output() onDeviceClick = new EventEmitter<Event>();
 
   constructor(private hass: HomeAssistantService) {
+    // Ermittelt Player und Remote dynamisch anhand der Entity-ID.
     this.hass.entities$.subscribe(entities => {
-      const player = entities.find(e => e.entity_id === 'media_player.fire_tv') as FireTvEntity;
-      const remote = entities.find(e => e.entity_id === 'remote.fire_tv') as RemoteEntity;
+      const player = entities.find(e => e.entity_id.startsWith('media_player.') && e.entity_id.includes('fire_tv')) as FireTvEntity | undefined;
+      const remote = entities.find(e => e.entity_id.startsWith('remote.') && e.entity_id.includes('fire_tv')) as RemoteEntity | undefined;
 
       if (player && remote) {
-        //this.firetv = new FireTvController(player, remote, (d, s, p) => this.hass.callService(d, s, p)        );
+        this.firetv = new FireTvController(player, remote, (d, s, p) => this.hass.callService(d, s, p));
 
         const lvl = player.attributes['volume_level'] ?? 0;
         this.volume.set(Math.round(lvl * 100));
@@ -38,8 +39,9 @@ export class FiretvComponent {
 
   setVolume(val: number): void {
     const volumeLevel = val / 100;
+    if (!this.firetv) return;
     this.hass.callService('media_player', 'volume_set', {
-      entity_id: 'media_player.fire_tv',
+      entity_id: this.firetv.entityId,
       volume_level: volumeLevel
     });
     this.volume.set(val);
