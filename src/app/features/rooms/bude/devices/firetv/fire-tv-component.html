@@ -1,6 +1,6 @@
 <!-- FireTV-Ansicht im Kachel-Layout, angelehnt an andere Gerätesteuerungen -->
-<div class="device firetv" (click)="onDeviceClicked($event)">
-  <div class="tiles">
+
+  <div class="tiles" (click)="onDeviceClicked($event)">
     <!-- Status- und Lautstärke-Kachel -->
     <div class="tile" (click)="$event.stopPropagation()">
       <h2>{{ name }}</h2>
@@ -37,5 +37,5 @@
       </div>
     </div>
   </div>
-</div>
+
 

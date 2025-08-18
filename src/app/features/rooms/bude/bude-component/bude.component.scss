@@ -9,7 +9,7 @@
   gap: 0.5rem;
   //margin-top: 80px; // Platz für den fixierten Header
   padding: 1rem;
-  height: calc(100vh - 100px);
+  max-height: calc(100vh - 80px);
   background: radial-gradient(circle at center, rgba(0,150,136,.2), rgba(0,0,0,.9));
 
   // Wenn es eine ungerade Anzahl an Kacheln gibt,

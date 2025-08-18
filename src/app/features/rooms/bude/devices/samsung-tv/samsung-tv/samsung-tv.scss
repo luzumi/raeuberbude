@@ -4,7 +4,7 @@
 /* Rasterlayout für die Samsung-TV-Detailansicht */
 .device.samsung-tv {
   position: relative; // Platz für Zurück-Button
-  width: 100%;
+  width: calc(100% - 2rem);
   height: 100%;
   padding: 1rem;
   cursor: default;
@@ -12,7 +12,7 @@
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(49%, 1fr));
   gap: 1rem;
   height: 100%;
 }

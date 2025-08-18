@@ -53,9 +53,7 @@
       </div>
 
       <!-- Eingebettete FireTV-Komponente füllt freie Kachel -->
-      <div class="tile firetv-tile" (click)="$event.stopPropagation()">
-        <app-firetv (onDeviceClick)="onDeviceClick()"></app-firetv>
-      </div>
+        <app-firetv class="tile firetv-tile" (onDeviceClick)="onDeviceClick()"></app-firetv>
     </div>
   </div>
 } @else {
