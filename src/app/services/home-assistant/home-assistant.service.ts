@@ -33,7 +33,9 @@ export interface HassServiceResponse {
 
 @Injectable({ providedIn: 'root' })
 export class HomeAssistantService {
-  private readonly baseUrl = environment.homeAssistantUrl;
+  // use a relative base URL so requests go through the Angular proxy
+  // and remain reachable when the dev server is exposed on 0.0.0.0
+  private readonly baseUrl = '';
   private readonly token = environment.token;
 
   private readonly headers = new HttpHeaders({

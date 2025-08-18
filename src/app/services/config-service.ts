@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 export interface AppConfig {
-  homeAssistantUrl: string;
+  // Base URL is no longer required; API calls go through the proxy
   token: string;
 }
 
@@ -20,10 +20,10 @@ export class ConfigService {
       this.config = cfg;
     } catch (err) {
       console.error('Konfiguration konnte nicht geladen werden:', err);
-      this.config = { homeAssistantUrl: '', token: '' };
+      // fall back to an empty token if config is missing
+      this.config = { token: '' };
     }
   }
 
-  get homeAssistantUrl() { return this.config.homeAssistantUrl; }
   get token() { return this.config.token; }
 }

@@ -23,7 +23,9 @@ export class WebSocketBridgeService {
   }
 
   private connect(): void {
-    this.ws = new WebSocket(`${environment.homeAssistantUrl.replace(/^http/, 'ws')}/api/websocket`);
+    // build WebSocket URL from current location so remote devices can connect
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    this.ws = new WebSocket(`${proto}://${location.host}/api/websocket`);
 
     this.ws.addEventListener('open', () => {
       this.ws?.send(JSON.stringify({ type: 'auth', access_token: environment.token }));

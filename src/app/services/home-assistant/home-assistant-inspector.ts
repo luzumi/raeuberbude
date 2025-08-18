@@ -29,7 +29,8 @@ export enum MediaPlayerFeature {
 
 @Injectable({ providedIn: 'root' })
 export class HomeAssistantInspector {
-  private readonly baseUrl = environment.homeAssistantUrl;
+  // use relative URLs to utilize the Angular proxy and allow external access
+  private readonly baseUrl = '';
   private readonly token = environment.token;
   private readonly headers = new HttpHeaders({
     Authorization: `Bearer ${this.token}`,
