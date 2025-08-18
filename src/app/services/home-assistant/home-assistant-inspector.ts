@@ -29,6 +29,8 @@ export enum MediaPlayerFeature {
 
 @Injectable({ providedIn: 'root' })
 export class HomeAssistantInspector {
+  // Relativer API-Pfad, damit die Anwendung auch von anderen Geräten
+  // im Netz über den Dev-Server zugreifen kann.
   private readonly baseUrl = environment.homeAssistantUrl;
   private readonly token = environment.token;
   private readonly headers = new HttpHeaders({
@@ -39,11 +41,12 @@ export class HomeAssistantInspector {
   constructor(private readonly http: HttpClient) {}
 
   public getAllEntities(): Observable<Entity[]> {
-    return this.http.get<Entity[]>(`${this.baseUrl}/api/states`, { headers: this.headers });
+    // Alle Anfragen laufen über den Angular-Proxy, daher kein Host nötig.
+    return this.http.get<Entity[]>(`${this.baseUrl}/states`, { headers: this.headers });
   }
 
   public getEntity(id: string): Observable<Entity> {
-    return this.http.get<Entity>(`${this.baseUrl}/api/states/${id}`, { headers: this.headers });
+    return this.http.get<Entity>(`${this.baseUrl}/states/${id}`, { headers: this.headers });
   }
 
   public getSupportedFeatures(entity: Entity): string[] {
