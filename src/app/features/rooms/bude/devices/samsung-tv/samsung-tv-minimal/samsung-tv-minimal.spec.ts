@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 
 import { SamsungTvMinimal } from './samsung-tv-minimal';
+import { HomeAssistantService } from '@services/home-assistant/home-assistant.service';
 
 describe('SamsungTvMinimal', () => {
   let component: SamsungTvMinimal;
@@ -8,7 +10,13 @@ describe('SamsungTvMinimal', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SamsungTvMinimal]
+      imports: [SamsungTvMinimal],
+      providers: [
+        {
+          provide: HomeAssistantService,
+          useValue: { entities$: of([]), callService: () => of(null) }
+        }
+      ]
     })
     .compileComponents();
 

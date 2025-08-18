@@ -1,6 +1,7 @@
 import {OnInit, Component, EventEmitter, Output} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import { Entity, HomeAssistantService } from '@services/home-assistant/home-assistant.service';
+import { SamsungTvService } from '@services/samsung-tv.service';
 import { map } from 'rxjs';
 import { HorizontalSlider } from '@shared/components/horizontal-slider/horizontal-slider';
 import { FormsModule } from '@angular/forms';
@@ -30,8 +31,11 @@ export class SamsungTv implements OnInit {
   /** Ermöglicht das Zurücknavigieren zur Geräteübersicht. */
   @Output() back = new EventEmitter<void>();
 
-  constructor(public hass: HomeAssistantService) {
-  }
+  constructor(
+    public hass: HomeAssistantService,
+    // Gemeinsamer Service, der alle Samsung-Befehle kapselt
+    private readonly tv: SamsungTvService
+  ) {}
 
   /**
    * Subscribe during OnInit to avoid ExpressionChangedAfterItHasBeenCheckedError
@@ -101,52 +105,8 @@ export class SamsungTv implements OnInit {
   }
 
   togglePower(): void {
-    const samsungState = this.samsung?.state ?? 'unavailable';
-    console.log(this.samsung?.state);
-    if (samsungState === 'on' || samsungState === 'idle') {
-      this.turnOffTV();
-      return;
-    }
-    this.turnOnTV();
-  }
-
-
-  private turnOnTV() {
-    this.hass.callService('mediaplayer', 'turn_on', {
-      entity_id: 'mediaplayer.samsung'
-    }).subscribe({
-      next: () => console.log('[SamsungTv] Einschaltversuch über remote.samsung'),
-      error: (err) => {
-        console.warn('[SamsungTv] remote.samsung fehlgeschlagen, versuche FireTV als Fallback:', err);
-
-        // Fallback: FireTV einschalten
-        this.hass.callService('remote', 'turn_on', {
-          entity_id: 'remote.fire_tv'
-        }).subscribe({
-          next: () => console.log('[SamsungTv] FireTV als Fallback aktiviert'),
-          error: (err) => console.error('[SamsungTv] FireTV-Fallback fehlgeschlagen:', err)
-        });
-      }
-    });
-  }
-
-  private turnOffTV() {
-    this.hass.callService('remote', 'turn_off', {
-      entity_id: 'remote.samsung'
-    }).subscribe({
-      next: () => {
-        console.log('[SamsungTv] TV ausgeschaltet');
-
-        // Jetzt auch FireTV ausschalten
-        this.hass.callService('remote', 'turn_off', {
-          entity_id: 'remote.fire_tv'
-        }).subscribe({
-          next: () => console.log('[SamsungTv] FireTV ausgeschaltet'),
-          error: (err) => console.error('[SamsungTv] Fehler beim FireTV-Ausschalten:', err)
-        });
-      },
-      error: (err) => console.error('[SamsungTv] Fehler beim Ausschalten des TVs:', err)
-    });
+    // Einheitliche Power-Steuerung über den Service
+    this.tv.togglePower(this.samsung?.state);
   }
 
   /**
@@ -179,10 +139,8 @@ export class SamsungTv implements OnInit {
   // Sends any Samsung TV command chosen from buttons or select
   sendSamsungCommand(cmd: string): void {
     if (!cmd) return;
-    this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.samsung',
-      command: cmd
-    }).subscribe();
+    // Zentrale Ausführung aller Samsung-Kommandos
+    this.tv.sendCommand(cmd);
   }
 
 }
