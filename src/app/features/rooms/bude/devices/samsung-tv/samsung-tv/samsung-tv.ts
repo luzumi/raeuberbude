@@ -27,6 +27,9 @@ export class SamsungTv implements OnInit {
   selectedFireCommand?: string;
   selectedSamsungCommand?: string;
 
+  /** Resolved entity_id for the Fire TV remote. */
+  private fireRemoteId = 'remote.fire_tv';
+
   @Output() deviceClicked = new EventEmitter<void>();
   /** Ermöglicht das Zurücknavigieren zur Geräteübersicht. */
   @Output() back = new EventEmitter<void>();
@@ -65,9 +68,11 @@ export class SamsungTv implements OnInit {
   private loadCommands(): void {
     this.hass.getStatesWs().subscribe({
       next: (states) => {
-        const fire = states.find(e => e.entity_id === 'remote.fire_tv');
-        console.log('FireTV: ', fire)
+        const fire = states.find(e => e.entity_id === 'remote.fire_tv') ||
+          states.find(e => e.entity_id.startsWith('remote.') && e.attributes?.friendly_name === 'Fire_TV');
+        console.log('FireTV: ', fire);
         this.fireTvCommands = fire?.attributes?.['command_list'] ?? [];
+        this.fireRemoteId = fire?.entity_id ?? this.fireRemoteId;
 
         const samsung = states.find(e => e.entity_id === 'remote.samsung');
         this.samsungCommands = samsung?.attributes?.['command_list'] ?? [];
@@ -129,7 +134,7 @@ export class SamsungTv implements OnInit {
   sendFireTvCommand(cmd: string): void {
     if (!cmd) return;
     this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.fire_tv',
+      entity_id: this.fireRemoteId,
       command: cmd
     }).subscribe();
   }

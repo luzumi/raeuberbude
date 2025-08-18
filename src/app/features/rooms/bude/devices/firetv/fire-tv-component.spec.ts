@@ -1,14 +1,24 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { FiretvComponent } from './fire-tv-component';
+import { HomeAssistantService } from '@services/home-assistant/home-assistant.service';
 
 
 describe('FiretvComponent', () => {
   let component: FiretvComponent;
   let fixture: ComponentFixture<FiretvComponent>;
 
+  // Minimaler Stub für HomeAssistantService
+  class HassStub {
+    entities$ = of([]);
+    getStatesWs() { return of([]); }
+    callService() { return of({}); }
+  }
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [FiretvComponent]
+      imports: [FiretvComponent],
+      providers: [{ provide: HomeAssistantService, useClass: HassStub }]
     })
     .compileComponents();
 
