@@ -66,6 +66,7 @@ export class SamsungTv implements OnInit {
     this.hass.getStatesWs().subscribe({
       next: (states) => {
         const fire = states.find(e => e.entity_id === 'remote.fire_tv');
+        console.log('FireTV: ', fire)
         this.fireTvCommands = fire?.attributes?.['command_list'] ?? [];
 
         const samsung = states.find(e => e.entity_id === 'remote.samsung');
