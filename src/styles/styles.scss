@@ -4,6 +4,8 @@
 @use '@angular/material' as mat;
 @use './tokens';
 @use './mixins';
+@use './breakpoints'; // responsive breakpoints
+@use './responsive';  // responsive CSS variables
 
 // Load the core styles for Angular Material components
 @include mat.core();
@@ -14,10 +16,15 @@ $theme: mat.define-theme((color: (theme-type: light)));
 // Global resets using tokens
 html, body {
   height: 100%;
+  min-height: 100%; // allow viewport-based containers
   margin: 0;
   font-family: tokens.$font-primary;
   background-color: tokens.$background;
   color: tokens.$text-default;
+}
+
+body {
+  /* container-type: inline-size; */ // optional: enables future container queries
 }
 
 // Example utility class leveraging a mixin

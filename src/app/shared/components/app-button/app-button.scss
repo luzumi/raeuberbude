@@ -10,7 +10,8 @@
   transform: translate(-50%, -50%);
   transition: background-color 0.2s ease;
   z-index: 1;
-  overflow: visible;
+    overflow: visible;
+    touch-action: manipulation; // faster taps on mobile
 
   /* Glow size calculations */
   --base-glow-blur: calc(var(--btn-size, 150px) * 0.04);

@@ -9,13 +9,14 @@
 /* 2) Container unterhalb des fixen Headers */
 .container {
   position: absolute;
-  top: 80px;    /* Höhe des app-header */
+  top: var(--header-h);   /* responsive header height */
   bottom: 0;
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: var(--page-padding);           /* responsive page padding */
   background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
 }
 
@@ -44,7 +45,7 @@
   transform-origin: center center;
 
   /* Radius und Animationsparameter */
-  --r: 200px;
+  --r: var(--rm-wheel-radius, 200px);    /* responsive wheel radius */
   --target-delta: 0deg;
   --spin-to-dur: 1s;
 

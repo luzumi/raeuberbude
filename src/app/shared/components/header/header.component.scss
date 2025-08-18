@@ -1,4 +1,5 @@
 /* src/app/shared/components/header/header.component.scss */
+/* Responsive header using global CSS variables */
 
 @use '../../../../styles/tokens' as t;
 
@@ -6,74 +7,72 @@
   display: block;
 }
 
+.app-header {
+  position: sticky;          /* keep header visible */
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--header-h);   /* responsive global height */
+  padding: 0 var(--page-padding);
+  background: #fff;
+}
+
 .back-button {
-  margin-left: 24px;
+  margin-left: 0;            /* was 24px; now via --page-padding */
 }
 
 .user-info {
-  margin-left: 24px;
+  margin-left: 0;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+
+  img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
 }
 
-.options {
-  margin-right: 60px;
-  display: flex;
-  align-items: center;
-  gap: 60px;
-}
-.app-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;             // volle Breite
-  height: 80px;            // feste Höhe
-  display: flex;
-  align-items: center;
-  padding: 0 1rem;
-  background: radial-gradient(circle at center, #787163 0%, #cdbc9c 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
-
-.left-section,
-.right-section {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.greeting {
+.texts {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-}
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-}
-
-.text-block {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
+  line-height: 1.1;
 }
 
 .greet-text {
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 1.2vw, 1.1rem);
   color: #555;
 }
 
 .user-name {
   font-family: t.$font-primary;
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 1.6vw, 1.5rem);
   font-weight: 600;
   color: #333;
-  line-height: 1;
+  white-space: nowrap;       /* prevent wrap on small screens */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Tablet/Phone: hide greeting text */
+@media (max-width: 960px) {
+  .greet-text { display: none; }
+}
+
+/* Phone: tighter gaps */
+@media (max-width: 600px) {
+  .app-header { gap: 8px; }
 }

@@ -1,0 +1,45 @@
+// src/styles/_responsive.scss
+// Responsive CSS variables with breakpoints
+@use './breakpoints' as bp;
+
+/* Baseline (Desktop) – Desktop bleibt unverändert */
+:root {
+  --header-h: 80px;              /* aktuelle Headerhöhe */
+  --rm-wheel-radius: 200px;      /* default room menu wheel radius */
+  --rm-button-size: clamp(2.5rem, 6vw, 4rem); /* fallback for buttons */
+  --page-padding: 24px;
+}
+
+/* Tablet: <= 960px */
+@media (max-width: bp.$bp-tablet) {
+  :root {
+    --header-h: 72px;
+    --rm-wheel-radius: clamp(140px, 38vmin, 200px);
+    --rm-button-size: clamp(2.2rem, 8vmin, 3.6rem);
+    --page-padding: 16px;
+  }
+}
+
+/* Phone: <= 600px */
+@media (max-width: bp.$bp-phone) {
+  :root {
+    --header-h: 64px;
+    --rm-wheel-radius: clamp(110px, 34vmin, 170px);
+    --rm-button-size: clamp(1.9rem, 10vmin, 3.2rem);
+    --page-padding: 12px;
+  }
+}
+
+/* Orientierungsspezifische Feinschliffe */
+@media (max-width: bp.$bp-phone) and (orientation: landscape) {
+  :root {
+    /* kleinerer Radius im Landscape auf Phones */
+    --rm-wheel-radius: clamp(95px, 32vmin, 150px);
+  }
+}
+
+/* Mobile Safe Areas */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top:    env(safe-area-inset-top, 0px);
+}
