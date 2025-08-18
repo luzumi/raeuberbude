@@ -33,23 +33,35 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
   selectedSource: string = '';
   /** Timer zur Aktualisierung der Statusdauer. */
   private sinceSub?: Subscription;
+  /** Zur Laufzeit ermittelte Entity-ID des Media-Players. */
+  private samsungPlayerId?: string;
+  /** Entity-ID der zugehörigen Remote (z.B. "remote.samsung"). */
+  private samsungRemoteId?: string;
 
   constructor(private readonly hass: HomeAssistantService) {}
 
   ngOnInit(): void {
-    // Beobachtet Änderungen der TV-Entität und aktualisiert Statuswerte.
+    // Suche den ersten Media-Player und die zugehörige Remote mit "samsung" im Namen.
     this.hass.entities$
-    .pipe(map(entities => entities.find(e => e.entity_id === 'media_player.tv_samsung')))
-    .subscribe(entity => {
-      if (!entity) {
-        console.warn('[SamsungTvMinimal] Entity media_player.tv_samsung nicht gefunden');
-        return;
-      }
-      this.samsung = entity;
-      this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
-      this.sources = entity.attributes['source_list'] ?? [];
-      this.selectedSource = <string>entity.attributes['source'];
-    });
+      .pipe(
+        map(entities => ({
+          player: entities.find(e => e.entity_id.startsWith('media_player.') && e.entity_id.includes('samsung')),
+          remote: entities.find(e => e.entity_id.startsWith('remote.') && e.entity_id.includes('samsung'))
+        }))
+      )
+      .subscribe(({ player, remote }) => {
+        if (!player || !remote) {
+          console.warn('[SamsungTvMinimal] Samsung‑Entität nicht gefunden', player, remote);
+          return;
+        }
+        // IDs für spätere Service-Calls zwischenspeichern
+        this.samsung = player;
+        this.samsungPlayerId = player.entity_id;
+        this.samsungRemoteId = remote.entity_id;
+        this.volume = Math.round((player.attributes.volume_level ?? 0) * 100);
+        this.sources = player.attributes['source_list'] ?? [];
+        this.selectedSource = <string>player.attributes['source'];
+      });
 
     // Triggert regelmäßige Change Detection, damit "an/aus seit" aktuell bleibt.
     this.sinceSub = interval(60_000).subscribe();
@@ -63,9 +75,14 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
   togglePower(): void {
     const state = this.samsung?.state ?? 'unavailable';
     if (state === 'on' || state === 'idle') {
-      this.hass.callService('remote', 'turn_off', { entity_id: 'remote.samsung' }).subscribe();
+      // entity_id wird dynamisch ermittelt, daher nur ausführen wenn bekannt
+      if (this.samsungRemoteId) {
+        this.hass.callService('remote', 'turn_off', { entity_id: this.samsungRemoteId }).subscribe();
+      }
     } else {
-      this.hass.callService('remote', 'turn_on', { entity_id: 'remote.samsung' }).subscribe();
+      if (this.samsungRemoteId) {
+        this.hass.callService('remote', 'turn_on', { entity_id: this.samsungRemoteId }).subscribe();
+      }
     }
   }
 
@@ -91,16 +108,18 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
 
   /** Wechselt die Quelle des Fernsehers. */
   changeSource(source: string): void {
+    if (!this.samsungPlayerId) return; // Keine Entität gefunden
     this.hass.callService('media_player', 'select_source', {
-      entity_id: 'media_player.tv_samsung',
+      entity_id: this.samsungPlayerId,
       source
     }).subscribe();
   }
 
   /** Hilfsmethode zum Senden eines beliebigen Samsung-Kommandos. */
   private sendSamsungCommand(cmd: string): void {
+    if (!this.samsungRemoteId) return;
     this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.samsung',
+      entity_id: this.samsungRemoteId,
       command: cmd
     }).subscribe();
   }
