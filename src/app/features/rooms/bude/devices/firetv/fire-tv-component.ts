@@ -25,16 +25,28 @@ export class FiretvComponent {
   /** Currently selected command from the dropdown. */
   selectedCommand?: string;
 
+  /** Resolved entity_id of the remote used for sending commands. */
+  private remoteId = 'remote.fire_tv';
+
   @Output() onDeviceClick = new EventEmitter<Event>();
 
   constructor(private readonly hass: HomeAssistantService) {
     // React on state changes of Fire TV and its remote.
     this.hass.entities$.subscribe(entities => {
       const player = entities.find(e => e.entity_id === 'media_player.fire_tv') as FireTvEntity;
-      const remote = entities.find(e => e.entity_id === 'remote.fire_tv') as RemoteEntity;
+
+      // Try to resolve the matching remote entity. Some setups expose the
+      // Fire TV remote under a different entity_id (e.g. `remote.as_aftmm_airplay`).
+      const remote =
+        (entities.find(e => e.entity_id === 'remote.fire_tv') as RemoteEntity) ??
+        (entities.find(
+          e => e.entity_id.startsWith('remote.') &&
+            e.attributes?.friendly_name === player?.attributes?.friendly_name
+        ) as RemoteEntity);
 
       if (player && remote) {
         this.firetv = new FireTvController(player, remote, (d, s, p) => this.hass.callService(d, s, p));
+        this.remoteId = remote.entity_id; // remember resolved remote id
         const lvl = player.attributes['volume_level'] ?? 0;
         this.volume.set(Math.round(lvl * 100));
       }
@@ -48,7 +60,15 @@ export class FiretvComponent {
   private loadCommands(): void {
     this.hass.getStatesWs().subscribe({
       next: (states) => {
-        const remote = states.find(e => e.entity_id === 'remote.fire_tv');
+        // Fallback search mirrors the logic from the entity subscription above.
+        const player = states.find(e => e.entity_id === 'media_player.fire_tv');
+        const remote =
+          states.find(e => e.entity_id === 'remote.fire_tv') ||
+          states.find(
+            e => e.entity_id.startsWith('remote.') &&
+              e.attributes?.friendly_name === player?.attributes?.friendly_name
+          );
+
         this.commands = remote?.attributes?.['command_list'] ?? [];
       },
       error: (err) => console.error('[FiretvComponent] Fehler beim Laden der Befehle:', err)
@@ -59,7 +79,8 @@ export class FiretvComponent {
   sendCustomCommand(cmd: string): void {
     if (!cmd) return;
     this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.fire_tv',
+      // Use resolved remote or fall back to the default entity id.
+      entity_id: this.remoteId,
       command: cmd
     }).subscribe();
   }
