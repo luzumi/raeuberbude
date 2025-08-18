@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatIconButton } from '@angular/material/button';
 import { HomeAssistantService, Entity } from '@services/home-assistant/home-assistant.service';
+import { SamsungTvService } from '@services/samsung-tv.service';
 
 import { AppButtonComponent } from '@shared/components/app-button/app-button';
 import { interval, map, Subscription } from 'rxjs';
@@ -34,7 +35,11 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
   /** Timer zur Aktualisierung der Statusdauer. */
   private sinceSub?: Subscription;
 
-  constructor(private readonly hass: HomeAssistantService) {}
+  constructor(
+    private readonly hass: HomeAssistantService,
+    // Zentralisierter Service für alle Samsung-TV-Befehle
+    private readonly tv: SamsungTvService
+  ) {}
 
   ngOnInit(): void {
     // Beobachtet Änderungen der TV-Entität und aktualisiert Statuswerte.
@@ -45,7 +50,9 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
         console.warn('[SamsungTvMinimal] Entity media_player.tv_samsung nicht gefunden');
         return;
       }
+      console.info('[SamsungTvMinimal] Entity media_player.tv_samsung gefunden');
       this.samsung = entity;
+      console.log(this.samsung)
       this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
       this.sources = entity.attributes['source_list'] ?? [];
       this.selectedSource = <string>entity.attributes['source'];
@@ -61,32 +68,28 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
 
   /** Schaltet den Fernseher an oder aus. */
   togglePower(): void {
-    const state = this.samsung?.state ?? 'unavailable';
-    if (state === 'on' || state === 'idle') {
-      this.hass.callService('remote', 'turn_off', { entity_id: 'remote.samsung' }).subscribe();
-    } else {
-      this.hass.callService('remote', 'turn_on', { entity_id: 'remote.samsung' }).subscribe();
-    }
+    // Einheitliche Power-Schaltung über den Service
+    this.tv.togglePower(this.samsung?.state);
   }
 
   /** Erhöht die Lautstärke per Remote-Kommando. */
   volumeUp(): void {
-    this.sendSamsungCommand('KEY_VOLUP');
+    this.tv.sendCommand('KEY_VOLUP');
   }
 
   /** Verringert die Lautstärke per Remote-Kommando. */
   volumeDown(): void {
-    this.sendSamsungCommand('KEY_VOLDOWN');
+    this.tv.sendCommand('KEY_VOLDOWN');
   }
 
   /** Schaltet zum nächsten Sender. */
   channelUp(): void {
-    this.sendSamsungCommand('KEY_CHUP');
+    this.tv.sendCommand('KEY_CHUP');
   }
 
   /** Schaltet zum vorherigen Sender. */
   channelDown(): void {
-    this.sendSamsungCommand('KEY_CHDOWN');
+    this.tv.sendCommand('KEY_CHDOWN');
   }
 
   /** Wechselt die Quelle des Fernsehers. */
@@ -94,14 +97,6 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
     this.hass.callService('media_player', 'select_source', {
       entity_id: 'media_player.tv_samsung',
       source
-    }).subscribe();
-  }
-
-  /** Hilfsmethode zum Senden eines beliebigen Samsung-Kommandos. */
-  private sendSamsungCommand(cmd: string): void {
-    this.hass.callService('remote', 'send_command', {
-      entity_id: 'remote.samsung',
-      command: cmd
     }).subscribe();
   }
 

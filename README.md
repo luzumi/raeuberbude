@@ -39,6 +39,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - **TV-Steuerung:** Samsung-TV-Komponente im Stil von `/raub1` mit WebSocket-Anbindung und Dropdowns für FireTV- und Samsung-Befehle.
 - **RoomMenu:** Minimalansicht des Samsung-TV mit Grundfunktionen (Power, Lautstärke, Sender, Quelle).
 - **Samsung-TV Minimal:** Überarbeitete Statuskacheln mit Gerät, Zustand (inkl. letzter Änderung), Lautstärke und Quelle.
+- **Samsung-TV Service:** Power- und Remote-Befehle zentralisiert, Fernseher lässt sich nun in allen Ansichten ein- und ausschalten.
 
 ### 5. Struktur reorganisiert
 - Komponenten für wiederverwendbare UI-Elemente liegen nun unter `src/app/shared/components`.
