@@ -70,6 +70,7 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Default-Login: `admin` / `secret` (lokale Demo-Datenbank)
 - Globale Styles liegen in `src/styles/styles.scss`, wiederverwendbare Design-Tokens in `src/styles/_tokens.scss` und Mixins in `src/styles/_mixins.scss`.
 - Responsive Breakpoints und Variablen liegen in `src/styles/_breakpoints.scss` und `src/styles/_responsive.scss`.
+- Die Home-Assistant-URL wird zur Laufzeit aus `public/assets/config.json` geladen; ist dort kein Wert gesetzt, wird der aktuelle Host genutzt – hilfreich bei `ng serve --host=0.0.0.0`.
 
 ---
 

@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 // Extended with `map` to transform WebSocket responses when fetching states
 import {BehaviorSubject, from, Observable, Subscription, map} from 'rxjs';
 import {WebSocketBridgeService} from './websocketBridgeService';
-import {environment} from '../../../environments/environments';
+import {ConfigService} from '../config-service';
 
 export interface Entity {
   entity_id: string;
@@ -33,19 +33,25 @@ export interface HassServiceResponse {
 
 @Injectable({ providedIn: 'root' })
 export class HomeAssistantService {
-  private readonly baseUrl = environment.homeAssistantUrl;
-  private readonly token = environment.token;
-
-  private readonly headers = new HttpHeaders({
-    Authorization: `Bearer ${this.token}`,
-    'Content-Type': 'application/json'
-  });
+  private readonly baseUrl: string;
+  private readonly token: string;
+  private readonly headers: HttpHeaders;
 
   private readonly entitiesMap = new Map<string, Entity>();
   private readonly entitiesSubject = new BehaviorSubject<Entity[]>([]);
   public readonly entities$ = this.entitiesSubject.asObservable();
 
-  constructor(private readonly http: HttpClient, private readonly bridge: WebSocketBridgeService) {
+  constructor(private readonly http: HttpClient, private readonly bridge: WebSocketBridgeService,
+              private readonly config: ConfigService) {
+    // Basis-URL und Token stammen nun aus dem ConfigService, damit die App auch
+    // über andere Hosts (z.B. 0.0.0.0) korrekt mit Home Assistant spricht.
+    this.baseUrl = this.config.homeAssistantUrl;
+    this.token = this.config.token;
+    this.headers = new HttpHeaders({
+      Authorization: `Bearer ${this.token}`,
+      'Content-Type': 'application/json'
+    });
+
     this.refreshEntities();
 
     this.bridge.subscribeEvent('state_changed').subscribe((event:any) => {

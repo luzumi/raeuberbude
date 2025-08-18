@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
-import {environment} from '../../../environments/environments';
+import { ConfigService } from '../config-service';
 
 interface WebSocketMessage {
   id: number;
@@ -18,15 +18,17 @@ export class WebSocketBridgeService {
   // Queue messages that are sent before the socket is authenticated
   private readonly queue: { msg: WebSocketMessage; resolve: (v: any) => void; reject: (e: any) => void }[] = [];
 
-  constructor() {
+  constructor(private readonly config: ConfigService) {
     this.connect();
   }
 
   private connect(): void {
-    this.ws = new WebSocket(`${environment.homeAssistantUrl.replace(/^http/, 'ws')}/api/websocket`);
+    const wsUrl = `${this.config.homeAssistantUrl.replace(/^http/, 'ws')}/api/websocket`;
+    this.ws = new WebSocket(wsUrl);
 
     this.ws.addEventListener('open', () => {
-      this.ws?.send(JSON.stringify({ type: 'auth', access_token: environment.token }));
+      // Token stammt nun ebenfalls aus dem ConfigService
+      this.ws?.send(JSON.stringify({ type: 'auth', access_token: this.config.token }));
     });
 
     this.ws.addEventListener('message', (event) => {
