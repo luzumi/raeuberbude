@@ -29,7 +29,8 @@ export enum MediaPlayerFeature {
 
 @Injectable({ providedIn: 'root' })
 export class HomeAssistantInspector {
-  private readonly baseUrl = environment.homeAssistantUrl;
+  // Use current origin if no explicit Home Assistant URL is configured.
+  private readonly baseUrl = environment.homeAssistantUrl || window.location.origin;
   private readonly token = environment.token;
   private readonly headers = new HttpHeaders({
     Authorization: `Bearer ${this.token}`,

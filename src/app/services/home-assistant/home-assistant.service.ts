@@ -33,7 +33,8 @@ export interface HassServiceResponse {
 
 @Injectable({ providedIn: 'root' })
 export class HomeAssistantService {
-  private readonly baseUrl = environment.homeAssistantUrl;
+  // Fall back to the current origin so the app works when served on 0.0.0.0.
+  private readonly baseUrl = environment.homeAssistantUrl || window.location.origin;
   private readonly token = environment.token;
 
   private readonly headers = new HttpHeaders({

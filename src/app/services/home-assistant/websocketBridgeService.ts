@@ -23,7 +23,10 @@ export class WebSocketBridgeService {
   }
 
   private connect(): void {
-    this.ws = new WebSocket(`${environment.homeAssistantUrl.replace(/^http/, 'ws')}/api/websocket`);
+    // Use the current origin when no base URL is configured to allow
+    // WebSocket connections from remote clients.
+    const base = environment.homeAssistantUrl || window.location.origin;
+    this.ws = new WebSocket(`${base.replace(/^http/, 'ws')}/api/websocket`);
 
     this.ws.addEventListener('open', () => {
       this.ws?.send(JSON.stringify({ type: 'auth', access_token: environment.token }));

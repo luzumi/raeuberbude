@@ -67,6 +67,9 @@ Ziel des Projekts ist es, ein modernes, leichtgewichtiges Dashboard zur Steuerun
 - Token liegt aktuell noch im `environment.ts` – später sicherer handhaben
 - App läuft vollständig standalone, `AppComponent` bootstrapped direkt (`bootstrapApplication()`)
 - Kein klassisches `AppModule` oder `NgModule` nötig
+- Für den Zugriff von anderen Geräten kannst du `ng serve --host=0.0.0.0` nutzen;
+  dank relativem Home-Assistant-Pfad funktioniert die App nun auch außerhalb
+  von `localhost`.
 - Default-Login: `admin` / `secret` (lokale Demo-Datenbank)
 - Globale Styles liegen in `src/styles/styles.scss`, wiederverwendbare Design-Tokens in `src/styles/_tokens.scss` und Mixins in `src/styles/_mixins.scss`.
 - Responsive Breakpoints und Variablen liegen in `src/styles/_breakpoints.scss` und `src/styles/_responsive.scss`.
