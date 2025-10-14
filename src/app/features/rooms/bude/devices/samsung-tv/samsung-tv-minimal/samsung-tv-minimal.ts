@@ -44,19 +44,27 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Beobachtet Änderungen der TV-Entität und aktualisiert Statuswerte.
     this.hass.entities$
-    .pipe(map(entities => entities.find(e => e.entity_id === 'media_player.tv_samsung')))
-    .subscribe(entity => {
-      if (!entity) {
-        console.warn('[SamsungTvMinimal] Entity media_player.tv_samsung nicht gefunden');
-        return;
-      }
-      console.info('[SamsungTvMinimal] Entity media_player.tv_samsung gefunden');
-      this.samsung = entity;
-      console.log(this.samsung)
-      this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
-      this.sources = entity.attributes['source_list'] ?? [];
-      this.selectedSource = <string>entity.attributes['source'];
-    });
+      .pipe(map(entities => {
+        const exact = entities.find(e => e.entity_id === 'media_player.tv_samsung');
+        if (exact) return exact;
+        const byId = entities.find(e => e.entity_id.startsWith('media_player.') && e.entity_id.toLowerCase().includes('samsung'));
+        if (byId) return byId;
+        const byName = entities.find(e => e.entity_id.startsWith('media_player.') && (e.attributes?.friendly_name || '').toLowerCase().includes('samsung'));
+        return byName;
+      }))
+      .subscribe(entity => {
+        if (!entity) {
+          console.warn('[SamsungTvMinimal] Kein Samsung MediaPlayer gefunden');
+          return;
+        }
+        if (!this.samsung || this.samsung.entity_id !== entity.entity_id) {
+          console.info('[SamsungTvMinimal] Verwende MediaPlayer:', entity.entity_id, '(', entity.attributes?.friendly_name, ')');
+        }
+        this.samsung = entity;
+        this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
+        this.sources = entity.attributes['source_list'] ?? [];
+        this.selectedSource = entity.attributes['source'] as string;
+      });
 
     // Triggert regelmäßige Change Detection, damit "an/aus seit" aktuell bleibt.
     this.sinceSub = interval(60_000).subscribe();
@@ -94,8 +102,9 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
 
   /** Wechselt die Quelle des Fernsehers. */
   changeSource(source: string): void {
+    const entityId = this.samsung?.entity_id || 'media_player.tv_samsung';
     this.hass.callService('media_player', 'select_source', {
-      entity_id: 'media_player.tv_samsung',
+      entity_id: entityId,
       source
     }).subscribe();
   }

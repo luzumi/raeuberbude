@@ -1,10 +1,11 @@
-import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Output, signal, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HomeAssistantService } from '@services/home-assistant/home-assistant.service';
 import { FireTvController, FireTvEntity, RemoteEntity } from '@services/home-assistant/fire-tv-control';
 import { HorizontalSlider } from '@shared/components/horizontal-slider/horizontal-slider';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
+import { WebSocketBridgeService, WsLogEntry } from '@services/home-assistant/websocketBridgeService';
 
 // Curated list of common ADB key commands (accepted by androidtv.adb_command)
 const ADB_KEY_COMMANDS: string[] = [
@@ -50,7 +51,7 @@ const ADB_SHELL_EXAMPLES: string[] = [
   standalone: true,
   imports: [CommonModule, FormsModule, HorizontalSlider],
 })
-export class FiretvComponent {
+export class FiretvComponent implements OnDestroy, AfterViewInit {
   /** Wrapper around Home Assistant entities for Fire TV control. */
   firetv?: FireTvController;
 
@@ -71,38 +72,61 @@ export class FiretvComponent {
   /** Groups built from curated ADB lists + dynamic HA remote commands */
   adbGroups: Array<{ id: string; title: string; items: string[]; description?: string }> = [];
 
-  /** Currently selected command from the dropdown. */
   selectedCommand?: string;
 
   /** Resolved entity_id of the remote used for sending commands. */
   private remoteId = 'remote.fire_tv';
 
-  @Output() onDeviceClick = new EventEmitter<Event>();
+  @Output() deviceClick = new EventEmitter<Event>();
 
-  constructor(private readonly hass: HomeAssistantService) {
+  // --- WS Log Viewer state ---
+  showLogs = false;
+  // Display list with collapsed consecutive duplicates
+  wsLogs: Array<WsLogEntry & { count?: number }> = [];
+  private wsLogSub?: Subscription;
+  showDockedLogs = false;
+
+  // --- WS Diagnostics ---
+  diagnosticsReport?: DiagnosticsReport;
+
+  constructor(private readonly hass: HomeAssistantService, private readonly ws: WebSocketBridgeService) {
     // React on state changes of Fire TV and its remote.
     this.hass.entities$.subscribe(entities => {
-      const player = entities.find(e => e.entity_id === 'media_player.fire_tv') as FireTvEntity;
-
-      // Try to resolve the matching remote entity. Some setups expose the
+      const player = entities.find( e => e.entity_id === 'media_player.fire_tv' ) as FireTvEntity;
       // Fire TV remote under a different entity_id (e.g. `remote.as_aftmm_airplay`).
       const remote =
-        (entities.find(e => e.entity_id === 'remote.fire_tv') as RemoteEntity) ??
+        (entities.find( e => e.entity_id === 'remote.fire_tv' ) as RemoteEntity) ??
         (entities.find(
-          e => e.entity_id.startsWith('remote.') &&
+          e => e.entity_id.startsWith( 'remote.' ) &&
             e.attributes?.friendly_name === player?.attributes?.friendly_name
         ) as RemoteEntity);
 
-      if (player && remote) {
-        this.firetv = new FireTvController(player, remote, (d, s, p) => this.hass.callService(d, s, p));
+      if ( player && remote ) {
+        this.firetv = new FireTvController( player, remote, (d, s, p) => this.hass.callService( d, s, p ) );
         this.remoteId = remote.entity_id; // remember resolved remote id
         const lvl = player.attributes['volume_level'] ?? 0;
-        this.volume.set(Math.round(lvl * 100));
+        this.volume.set( Math.round( lvl * 100 ) );
       }
     });
+  }
+
+  ngAfterViewInit(): void {
+    // Autostart per URL-Param: ?auto=adb-suite oder ?auto=ws-diag
+    try {
+      const url = new URL(globalThis.location.href);
+      const auto = url.searchParams.get('auto') || url.hash.split('?')[1]?.split('&').find(p=>p.startsWith('auto='))?.split('=')[1];
+      if (auto && /^(adb-suite|ws-diag)$/i.test(auto)) {
+        // Kleines Delay, damit Services/WS initialisiert sind
+        setTimeout(() => this.runWsDiagnostics(), 300);
+      }
+    } catch {}
 
     // Fetch available command list once component is constructed.
     this.loadCommands();
+  }
+
+  ngOnDestroy(): void {
+    this.wsLogSub?.unsubscribe();
   }
 
   /** Requests the remote's command list via WebSocket. */
@@ -187,7 +211,8 @@ export class FiretvComponent {
         // Include dynamic sources as commands
         const statesSub = this.hass.getStatesWs().subscribe(states => {
           const media = states.find(e => e.entity_id === 'media_player.fire_tv');
-          const sources: string[] = Array.isArray(media?.attributes?.source_list) ? media!.attributes!.source_list as string[] : [];
+          const sourceList = media?.attributes?.source_list;
+          const sources: string[] = Array.isArray(sourceList) ? sourceList : [];
           if (sources.length) {
             const sourceGroup = {
               id: 'sources',
@@ -295,6 +320,191 @@ export class FiretvComponent {
     navigator.clipboard.writeText(json).then(() => console.info('[ADB] Copied results')).catch(()=>console.log(json));
   }
 
+  // --- WS Logs dialog controls ---
+  openLogs(): void {
+    this.showLogs = true;
+    this.startLogStream();
+  }
+
+  closeLogs(): void {
+    this.showLogs = false;
+    this.stopLogStreamIfUnused();
+  }
+
+  clearWsLogs(): void {
+    this.ws.clearLogs();
+    this.wsLogs = [];
+  }
+
+  // Docked logs inside the FireTV view
+  toggleDockedLogs(): void {
+    this.showDockedLogs = !this.showDockedLogs;
+    if (this.showDockedLogs) {
+      this.startLogStream();
+    } else {
+      this.stopLogStreamIfUnused();
+    }
+  }
+
+  private startLogStream(): void {
+    if (!this.wsLogSub) {
+      // Build aggregated list from current snapshot
+      this.wsLogs = this.aggregateSnapshot(this.ws.getLogsSnapshot());
+      this.wsLogSub = this.ws.logs$.subscribe((e) => {
+        const top = this.wsLogs[0];
+        if (top && this.areSameForCounter(top, e)) {
+          // increase counter on the latest aggregated item
+          top.count = (top.count ?? 1) + 1;
+          // update the displayed time to the newest event time
+          top.time = e.time;
+        } else {
+          // push new head item
+          this.wsLogs.unshift({ ...e, count: 1 });
+          if (this.wsLogs.length > 500) this.wsLogs.pop();
+        }
+      });
+    }
+  }
+
+  private stopLogStreamIfUnused(): void {
+    if (!this.showLogs && !this.showDockedLogs) {
+      this.wsLogSub?.unsubscribe();
+      this.wsLogSub = undefined;
+    }
+  }
+
+  // --- WS Diagnostics: run a suite of ADB commands and collect WS frames ---
+  async runWsDiagnostics(): Promise<void> {
+    const specs: AdbCommandSpec[] = [
+      { label: 'HOME (key)', command: 'HOME' },
+      { label: 'BACK (key)', command: 'BACK' },
+      { label: 'UP (key)', command: 'UP' },
+      { label: 'DOWN (key)', command: 'DOWN' },
+      { label: 'LEFT (key)', command: 'LEFT' },
+      { label: 'RIGHT (key)', command: 'RIGHT' },
+      { label: 'ENTER (key)', command: 'ENTER' },
+      { label: 'Input keyevent 3', command: 'input keyevent 3' },
+      { label: 'Screenshot', command: 'screencap -p /sdcard/screen.png' }
+    ];
+
+    const report: DiagnosticsReport = {
+      startedAt: new Date().toISOString(),
+      runs: [],
+      totals: { ok: 0, err: 0 }
+    };
+
+    for (const spec of specs) {
+      const run: AdbCommandRun = {
+        spec,
+        startTime: new Date().toISOString(),
+        frames: []
+      };
+      const frames: WsLogEntry[] = [];
+      const sub = this.ws.logs$.subscribe(f => frames.push(f));
+      const t0 = performance.now();
+      try {
+        const res = await firstValueFrom(this.hass.callService('androidtv', 'adb_command', {
+          entity_id: 'media_player.fire_tv',
+          command: spec.command
+        }));
+        run.id = (res as any)?.id;
+        run.success = res?.success;
+        run.resultPayload = res;
+      } catch (error) {
+        run.success = false;
+        run.error = error;
+      } finally {
+        run.endTime = new Date().toISOString();
+        run.latencyMs = Math.round(performance.now() - t0);
+        sub.unsubscribe();
+      }
+
+      // Associate frames by id if known; otherwise include a short time window
+      if (typeof run.id === 'number') {
+        run.frames = frames.filter(fr => fr.id === run.id || (fr.dir === '->' && fr.type === 'call_service' && (fr as any)?.payload?.service_data?.command === spec.command));
+      } else {
+        // fallback: last ~60 frames captured during execution
+        run.frames = frames.slice(-60);
+      }
+
+      report.runs.push(run);
+      if (run.success) report.totals.ok++; else report.totals.err++;
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    // Optional: compute per-run frame stats
+    for (const r of report.runs) {
+      const sent = r.frames.filter(f => f.dir === '->');
+      const recv = r.frames.filter(f => f.dir === '<-');
+      r.stats = {
+        sentCount: sent.length,
+        recvCount: recv.length,
+        bytesOut: sent.reduce((a, f) => a + (f.rawLen ?? 0), 0),
+        bytesIn: recv.reduce((a, f) => a + (f.rawLen ?? 0), 0)
+      };
+    }
+
+    // Durchschnittslatenz berechnen
+    const lat = report.runs.filter(r => typeof r.latencyMs === 'number').map(r => r.latencyMs as number);
+    if (lat.length) report.totals.avgLatencyMs = Math.round(lat.reduce((a,b)=>a+b,0)/lat.length);
+
+    report.finishedAt = new Date().toISOString();
+    this.diagnosticsReport = report;
+    // Exponieren für MCP/Scraper
+    try { (globalThis as any).__lastDiagnostics = report; } catch {}
+    try { localStorage.setItem('firetv_ws_diag', JSON.stringify(report)); } catch {}
+  }
+
+  async copyWsDiagnostics(): Promise<void> {
+    if (!this.diagnosticsReport) return;
+    const json = JSON.stringify(this.diagnosticsReport, null, 2);
+    try { await navigator.clipboard.writeText(json); } catch { console.log(json); }
+  }
+
+  downloadWsDiagnostics(): void {
+    if (!this.diagnosticsReport) return;
+    const blob = new Blob([JSON.stringify(this.diagnosticsReport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `firetv-ws-diagnostics-${new Date().toISOString().replaceAll(':','-').replaceAll('.','-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // Consider events identical if core fields match and payload equals (deep)
+  private areSameForCounter(a: WsLogEntry, b: WsLogEntry): boolean {
+    const coreEqual = a.dir === b.dir && a.type === b.type && a.summary === b.summary && (a.rawLen ?? 0) === (b.rawLen ?? 0);
+    if (!coreEqual) return false;
+    const aErr = (a as any).error;
+    const bErr = (b as any).error;
+    if (aErr || bErr) return false;
+    // Compare payload if present; treat both undefined as equal
+    const aP = (a as any).payload;
+    const bP = (b as any).payload;
+    if (aP === undefined && bP === undefined) return true;
+    try {
+      return JSON.stringify(aP) === JSON.stringify(bP);
+    } catch { return false; }
+  }
+
+  private aggregateSnapshot(snapshot: WsLogEntry[]): Array<WsLogEntry & { count?: number }> {
+    // Snapshot is newest-first; aggregate from oldest to newest, then reverse back
+    const out: Array<WsLogEntry & { count?: number }> = [];
+    for (const e of [...snapshot].reverse()) {
+      const last = out.at(-1);
+      if (last && this.areSameForCounter(last, e)) {
+        last.count = (last.count ?? 1) + 1;
+        last.time = e.time;
+      } else {
+        out.push({ ...e, count: 1 });
+      }
+    }
+    return out.reverse();
+  }
+
   // --- Group navigation helpers ---
   openGroup(id: string): void {
     this.activeGroupId = id;
@@ -359,7 +569,29 @@ export class FiretvComponent {
   onDeviceClicked(event: MouseEvent) {
     event.stopPropagation();
     event.preventDefault();
-    this.onDeviceClick.emit(event);
+    this.deviceClick.emit(event);
   }
+}
+
+
+// --- Types for WS Diagnostics ---
+interface AdbCommandSpec { label: string; command: string; }
+interface AdbCommandRun {
+  spec: AdbCommandSpec;
+  id?: number;
+  startTime: string;
+  endTime?: string;
+  latencyMs?: number;
+  frames: WsLogEntry[];
+  success?: boolean;
+  resultPayload?: any;
+  error?: any;
+  stats?: { sentCount: number; recvCount: number; bytesOut: number; bytesIn: number };
+}
+interface DiagnosticsReport {
+  startedAt: string;
+  finishedAt?: string;
+  runs: AdbCommandRun[];
+  totals: { ok: number; err: number; avgLatencyMs?: number };
 }
 

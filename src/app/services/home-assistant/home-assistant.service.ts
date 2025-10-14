@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 // Extended with `map` to transform WebSocket responses when fetching states
-import {BehaviorSubject, from, Observable, Subscription, map, forkJoin, switchMap} from 'rxjs';
+import {BehaviorSubject, from, Observable, Subscription, map, forkJoin, switchMap, of} from 'rxjs';
 import {WebSocketBridgeService} from './websocketBridgeService';
 import {environment} from '../../../environments/environments';
 import { getSupportedMediaPlayerFeatures } from './media-player.helper';
@@ -63,12 +63,30 @@ export class HomeAssistantService {
   public refreshEntities(): void {
     // Aufruf erfolgt relativ, da der Dev-Server die Anfrage proxyt.
     this.http.get<Entity[]>(`${this.baseUrl}/states`, { headers: this.headers })
-      .subscribe((entities) => {
-        this.entitiesMap.clear();
-        for (const e of entities) {
-          this.entitiesMap.set(e.entity_id, e);
+      .subscribe({
+        next: (entities) => {
+          console.debug('[HA][HTTP] /states OK:', Array.isArray(entities) ? entities.length : 0, 'entities');
+          this.entitiesMap.clear();
+          for (const e of entities) {
+            this.entitiesMap.set(e.entity_id, e);
+          }
+          this.entitiesSubject.next(entities);
+        },
+        error: (err) => {
+          console.warn('[HA][HTTP] /states fehlgeschlagen – fallback via WebSocket get_states', err);
+          // Fallback: Seed via WS get_states
+          this.getStatesWs().subscribe({
+            next: (states) => {
+              console.debug('[HA][WS] Seeded entities from get_states:', states.length);
+              this.entitiesMap.clear();
+              for (const e of states) {
+                this.entitiesMap.set(e.entity_id, e);
+              }
+              this.entitiesSubject.next(states);
+            },
+            error: (wsErr) => console.error('[HA][WS] get_states ebenfalls fehlgeschlagen – keine Entities verfügbar', wsErr)
+          });
         }
-        this.entitiesSubject.next(entities);
       });
   }
 
@@ -160,28 +178,30 @@ export class HomeAssistantService {
   }
 
   // -------- FireTV commands discovery --------
-  private extractCommandsFromAttrs(attrs: any): string[] {
-    if (!attrs) return [];
-    const candidates = ['command_list', 'commands', 'available_commands', 'extra_commands', 'supported_commands', 'command_mapping'];
-    for (const key of candidates) {
-      const val = attrs[key];
-      if (!val) continue;
-      if (Array.isArray(val)) return val.map(v => String(v));
-      if (typeof val === 'string') {
-        const parts = val.split(/\s*,\s*|\s+/).map(s => s.trim()).filter(Boolean);
-        if (parts.length) return parts;
-      }
-      if (typeof val === 'object') {
-        // e.g., mapping: { NAME: code }
-        const keys = Object.keys(val);
-        if (keys.length) return keys;
-      }
+  private toCommandList(val: unknown): string[] {
+    if (Array.isArray(val)) {
+      return val.map(v => v).filter(Boolean);
+    }
+    if (typeof val === 'string') {
+      return val.split(/\s*,\s*|\s+/).map(s => s.trim()).filter(Boolean);
+    }
+    if (val && typeof val === 'object') {
+      return Object.keys(val as Record<string, any>);
     }
     return [];
   }
 
+  private extractCommandsFromAttrs(attrs: any): string[] {
+    if (!attrs) return [];
+    const candidates = ['command_list', 'commands', 'available_commands', 'extra_commands', 'supported_commands', 'command_mapping'];
+    const first = candidates
+      .map(key => this.toCommandList(attrs[key]))
+      .find(list => list.length > 0);
+    return first ?? [];
+  }
+
   private normalizeName(s?: string): string {
-    return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return (s || '').toLowerCase().replaceAll(/[^a-z0-9]+/g, '');
   }
 
   /** Resolve the FireTV remote entity_id from the states snapshot. */
@@ -218,7 +238,8 @@ export class HomeAssistantService {
 
         // Additionally, try to enrich with media_player source_list (apps/inputs)
         const media = states.find(e => e.entity_id === 'media_player.fire_tv' || (e.entity_id.startsWith('media_player.') && this.normalizeName(e.attributes?.friendly_name).includes('firetv')));
-        const sources: string[] = Array.isArray(media?.attributes?.source_list) ? media!.attributes!.source_list as string[] : [];
+        const sourceList = media?.attributes?.source_list;
+        const sources: string[] = Array.isArray(sourceList) ? sourceList : [];
         const sourceCmds = sources.map(s => `SELECT_SOURCE:${s}`);
 
         if (cmds.length) {
@@ -262,42 +283,60 @@ export class HomeAssistantService {
     );
   }
 
+  private isFireEntityRegistryEntry(e: any): boolean {
+    const domainOk = e.domain === 'media_player' || e.domain === 'remote';
+    const platform = (e.platform || '').toLowerCase();
+    const platformOk = platform.includes('androidtv') || platform.includes('firetv');
+    const idOk = e.entity_id === 'media_player.fire_tv' || e.entity_id === 'remote.fire_tv';
+    const nameOk = (e.original_name || e.name || '').toLowerCase().includes('fire');
+    return domainOk && (platformOk || idOk || nameOk);
+  }
+
+  private groupFireTvEntitiesByDevice(entities: any[]): Array<{ device_id: string; entity_ids: string[] }> {
+    const fireEntities = entities.filter((e: any) => this.isFireEntityRegistryEntry(e));
+    const byDevice = new Map<string, { device_id: string; entity_ids: string[] }>();
+    for (const e of fireEntities) {
+      if (!e.device_id) continue;
+      if (!byDevice.has(e.device_id)) byDevice.set(e.device_id, { device_id: e.device_id, entity_ids: [] });
+      byDevice.get(e.device_id)!.entity_ids.push(e.entity_id);
+    }
+    return Array.from(byDevice.values());
+  }
+
+  /** Attach device info and actions to a grouped Fire TV device entry. */
+  private mapDeviceActions(
+    group: { device_id: string; entity_ids: string[] },
+    devices: any[],
+    actions: any[]
+  ): { device_id: string; device_info?: any; entity_ids: string[]; actions: any[] } {
+    const info = devices.find((dev: any) => dev.id === group.device_id);
+    return { device_id: group.device_id, device_info: info, entity_ids: group.entity_ids, actions };
+  }
+
+  /** Build action requests for Fire TV groups and join results. Returns empty list if no groups. */
+  private buildDeviceActionsForGroups(
+    groups: Array<{ device_id: string; entity_ids: string[] }>,
+    devices: any[]
+  ): Observable<Array<{ device_id: string; device_info?: any; entity_ids: string[]; actions: any[] }>> {
+    if (!groups || groups.length === 0) {
+      return of([]);
+    }
+    const requests = groups.map(g =>
+      this.listActionsForDevice(g.device_id).pipe(
+        map(actions => this.mapDeviceActions(g, devices, actions))
+      )
+    );
+    return forkJoin(requests);
+  }
+
   /**
    * Discover FireTV-related devices via entity registry (androidtv/remote/media_player) and
    * return their available device actions from Home Assistant's device automation API.
    */
   public listFireTvDeviceActions(): Observable<Array<{ device_id: string; device_info?: any; entity_ids: string[]; actions: any[] }>> {
     return forkJoin([this.getEntityRegistry$(), this.getDeviceRegistry$()]).pipe(
-      switchMap(([entities, devices]) => {
-        const isFireEntity = (e: any) => {
-          const domainOk = e.domain === 'media_player' || e.domain === 'remote';
-          const platformOk = (e.platform || '').toLowerCase().includes('androidtv') || (e.platform || '').toLowerCase().includes('firetv');
-          const idOk = e.entity_id === 'media_player.fire_tv' || e.entity_id === 'remote.fire_tv';
-          const nameOk = (e.original_name || e.name || '').toLowerCase().includes('fire');
-          return domainOk && (platformOk || idOk || nameOk);
-        };
-
-        const fireEntities = entities.filter(isFireEntity);
-        const byDevice = new Map<string, { device_id: string; entity_ids: string[] }>();
-        for (const e of fireEntities) {
-          if (!e.device_id) continue;
-          if (!byDevice.has(e.device_id)) byDevice.set(e.device_id, { device_id: e.device_id, entity_ids: [] });
-          byDevice.get(e.device_id)!.entity_ids.push(e.entity_id);
-        }
-        const unique = Array.from(byDevice.values());
-
-        if (unique.length === 0) {
-          return from([[]]);
-        }
-
-        const actions$ = unique.map(d => this.listActionsForDevice(d.device_id).pipe(
-          map(actions => {
-            const info = devices.find((dev: any) => dev.id === d.device_id);
-            return { device_id: d.device_id, device_info: info, entity_ids: d.entity_ids, actions };
-          })
-        ));
-        return forkJoin(actions$);
-      })
+      map(([entities, devices]) => ({ groups: this.groupFireTvEntitiesByDevice(entities), devices })),
+      switchMap(({ groups, devices }) => this.buildDeviceActionsForGroups(groups, devices))
     );
   }
 
@@ -363,17 +402,17 @@ export class HomeAssistantService {
 
         // Build remote commands using same logic as listFireTvCommands()
         let remoteCmds = remote ? this.extractCommandsFromAttrs(remote.attributes) : [];
-        const sources: string[] = Array.isArray(media?.attributes?.source_list) ? media!.attributes!.source_list as string[] : [];
+        const sources: string[] = media?.attributes?.source_list ?? [];
         const sourceCmds = sources.map(s => `SELECT_SOURCE:${s}`);
-        if (!remoteCmds.length) {
-          const fallback = [
-            'POWER','HOME','BACK','UP','DOWN','LEFT','RIGHT','ENTER',
-            'MENU','PLAY','PAUSE','PLAY_PAUSE','REWIND','FAST_FORWARD',
-            'VOLUME_UP','VOLUME_DOWN','MUTE','SLEEP','?'
-          ];
-          remoteCmds = Array.from(new Set([...fallback, ...sourceCmds]));
+        if ( remoteCmds.length ) {
+          remoteCmds = Array.from( new Set( [...remoteCmds, ...sourceCmds] ) );
         } else {
-          remoteCmds = Array.from(new Set([...remoteCmds, ...sourceCmds]));
+          const fallback = [
+            'POWER', 'HOME', 'BACK', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ENTER',
+            'MENU', 'PLAY', 'PAUSE', 'PLAY_PAUSE', 'REWIND', 'FAST_FORWARD',
+            'VOLUME_UP', 'VOLUME_DOWN', 'MUTE', 'SLEEP', '?'
+          ];
+          remoteCmds = Array.from( new Set( [...fallback, ...sourceCmds] ) );
         }
 
         const out = {

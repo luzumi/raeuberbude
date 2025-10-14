@@ -52,14 +52,24 @@ export class SamsungTv implements OnInit {
   ngOnInit(): void {
     this.hass.entities$
       .pipe(
-        map((entities) => entities.find(e => e.entity_id === 'media_player.tv_samsung'))
+        map((entities) => {
+          const exact = entities.find(e => e.entity_id === 'media_player.tv_samsung');
+          if (exact) return exact;
+          const byId = entities.find(e => e.entity_id.startsWith('media_player.') && e.entity_id.toLowerCase().includes('samsung'));
+          if (byId) return byId;
+          const byName = entities.find(e => e.entity_id.startsWith('media_player.') && (e.attributes?.friendly_name || '').toLowerCase().includes('samsung'));
+          return byName;
+        })
       )
       .subscribe((entity) => {
         if (entity) {
+          if (!this.samsung || this.samsung.entity_id !== entity.entity_id) {
+            console.info('[SamsungTv] Verwende MediaPlayer:', entity.entity_id, '(', entity.attributes?.friendly_name, ')');
+          }
           this.samsung = entity;
           this.volume = Math.round((entity.attributes.volume_level ?? 0) * 100);
         } else {
-          console.warn('[SamsungTv] Entity media_player.tv_samsung nicht gefunden' + entity);
+          console.warn('[SamsungTv] Kein Samsung MediaPlayer in States gefunden');
         }
       });
 
@@ -84,8 +94,18 @@ export class SamsungTv implements OnInit {
     // Then, fetch Samsung remote commands from states
     this.hass.getStatesWs().subscribe({
       next: (states) => {
-        const samsung = states.find(e => e.entity_id === 'remote.samsung');
-        const samsungCmds = this.extractCommands(samsung?.attributes);
+        const samsungRemote =
+          states.find(e => e.entity_id === 'remote.samsung') ??
+          states.find(e => e.entity_id.startsWith('remote.') && (
+            e.entity_id.toLowerCase().includes('samsung') ||
+            (e.attributes?.friendly_name || '').toLowerCase().includes('samsung')
+          ));
+        if (!samsungRemote) {
+          console.warn('[SamsungTv] Keine Samsung-Remote gefunden; verwende Default-Commandliste');
+          this.samsungCommands = this.defaultSamsungCommands();
+          return;
+        }
+        const samsungCmds = this.extractCommands(samsungRemote.attributes);
         this.samsungCommands = samsungCmds.length ? samsungCmds : this.defaultSamsungCommands();
       },
       error: err => console.error('[SamsungTv] Fehler beim Laden der Samsung-Befehle:', err)
@@ -105,28 +125,13 @@ export class SamsungTv implements OnInit {
     for (const key of candidates) {
       const val = attrs[key];
       if (!val) continue;
-      if (Array.isArray(val)) return val.map(v => String(v));
+      if (Array.isArray(val)) return val.map(v => v);
       if (typeof val === 'string') {
         const parts = val.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
         if (parts.length) return parts;
       }
     }
     return [];
-  }
-
-  private defaultFireTvCommands(): string[] {
-    return [
-      'HOME',
-      'BACK',
-      'UP',
-      'DOWN',
-      'LEFT',
-      'RIGHT',
-      'ENTER',
-      'PLAY_PAUSE',
-      'POWER',
-      'SLEEP'
-    ];
   }
 
   private defaultSamsungCommands(): string[] {
@@ -153,19 +158,27 @@ export class SamsungTv implements OnInit {
     ];
   }
 
+  private defaultFireTvCommands(): string[] {
+    // Fallback set analogous to HomeAssistantService.listFireTvCommands fallback
+    return [
+      'POWER', 'HOME', 'BACK', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ENTER',
+      'MENU', 'PLAY', 'PAUSE', 'PLAY_PAUSE', 'REWIND', 'FAST_FORWARD',
+      'VOLUME_UP', 'VOLUME_DOWN', 'MUTE', 'SLEEP', '?'
+    ];
+  }
+
   // --- Numeric keypad logic ---
   onDigit(d: string): void {
-    if (!/^[0-9]$/.test(d)) return;
+    if (!/^\d$/.test(d)) return;
     this.digitBuffer += d;
     this.resetDigitTimer();
   }
-
   private resetDigitTimer(): void {
     if (this.digitTimer) {
       clearTimeout(this.digitTimer);
       this.digitTimer = null;
     }
-    this.digitTimer = setTimeout(() => {
+    this.digitTimer = setTimeout((): void => {
       this.flushDigitBuffer();
     }, this.digitDelayMs);
   }
@@ -180,16 +193,16 @@ export class SamsungTv implements OnInit {
 
   private sendDigitSequence(seq: string): void {
     const delayBetween = 150; // ms between individual key sends
-    seq.split('').forEach((ch, i) => {
+    for ( const ch of seq.split( '' ) ) {
+      const i = seq.split( '' ).indexOf( ch );
       const cmd = this.mapDigitToCommand(ch);
       setTimeout(() => this.tv.sendCommand(cmd), i * delayBetween);
-    });
+    }
   }
 
   private mapDigitToCommand(ch: string): string {
     return `KEY_${ch}`; // Samsung remote expects KEY_0..KEY_9
   }
-
   /**
    * Sends the chosen FireTV command via WebSocket.
    */
