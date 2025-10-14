@@ -10,6 +10,7 @@ import { CreatorMinimal } from '@rooms/bude/devices/creator/creator-minimal/crea
 import { SamsungTvMinimal } from '@bude/devices/samsung-tv/samsung-tv-minimal/samsung-tv-minimal';
 import { MenuMinimal } from '@shared/components/menu/menu-minimal';
 import { AuthService } from '@services/auth.service';
+import { HomeAssistantService } from '@services/home-assistant/home-assistant.service';
 import { HeaderComponent } from '@shared/components/header/header.component';
 import { MenuComponent } from '@shared/components/menu/menu';
 import { Creator } from '@rooms/bude/devices/creator/creator';
@@ -63,10 +64,11 @@ export class BudeComponent implements OnInit {
   /** Öffnungszustand des Menüs. */
   menuOpen = false;
 
-  public userName: string = 'asd';
+  public userName: string = 'developer';
 
   constructor(
     private readonly auth: AuthService,
+    private readonly ha: HomeAssistantService,
   ) {}
 
   ngOnInit(): void {
@@ -83,6 +85,74 @@ export class BudeComponent implements OnInit {
     // Samsung TV angeklickt, Menü schließen und Gerät aktivieren
     this.menuOpen = false;
     this.activeIndex = this.activeIndex === idx ? null : idx;
+  }
+
+  /**
+   * Vereinheitlichte Click-Logik pro Kachel.
+   * - orange-light: Click wird unterdrückt (Short/Long wird über Pointer-Events gehandhabt)
+   * - samsung-tv: wie bisher separate Logik
+   * - andere Geräte: öffnen Details
+   */
+  onTileClick(type: Device['type'], idx: number, event: Event): void {
+    if (type === 'orange-light') {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (type === 'samsung-tv') {
+      this.onClickSamsung(idx);
+    } else {
+      this.onClick(idx);
+    }
+  }
+
+  // --- Long-Press Support für orange-light ---
+  private longPressTimer: any = null;
+  private readonly longPressThreshold = 500; // ms
+
+  onPressStart(type: Device['type'], idx: number, event: Event): void {
+    if (type !== 'orange-light') return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.clearLongPressTimer();
+    this.longPressTimer = setTimeout(() => {
+      // Long-Press erkannt -> Komponente öffnen
+      this.longPressTimer = null;
+      this.menuOpen = false;
+      this.activeIndex = idx;
+    }, this.longPressThreshold);
+  }
+
+  onPressEnd(type: Device['type'], idx: number, event: Event): void {
+    if (type !== 'orange-light') return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.longPressTimer) {
+      // Timer noch aktiv -> Short-Press => Toggle auslösen
+      this.clearLongPressTimer();
+      this.toggleOrangeLight();
+    }
+  }
+
+  onPressCancel(event: Event): void {
+    console.log(event);
+    this.clearLongPressTimer();
+  }
+
+  private clearLongPressTimer(): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
+
+  /**
+   * Schaltet die Orange-Light Lampe per Home Assistant um.
+   * Short-Press-Action auf der Kachel.
+   */
+  private toggleOrangeLight(): void {
+    const entityId = 'light.wiz_tunable_white_640190';
+    this.ha.callService('light', 'toggle', { entity_id: entityId }).subscribe();
   }
 
   onMenuButtonClick() {
@@ -134,5 +204,111 @@ export class BudeComponent implements OnInit {
    */
   getMenuGradient(): string {
     return this.gradientFrom('#34495e');
+  }
+
+  // --- Dev helper: copy DLNA DMR commands as JSON to clipboard ---
+  copyDlnaCommandsJson(): void {
+    this.ha.getDlnaDmrCommandsJson().subscribe({
+      next: async (json) => {
+        try {
+          await navigator.clipboard.writeText(json);
+          console.info('[Bude] DLNA DMR commands JSON copied to clipboard.');
+          console.debug(json);
+        } catch (e) {
+          console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
+          console.log(json);
+        }
+      },
+      error: (err) => {
+        console.error('[Bude] Failed to get DLNA DMR commands JSON:', err);
+      }
+    });
+  }
+
+  // --- Dev helper: copy FireTV commands as JSON to clipboard ---
+  copyFireTvCommandsJson(): void {
+    this.ha.getFireTvCommandsJson().subscribe({
+      next: async (json) => {
+        try {
+          await navigator.clipboard.writeText(json);
+          console.info('[Bude] FireTV commands JSON copied to clipboard.');
+          console.debug(json);
+        } catch (e) {
+          console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
+          console.log(json);
+        }
+      },
+      error: (err) => {
+        console.error('[Bude] Failed to get FireTV commands JSON:', err);
+      }
+    });
+  }
+
+  // --- Dev helper: copy FireTV device actions (device_automation) as JSON ---
+  copyFireTvDeviceActionsJson(): void {
+    this.ha.getFireTvDeviceActionsJson().subscribe({
+      next: async (json) => {
+        try {
+          await navigator.clipboard.writeText(json);
+          console.info('[Bude] FireTV device actions JSON copied to clipboard.');
+          console.debug(json);
+        } catch (e) {
+          console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
+          console.log(json);
+        }
+      },
+      error: (err) => console.error('[Bude] Failed to get FireTV device actions JSON:', err)
+    });
+  }
+
+  // --- Dev helper: copy androidtv domain services as JSON ---
+  copyAndroidTvServicesJson(): void {
+    this.ha.getAndroidTvServicesJson().subscribe({
+      next: async (json) => {
+        try {
+          await navigator.clipboard.writeText(json);
+          console.info('[Bude] androidtv services JSON copied to clipboard.');
+          console.debug(json);
+        } catch (e) {
+          console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
+          console.log(json);
+        }
+      },
+      error: (err) => console.error('[Bude] Failed to get androidtv services JSON:', err)
+    });
+  }
+
+  // --- Dev helper: copy media_player domain services as JSON ---
+  copyMediaPlayerServicesJson(): void {
+    this.ha.getMediaPlayerServicesJson().subscribe({
+      next: async (json) => {
+        try {
+          await navigator.clipboard.writeText(json);
+          console.info('[Bude] media_player services JSON copied to clipboard.');
+          console.debug(json);
+        } catch (e) {
+          console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
+          console.log(json);
+        }
+      },
+      error: (err) => console.error('[Bude] Failed to get media_player services JSON:', err)
+    });
+  }
+
+  // --- Dev helper: copy aggregated Fire TV capabilities JSON ---
+  copyFireTvCapabilitiesJson(): void {
+    this.ha.getFireTvCapabilitiesJson().subscribe({
+      next: async (json) => {
+        try {
+          await navigator.clipboard.writeText(json);
+          console.info('[Bude] Fire TV capabilities JSON copied to clipboard.');
+          console.debug(json);
+        } catch (e) {
+          console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
+          console.log(json);
+        }
+      },
+      error: (err) => console.error('[Bude] Failed to get Fire TV capabilities JSON:', err)
+    });
   }
 }

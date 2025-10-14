@@ -91,3 +91,69 @@
   cursor: pointer;
 }
 
+/* Keyboard for testing commands */
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.keyboard-toolbar,
+.adb-bar {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.keyboard-toolbar input,
+.adb-bar input {
+  flex: 1;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.3);
+  color: #fff;
+}
+
+.keyboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+
+.keyboard-grid button {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Gruppen-Übersicht */
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+.keyboard-toolbar {
+  align-items: center;
+}
+
+.keyboard-toolbar .back {
+  padding: 0.4rem 0.8rem;
+}
+
+.keyboard-toolbar .group-title {
+  font-weight: 600;
+}
+
+.keyboard-toolbar .flex-spacer {
+  flex: 1 1 auto;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+

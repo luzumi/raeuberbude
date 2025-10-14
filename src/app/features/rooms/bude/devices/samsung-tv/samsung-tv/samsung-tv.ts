@@ -8,13 +8,12 @@ import { FormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FiretvComponent } from '../../firetv/fire-tv-component';
-import { KeyPadComponent } from '@shared/components/key-pad-component/key-pad.component';
 
 @Component({
   selector: 'app-samsung-tv',
   templateUrl: './samsung-tv.html',
   standalone: true,
-  imports: [CommonModule, HorizontalSlider, FormsModule, MatIconButton, MatIconModule, FiretvComponent, KeyPadComponent],
+  imports: [CommonModule, HorizontalSlider, FormsModule, MatIconButton, MatIconModule, FiretvComponent],
   styleUrls: ['./samsung-tv.scss']
 })
 export class SamsungTv implements OnInit {
@@ -30,6 +29,11 @@ export class SamsungTv implements OnInit {
   /** Resolved entity_id for the Fire TV remote. */
   private fireRemoteId = 'remote.fire_tv';
 
+  // --- Numeric input buffering for channel digits ---
+  private digitBuffer = '';
+  private digitTimer: any = null;
+  private readonly digitDelayMs = 700; // ms to wait before sending buffered sequence
+
   @Output() deviceClicked = new EventEmitter<void>();
   /** Ermöglicht das Zurücknavigieren zur Geräteübersicht. */
   @Output() back = new EventEmitter<void>();
@@ -38,7 +42,8 @@ export class SamsungTv implements OnInit {
     public hass: HomeAssistantService,
     // Gemeinsamer Service, der alle Samsung-Befehle kapselt
     private readonly tv: SamsungTvService
-  ) {}
+  ) {
+  }
 
   /**
    * Subscribe during OnInit to avoid ExpressionChangedAfterItHasBeenCheckedError
@@ -66,71 +71,128 @@ export class SamsungTv implements OnInit {
    * Requests the command lists for the remotes from Home Assistant via WebSocket.
    */
   private loadCommands(): void {
+    // First, resolve FireTV commands via robust service
+    this.hass.listFireTvCommands().subscribe({
+      next: (res) => {
+        if (res.entity_id) this.fireRemoteId = res.entity_id;
+        this.fireTvCommands = res.commands?.length ? res.commands : this.defaultFireTvCommands();
+        console.log('[SamsungTv] FireTV commands source=', res.source, 'count=', this.fireTvCommands.length);
+      },
+      error: err => console.error('[SamsungTv] FireTV commands lookup failed:', err)
+    });
+
+    // Then, fetch Samsung remote commands from states
     this.hass.getStatesWs().subscribe({
       next: (states) => {
-        const fire = states.find(e => e.entity_id === 'remote.fire_tv') ||
-          states.find(e => e.entity_id.startsWith('remote.') && e.attributes?.friendly_name === 'Fire_TV');
-        console.log('FireTV: ', fire);
-        this.fireTvCommands = fire?.attributes?.['command_list'] ?? [];
-        this.fireRemoteId = fire?.entity_id ?? this.fireRemoteId;
-
         const samsung = states.find(e => e.entity_id === 'remote.samsung');
-        this.samsungCommands = samsung?.attributes?.['command_list'] ?? [];
+        const samsungCmds = this.extractCommands(samsung?.attributes);
+        this.samsungCommands = samsungCmds.length ? samsungCmds : this.defaultSamsungCommands();
       },
-      error: err => console.error('[SamsungTv] Fehler beim Laden der Befehle:', err)
+      error: err => console.error('[SamsungTv] Fehler beim Laden der Samsung-Befehle:', err)
     });
   }
 
-  onDeviceClick(): void {
-    this.deviceClicked.emit();
+  // Try to extract command arrays from various attribute keys used by different integrations
+  private extractCommands(attrs: any): string[] {
+    if (!attrs) return [];
+    const candidates = [
+      'command_list',
+      'commands',
+      'available_commands',
+      'extra_commands',
+      'supported_commands'
+    ];
+    for (const key of candidates) {
+      const val = attrs[key];
+      if (!val) continue;
+      if (Array.isArray(val)) return val.map(v => String(v));
+      if (typeof val === 'string') {
+        const parts = val.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+        if (parts.length) return parts;
+      }
+    }
+    return [];
   }
 
-  get name(): string {
-    return this.samsung?.attributes.friendly_name ?? 'Unbekannt';
+  private defaultFireTvCommands(): string[] {
+    return [
+      'HOME',
+      'BACK',
+      'UP',
+      'DOWN',
+      'LEFT',
+      'RIGHT',
+      'ENTER',
+      'PLAY_PAUSE',
+      'POWER',
+      'SLEEP'
+    ];
   }
 
-  get state(): string {
-    return this.samsung?.state ?? '-';
+  private defaultSamsungCommands(): string[] {
+    return [
+      'KEY_POWER',
+      'KEY_MUTE',
+      'KEY_LEFT',
+      'KEY_RIGHT',
+      'KEY_UP',
+      'KEY_DOWN',
+      'KEY_ENTER',
+      'KEY_RETURN',
+      'KEY_HOME',
+      'KEY_SOURCE',
+      'KEY_VOLUP',
+      'KEY_VOLDOWN',
+      'KEY_CHUP',
+      'KEY_CHDOWN',
+      'KEY_PLAY',
+      'KEY_PAUSE',
+      'KEY_STOP',
+      'KEY_REWIND',
+      'KEY_FF'
+    ];
   }
 
-  get isMuted(): string {
-    return this.samsung?.attributes['is_volume_muted'] ? 'ja' : 'nein';
+  // --- Numeric keypad logic ---
+  onDigit(d: string): void {
+    if (!/^[0-9]$/.test(d)) return;
+    this.digitBuffer += d;
+    this.resetDigitTimer();
   }
 
-  setVolume(value: number): void {
-    this.volume = value;
-    const volumeLevel = value / 100;
+  private resetDigitTimer(): void {
+    if (this.digitTimer) {
+      clearTimeout(this.digitTimer);
+      this.digitTimer = null;
+    }
+    this.digitTimer = setTimeout(() => {
+      this.flushDigitBuffer();
+    }, this.digitDelayMs);
+  }
 
-    this.hass.callService('media_player', 'volume_set', {
-      entity_id: 'media_player.tv_samsung',
-      volume_level: volumeLevel
-    }).subscribe({
-      next: () => console.log('[SamsungTv] Lautstärke gesetzt:', volumeLevel),
-      error: (err) => console.error('[SamsungTv] Fehler beim Setzen der Lautstärke:', err)
+  private flushDigitBuffer(): void {
+    if (!this.digitBuffer) return;
+    const seq = this.digitBuffer;
+    this.digitBuffer = '';
+    this.digitTimer = null;
+    this.sendDigitSequence(seq);
+  }
+
+  private sendDigitSequence(seq: string): void {
+    const delayBetween = 150; // ms between individual key sends
+    seq.split('').forEach((ch, i) => {
+      const cmd = this.mapDigitToCommand(ch);
+      setTimeout(() => this.tv.sendCommand(cmd), i * delayBetween);
     });
   }
 
-  togglePower(): void {
-    // Einheitliche Power-Steuerung über den Service
-    this.tv.togglePower(this.samsung?.state);
-  }
-
-  /**
-   * Wählt direkt eine Quelle aus dem Source-Menü.
-   * Wird im Test verwendet, daher hier minimal implementiert.
-   */
-  selectSource(source: string): void {
-    this.hass.callService('media_player', 'select_source', {
-      entity_id: 'media_player.tv_samsung',
-      source
-    }).subscribe();
+  private mapDigitToCommand(ch: string): string {
+    return `KEY_${ch}`; // Samsung remote expects KEY_0..KEY_9
   }
 
   /**
    * Sends the chosen FireTV command via WebSocket.
-   * Added as an alternative to the existing buttons.
    */
-  // Forward selected FireTV command to Home Assistant
   sendFireTvCommand(cmd: string): void {
     if (!cmd) return;
     this.hass.callService('remote', 'send_command', {
@@ -142,11 +204,8 @@ export class SamsungTv implements OnInit {
   /**
    * Sends the chosen Samsung TV command via WebSocket.
    */
-  // Sends any Samsung TV command chosen from buttons or select
   sendSamsungCommand(cmd: string): void {
     if (!cmd) return;
-    // Zentrale Ausführung aller Samsung-Kommandos
     this.tv.sendCommand(cmd);
   }
-
 }

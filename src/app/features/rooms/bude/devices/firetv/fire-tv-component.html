@@ -41,6 +41,46 @@
         <option value="" disabled selected>Weitere Befehle</option>
         <option *ngFor="let cmd of commands" [value]="cmd">{{ cmd }}</option>
       </select>
+
+      <!-- Test-Keyboard mit Gruppennavigation und Paginierung -->
+      <div class="keyboard" (click)="$event.stopPropagation()">
+        <!-- Ebene 1: Gruppenübersicht -->
+        <ng-container *ngIf="!activeGroupId; else groupCmdView">
+          <h3>ADB & Remote Gruppen</h3>
+          <div class="group-grid">
+            <button *ngFor="let g of adbGroups" (click)="openGroup(g.id)">{{ g.title }}</button>
+          </div>
+        </ng-container>
+
+        <!-- Ebene 2: Befehlsliste der aktiven Gruppe mit Paging -->
+        <ng-template #groupCmdView>
+          <div class="keyboard-toolbar">
+            <button class="back" (click)="backToGroups()">← Gruppen</button>
+            <span class="group-title">{{ activeGroup?.title }}</span>
+            <span class="flex-spacer"></span>
+            <input type="text" [(ngModel)]="filter" placeholder="Filter commands..." />
+          </div>
+          <div class="keyboard-grid">
+            <button *ngFor="let cmd of visibleCommands" (click)="runKey(cmd)">{{ cmd }}</button>
+          </div>
+          <div class="pager">
+            <button (click)="prevPage()" [disabled]="pageIndex===0">« Prev</button>
+            <span>{{ pageIndex + 1 }} / {{ totalPages }}</span>
+            <button (click)="nextPage()" [disabled]="pageIndex >= totalPages - 1">Next »</button>
+          </div>
+
+          <div class="adb-bar">
+            <input type="text" [(ngModel)]="adbCmd" placeholder="ADB or key (e.g., HOME, input keyevent 3)" />
+            <button (click)="sendAdbCommand()">Send ADB</button>
+          </div>
+          <div class="adb-actions">
+            <button [disabled]="adbTestRunning" (click)="runAllAdbTests()">
+              {{ adbTestRunning ? 'Running ADB tests…' : 'Run all ADB tests' }}
+            </button>
+            <button (click)="copyAdbTestResults()">Copy ADB results</button>
+          </div>
+        </ng-template>
+      </div>
     </div>
   </div>
 

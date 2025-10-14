@@ -1,23 +1,75 @@
 const { join } = require('path');
 const { constants } = require('karma');
+const { execSync } = require('child_process');
 
-// Ensure Karma uses a Chromium binary if available; developers can override
-// CHROME_BIN to point at their local Chrome installation.
-process.env.CHROME_BIN = process.env.CHROME_BIN || '/usr/bin/google-chrome';
+// Auto-detect available Chrome/Chromium binary
+function findChromeBinary() {
+  const candidates = [
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/snap/bin/chromium',
+    '/usr/bin/chrome',
+  ];
+
+  // Check if CHROME_BIN is already set and valid
+  if (process.env.CHROME_BIN) {
+    try {
+      execSync(`test -x "${process.env.CHROME_BIN}"`, { stdio: 'ignore' });
+      return process.env.CHROME_BIN;
+    } catch {
+      console.warn(`CHROME_BIN=${process.env.CHROME_BIN} is not executable, trying alternatives...`);
+    }
+  }
+
+  // Try to find an available binary
+  for (const candidate of candidates) {
+    try {
+      execSync(`test -x "${candidate}"`, { stdio: 'ignore' });
+      console.log(`Using Chrome binary: ${candidate}`);
+      return candidate;
+    } catch {
+      // Continue to next candidate
+    }
+  }
+
+  // Try using 'which' command as fallback
+  try {
+    const chromePath = execSync('which google-chrome || which chromium || which chromium-browser', { 
+      encoding: 'utf8', 
+      stdio: ['ignore', 'pipe', 'ignore'] 
+    }).trim();
+    if (chromePath) {
+      console.log(`Found Chrome via 'which': ${chromePath}`);
+      return chromePath;
+    }
+  } catch {
+    // Fallback failed
+  }
+
+  console.warn('No Chrome/Chromium binary found. Tests may fail.');
+  return null;
+}
+
+// Set CHROME_BIN if we found a valid binary
+const chromeBinary = findChromeBinary();
+if (chromeBinary) {
+  process.env.CHROME_BIN = chromeBinary;
+}
 
 module.exports = function (config) {
   config.set({
     basePath: '',
-    // The Angular 20 builder handles compilation, so only Jasmine is needed.
     frameworks: ['jasmine'],
     plugins: [
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
+      require('karma-firefox-launcher'),
       require('karma-jasmine-html-reporter'),
       require('karma-coverage'),
     ],
     client: {
-      // jasmine: {},
       clearContext: false,
     },
     jasmineHtmlReporter: {
@@ -36,10 +88,19 @@ module.exports = function (config) {
     colors: true,
     logLevel: constants.LOG_INFO,
     autoWatch: false,
-    browsers: ['ChromeHeadless'],
-    // browsers: ['ChromeHeadless'],
+    browsers: chromeBinary ? ['ChromeHeadless'] : ['FirefoxHeadless'],
     singleRun: true,
     restartOnFileChange: false,
-
+    customLaunchers: {
+      ChromeHeadlessNoSandbox: {
+        base: 'ChromeHeadless',
+        flags: [
+          '--no-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--remote-debugging-port=9222',
+        ],
+      },
+    },
   });
 };
