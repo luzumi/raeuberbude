@@ -45,9 +45,11 @@ export class WebSocketBridgeService {
   }
 
   private connect(): void {
-    // Ermittelt die Basis-URL für den WebSocket: Bei relativer API-URL
-    // ("/api") wird der aktuelle Origin genutzt, damit auch externe
-    // Geräte über den Dev-Server verbunden werden.
+    /**
+     * Ermittelt die Basis-URL für den WebSocket: Bei relativer API-URL
+     * ('/api') wird der aktuelle Origin genutzt, damit auch externe
+     * Geräte über den Dev-Server verbunden werden.
+     */
     const base = environment.homeAssistantUrl.startsWith('http')
       ? environment.homeAssistantUrl.replace(/^http/, 'ws')
       : globalThis.location.origin.replace(/^http/, 'ws') + environment.homeAssistantUrl;
@@ -84,7 +86,7 @@ export class WebSocketBridgeService {
       });
 
       if (msg.type === 'auth_ok') {
-        this.connected = true;
+        this.connected = this.isConnected();
         console.log('[WS] Auth OK – subscribing events now');
 
         // Flush queued messages once the connection is fully established
