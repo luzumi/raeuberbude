@@ -33,6 +33,8 @@ class AutoTestRunner {
 
   async startDevServer() {
     console.log('🚀 Starte Dev-Server...');
+    console.log('   (Stelle sicher dass Port 4200 frei ist!)');
+    console.log('');
     
     return new Promise((resolve, reject) => {
       this.devServer = spawn('npm', ['start'], {
@@ -41,27 +43,47 @@ class AutoTestRunner {
       });
 
       let output = '';
+      let resolved = false;
       
       this.devServer.stdout.on('data', (data) => {
-        output += data.toString();
-        // Warte auf "compiled successfully"
-        if (output.includes('compiled successfully') || output.includes('Compiled successfully')) {
-          console.log('✅ Dev-Server bereit');
-          resolve();
+        const text = data.toString();
+        output += text;
+        
+        // Logge Fortschritt
+        if (text.includes('%')) {
+          process.stdout.write('.');
+        }
+        
+        // Warte auf "compiled successfully" oder "Local: http://localhost:4200"
+        if (!resolved && (
+          text.includes('compiled successfully') || 
+          text.includes('Compiled successfully') ||
+          text.includes('Local:') ||
+          text.includes('localhost:4200')
+        )) {
+          resolved = true;
+          console.log('\n✅ Dev-Server bereit');
+          // Warte noch 3 Sekunden zur Sicherheit
+          setTimeout(() => resolve(), 3000);
         }
       });
 
       this.devServer.stderr.on('data', (data) => {
-        console.error('Dev-Server Error:', data.toString());
+        const text = data.toString();
+        // Ignoriere Warnings, nur echte Errors loggen
+        if (text.includes('ERROR')) {
+          console.error('Dev-Server Error:', text);
+        }
       });
 
-      // Timeout nach 30 Sekunden
+      // Timeout nach 60 Sekunden
       setTimeout(() => {
-        if (!output.includes('compiled successfully')) {
-          console.log('⚠️ Timeout - gehe davon aus Server läuft');
+        if (!resolved) {
+          console.log('\n⚠️ Timeout nach 60s - versuche trotzdem...');
+          resolved = true;
           resolve();
         }
-      }, 30000);
+      }, 60000);
     });
   }
 
@@ -215,16 +237,20 @@ class AutoTestRunner {
     
     const logAnalysis = await this.analyzeConsoleLogs();
     
+    const totalTests = this.results.passed.length + this.results.failed.length;
+    const passRate = totalTests > 0 ? Math.round((this.results.passed.length / totalTests) * 100) : 0;
+    
     const report = {
       timestamp: new Date().toISOString(),
       feature: this.config.feature,
-      totalTests: this.results.passed.length + this.results.failed.length,
+      totalTests: totalTests,
       passed: this.results.passed.length,
       failed: this.results.failed.length,
-      passRate: Math.round((this.results.passed.length / (this.results.passed.length + this.results.failed.length)) * 100),
+      passRate: passRate,
+      passedTests: this.results.passed,  // Array von Test-Namen
+      failedTests: this.results.failed,  // Array von {name, error}
       logAnalysis,
-      screenshots: this.results.screenshots,
-      failedTests: this.results.failed
+      screenshots: this.results.screenshots
     };
     
     // Report als JSON speichern
@@ -273,16 +299,16 @@ ${report.logAnalysis.details.errors.map(e => `- \`${e.text}\``).join('\n')}
 
 ## 📸 Screenshots
 
-${report.screenshots.map(s => `- ${path.basename(s)}`).join('\n')}
+${report.screenshots.length > 0 ? report.screenshots.map(s => `- ${path.basename(s)}`).join('\n') : '_(keine Screenshots)_'}
 
 ---
 
 ## 🧪 Test-Details
 
 ### ✅ Bestandene Tests
-${report.passed.map(t => `- ${t}`).join('\n') || '_(keine)_'}
+${report.passedTests && report.passedTests.length > 0 ? report.passedTests.map(t => `- ${t}`).join('\n') : `_(${report.passed} Tests bestanden)_`}
 
-${report.failedTests.length > 0 ? `
+${report.failedTests && report.failedTests.length > 0 ? `
 ### ❌ Fehlgeschlagene Tests
 ${report.failedTests.map(t => `- **${t.name}**: ${t.error}`).join('\n')}
 ` : ''}
