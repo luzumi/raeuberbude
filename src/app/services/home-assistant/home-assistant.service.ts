@@ -49,6 +49,18 @@ export class HomeAssistantService {
   public readonly entities$ = this.entitiesSubject.asObservable();
 
   constructor(private readonly http: HttpClient, private readonly bridge: WebSocketBridgeService) {
+    // Log WebSocket connection status
+    console.log('[HA] WebSocket connected:', this.bridge.isConnected());
+    
+    // Subscribe to WebSocket logs
+    this.bridge.logs$.subscribe(log => {
+      if (log.dir === '->' && log.type === 'call_service') {
+        console.log('[WS→] Sending service call:', log.summary, log.payload);
+      } else if (log.dir === 'queue') {
+        console.warn('[WS⏸️] Message queued (not connected yet):', log.summary);
+      }
+    });
+    
     this.refreshEntities();
 
     this.bridge.subscribeEvent('state_changed').subscribe((event:any) => {
@@ -121,7 +133,13 @@ export class HomeAssistantService {
   }
 
   public callService<T>(domain: string, service: string, data: any): Observable<HassServiceResponse> {
-    console.log(`[HA] Calling service: ${domain}.${service}`, data);
+    const isConnected = this.bridge.isConnected();
+    console.log(`[HA] Calling service: ${domain}.${service} (WS connected: ${isConnected})`, data);
+    
+    if (!isConnected) {
+      console.warn('[HA] ⚠️ WebSocket NOT connected! Message will be queued.');
+    }
+    
     return from(this.bridge.send({
       type: 'call_service',
       domain,
@@ -129,8 +147,8 @@ export class HomeAssistantService {
       service_data: data
     } as unknown as Omit<HassServiceResponse, "id">)).pipe(
       tap({
-        next: (response) => console.log(`[HA] Service response:`, response),
-        error: (error) => console.error(`[HA] Service error:`, error)
+        next: (response) => console.log(`[HA] ✅ Service response:`, response),
+        error: (error) => console.error(`[HA] ❌ Service error:`, error)
       })
     );
   }

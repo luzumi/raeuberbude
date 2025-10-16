@@ -58,6 +58,8 @@ export class WebSocketBridgeService {
     this.emitLog({ dir: 'open', summary: `connecting to ${base}/websocket`, time: this.nowWithMs() });
 
     this.ws.addEventListener('open', () => {
+      console.log('[WS] ✅ WebSocket opened, sending auth...');
+      this.emitLog({ dir: 'auth', summary: 'sending auth token', time: this.nowWithMs() });
       this.ws?.send(JSON.stringify({ type: 'auth', access_token: environment.token }));
     });
 
@@ -86,17 +88,21 @@ export class WebSocketBridgeService {
       });
 
       if (msg.type === 'auth_ok') {
-        this.connected = this.isConnected();
-        console.log('[WS] Auth OK – subscribing events now');
+        this.connected = true; // WICHTIG: Hier direkt auf true setzen!
+        console.log(`[WS] ✅ Auth OK – connected=${this.connected}, flushing ${this.queue.length} queued messages`);
+        this.emitLog({ dir: 'auth', summary: `auth successful, ${this.queue.length} queued`, time: this.nowWithMs() });
 
         // Flush queued messages once the connection is fully established
         for ( const { msg: queuedMsg, resolve } of this.queue.splice( 0 ) ) {
           this.pending.set(queuedMsg.id, { resolve, request: queuedMsg });
-          console.debug('[WS->] (flush)', queuedMsg);
+          console.log('[WS→] (flush) Sending queued message:', queuedMsg.type, queuedMsg);
           const rawFlush = JSON.stringify(queuedMsg);
           this.emitLog({ dir: '->', id: queuedMsg.id, type: queuedMsg.type, summary: '(flush)', payload: queuedMsg, rawLen: rawFlush.length, time: this.nowWithMs() });
           this.ws!.send(rawFlush);
         }
+      } else if (msg.type === 'auth_invalid' || msg.type === 'auth_required') {
+        console.error('[WS] ❌ Authentication failed:', msg);
+        this.emitLog({ dir: 'error', summary: 'auth failed', payload: msg, time: this.nowWithMs() });
       }
 
       if (msg.type === 'result' && this.pending.has(msg.id)) {
