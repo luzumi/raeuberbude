@@ -149,13 +149,32 @@ export class BudeComponent implements OnInit {
   /**
    * Schaltet die Orange-Light Lampe per Home Assistant um.
    * Short-Press-Action auf der Kachel.
+   * Verwendet explizit turn_on/turn_off statt toggle für bessere Kontrolle.
    */
   private toggleOrangeLight(): void {
     const entityId = 'light.wiz_tunable_white_640190';
-    console.log('🔄 Orange Light Toggle triggered');
-    this.ha.callService('light', 'toggle', { entity_id: entityId }).subscribe({
-      next: () => console.log('✅ Toggle successful'),
-      error: (err) => console.error('❌ Toggle failed:', err)
+    const entity = this.ha.getEntity(entityId);
+    
+    if (!entity) {
+      console.error('❌ Orange Light Entity nicht gefunden');
+      return;
+    }
+    
+    const isCurrentlyOn = entity.state === 'on';
+    const targetService = isCurrentlyOn ? 'turn_off' : 'turn_on';
+    
+    console.log(`🔄 Orange Light: ${entity.state} → ${targetService}`);
+    
+    this.ha.callService('light', targetService, { entity_id: entityId }).subscribe({
+      next: () => {
+        console.log(`✅ ${targetService} successful`);
+        // Force State-Refresh (Workaround da WebSocket state_changed für Lampe nicht ankommt)
+        setTimeout(() => {
+          console.log('🔄 Force refreshing all states...');
+          this.ha.refreshEntities();
+        }, 300);
+      },
+      error: (err) => console.error(`❌ ${targetService} failed:`, err)
     });
   }
 

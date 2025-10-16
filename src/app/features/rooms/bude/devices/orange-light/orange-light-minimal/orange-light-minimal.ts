@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HomeAssistantService } from '@services/home-assistant/home-assistant.service';
 import { Subscription } from 'rxjs';
@@ -40,7 +40,10 @@ export class OrangeLightMinimal implements OnDestroy {
   
   private sub?: Subscription;
 
-  constructor(private ha: HomeAssistantService) {
+  constructor(
+    private ha: HomeAssistantService,
+    private cdr: ChangeDetectorRef
+  ) {
     // Subscribe auf Entity-State-Updates
     this.sub = this.ha.entities$
       .pipe(
@@ -48,11 +51,18 @@ export class OrangeLightMinimal implements OnDestroy {
       )
       .subscribe(entity => {
         if (entity) {
+          const previousState = this.isOn;
           this.isOn = entity.state === 'on';
           this.isAvailable = entity.state !== 'unavailable';
+          console.log(`💡 Orange Light State Update: ${entity.state} (isOn: ${previousState} → ${this.isOn})`);
+          
+          // Trigger Change Detection manuell
+          this.cdr.markForCheck();
         } else {
           this.isOn = false;
           this.isAvailable = false;
+          console.log('💡 Orange Light: Entity not found');
+          this.cdr.markForCheck();
         }
       });
   }
