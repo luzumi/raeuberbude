@@ -149,10 +149,54 @@ export class BudeComponent implements OnInit {
   /**
    * Schaltet die Orange-Light Lampe per Home Assistant um.
    * Short-Press-Action auf der Kachel.
+   * Verwendet explizit turn_on/turn_off statt toggle für bessere Kontrolle.
    */
   private toggleOrangeLight(): void {
     const entityId = 'light.wiz_tunable_white_640190';
-    this.ha.callService('light', 'toggle', { entity_id: entityId }).subscribe();
+    
+    // WICHTIG: Hole frischen State aus dem Observable, nicht aus Cache!
+    const allEntities = this.ha.getEntitiesSnapshot();
+    const entity = allEntities.find(e => e.entity_id === entityId);
+    
+    if (!entity) {
+      console.error('❌ Orange Light Entity nicht gefunden');
+      console.error('📋 Verfügbare Entities:', allEntities.map(e => e.entity_id));
+      return;
+    }
+    
+    const isCurrentlyOn = entity.state === 'on';
+    const targetService = isCurrentlyOn ? 'turn_off' : 'turn_on';
+    const optimisticState = isCurrentlyOn ? 'off' : 'on';
+    
+    console.log(`🔄 Orange Light Toggle: "${entity.state}" → ${targetService}`);
+    
+    // OPTIMISTIC UPDATE: Sofort lokalen State ändern
+    const optimisticEntity = { ...entity, state: optimisticState };
+    const currentIndex = allEntities.findIndex(e => e.entity_id === entityId);
+    if (currentIndex >= 0) {
+      allEntities[currentIndex] = optimisticEntity;
+      // Trigger manual update im Service
+      (this.ha as any).entitiesSubject?.next([...allEntities]);
+      console.log(`⚡ Optimistic Update: State lokal auf "${optimisticState}" gesetzt`);
+    }
+    
+    // Service-Call an Home Assistant
+    this.ha.callService('light', targetService, { entity_id: entityId }).subscribe({
+      next: (response) => {
+        console.log(`✅ ${targetService} successful:`, response);
+        // Nach 1 Sekunde den ECHTEN State von HA holen
+        setTimeout(() => {
+          console.log('🔄 Verifiziere echten State von Home Assistant...');
+          this.ha.refreshEntities();
+        }, 1000);
+      },
+      error: (err) => {
+        console.error(`❌ ${targetService} failed:`, err);
+        // Bei Fehler: Rollback zum Original-State
+        console.log('🔙 Rollback: Stelle Original-State wieder her');
+        this.ha.refreshEntities();
+      }
+    });
   }
 
   onMenuButtonClick() {

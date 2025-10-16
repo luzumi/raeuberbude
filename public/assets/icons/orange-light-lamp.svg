@@ -1,0 +1,24 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Transparenter Hintergrund, moderne Lampen-Ikone -->
+  
+  <!-- Lampenschirm -->
+  <path d="M30 35 L50 15 L70 35 Z" fill="#FFA500" stroke="#FF8C00" stroke-width="2" opacity="0.9"/>
+  
+  <!-- Glühbirne -->
+  <circle cx="50" cy="45" r="15" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+  
+  <!-- Licht-Strahlen (für ON-Zustand) -->
+  <g class="light-rays" opacity="0.6">
+    <line x1="50" y1="45" x2="50" y2="25" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
+    <line x1="50" y1="45" x2="35" y2="35" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
+    <line x1="50" y1="45" x2="65" y2="35" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
+    <line x1="50" y1="45" x2="28" y2="45" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
+    <line x1="50" y1="45" x2="72" y2="45" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Lampensockel -->
+  <rect x="45" y="60" width="10" height="15" fill="#8B4513" stroke="#654321" stroke-width="1"/>
+  
+  <!-- Lampenfuß -->
+  <ellipse cx="50" cy="77" rx="12" ry="5" fill="#654321" stroke="#4A3319" stroke-width="1"/>
+</svg>

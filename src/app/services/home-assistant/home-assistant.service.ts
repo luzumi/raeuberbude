@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 // Extended with `map` to transform WebSocket responses when fetching states
-import {BehaviorSubject, from, Observable, Subscription, map, forkJoin, switchMap, of} from 'rxjs';
+import {BehaviorSubject, from, Observable, Subscription, map, forkJoin, switchMap, of, tap} from 'rxjs';
 import {WebSocketBridgeService} from './websocketBridgeService';
 import {environment} from '../../../environments/environments';
 import { getSupportedMediaPlayerFeatures } from './media-player.helper';
@@ -49,13 +49,55 @@ export class HomeAssistantService {
   public readonly entities$ = this.entitiesSubject.asObservable();
 
   constructor(private readonly http: HttpClient, private readonly bridge: WebSocketBridgeService) {
+    // Log WebSocket connection status
+    console.log('[HA] WebSocket connected:', this.bridge.isConnected());
+    
+    // Subscribe to WebSocket logs
+    this.bridge.logs$.subscribe(log => {
+      if (log.dir === '->' && log.type === 'call_service') {
+        console.log('[WS→] Sending service call:', log.summary, log.payload);
+      } else if (log.dir === 'queue') {
+        console.warn('[WS⏸️] Message queued (not connected yet):', log.summary);
+      }
+    });
+    
     this.refreshEntities();
 
     this.bridge.subscribeEvent('state_changed').subscribe((event:any) => {
-      const newState = event.data?.new_state as Entity;
-      if (newState?.entity_id) {
-        this.entitiesMap.set(newState.entity_id, newState);
-        this.entitiesSubject.next([...this.entitiesMap.values()]);
+      console.log('[HA] state_changed event RAW:', event);
+      
+      // Compressed format: event.c oder event.a
+      if (event.c) {
+        console.log('[HA] Compressed format detected');
+        // event.c = { "entity_id": { "+": { "s": "on", "a": {...} } } }
+        for (const [entityId, changes] of Object.entries(event.c)) {
+          const change = (changes as any)['+'];
+          if (change && change.s !== undefined) {
+            const currentEntity = this.entitiesMap.get(entityId);
+            if (currentEntity) {
+              // Update state und attributes
+              const updatedEntity: Entity = {
+                ...currentEntity,
+                state: change.s,
+                attributes: { ...currentEntity.attributes, ...change.a }
+              };
+              console.log(`[HA] Updating entity (compressed): ${entityId} → ${change.s}`);
+              this.entitiesMap.set(entityId, updatedEntity);
+              this.entitiesSubject.next([...this.entitiesMap.values()]);
+            }
+          }
+        }
+      }
+      // Standard format: event.data.new_state
+      else if (event.data?.new_state) {
+        const newState = event.data.new_state as Entity;
+        if (newState?.entity_id) {
+          console.log(`[HA] Updating entity (standard): ${newState.entity_id} → ${newState.state}`);
+          this.entitiesMap.set(newState.entity_id, newState);
+          this.entitiesSubject.next([...this.entitiesMap.values()]);
+        }
+      } else {
+        console.warn('[HA] Unknown event format:', event);
       }
     });
   }
@@ -91,12 +133,24 @@ export class HomeAssistantService {
   }
 
   public callService<T>(domain: string, service: string, data: any): Observable<HassServiceResponse> {
+    const isConnected = this.bridge.isConnected();
+    console.log(`[HA] Calling service: ${domain}.${service} (WS connected: ${isConnected})`, data);
+    
+    if (!isConnected) {
+      console.warn('[HA] ⚠️ WebSocket NOT connected! Message will be queued.');
+    }
+    
     return from(this.bridge.send({
       type: 'call_service',
       domain,
       service,
       service_data: data
-    } as unknown as Omit<HassServiceResponse, "id">));
+    } as unknown as Omit<HassServiceResponse, "id">)).pipe(
+      tap({
+        next: (response) => console.log(`[HA] ✅ Service response:`, response),
+        error: (error) => console.error(`[HA] ❌ Service error:`, error)
+      })
+    );
   }
 
   /**
