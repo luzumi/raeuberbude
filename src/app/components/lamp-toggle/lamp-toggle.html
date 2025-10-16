@@ -1,6 +1,17 @@
 <mat-card>
   <mat-card-title>Orange Light</mat-card-title>
   <mat-card-content>
+    <!-- Visuelles Lampenbild -->
+    <div class="lamp-visual">
+      <img
+        src="/assets/icons/light.svg"
+        alt="Lampe"
+        [class.on]="lampState"
+        [class.off]="!lampState"
+        [class.loading]="loading"
+      />
+    </div>
+    <!-- Toggle-Switch -->
     <mat-slide-toggle
       [checked]="lampState"
       (change)="onToggle()"

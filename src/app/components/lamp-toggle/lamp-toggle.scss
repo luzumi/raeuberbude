@@ -1,4 +1,58 @@
-/* Einfaches Layout f\xC3\xBCr die Lampenkarte */
+﻿/* Einfaches Layout fuer die Lampenkarte */
 :host {
   display: block;
+}
+
+/* Visuelles Lampenbild */
+.lamp-visual {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+
+  img {
+    width: 100px;
+    height: 100px;
+    transition: all 0.3s ease;
+    
+    /* Aus-Zustand: Gedimmt und grau */
+    &.off {
+      opacity: 0.3;
+      filter: grayscale(100%);
+    }
+    
+    /* An-Zustand: Hell mit Leuchteffekt */
+    &.on {
+      opacity: 1;
+      filter: drop-shadow(0 0 15px rgba(255, 165, 0, 0.8))
+              drop-shadow(0 0 25px rgba(255, 200, 50, 0.5));
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+    
+    /* Loading-Zustand: Pulsierend */
+    &.loading {
+      animation: pulse 1s ease-in-out infinite;
+    }
+  }
+}
+
+/* Glow-Animation fuer eingeschaltete Lampe */
+@keyframes glow {
+  from {
+    filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.6))
+            drop-shadow(0 0 20px rgba(255, 200, 50, 0.3));
+  }
+  to {
+    filter: drop-shadow(0 0 20px rgba(255, 165, 0, 1))
+            drop-shadow(0 0 30px rgba(255, 200, 50, 0.7));
+  }
+}
+
+/* Pulse-Animation fuer Loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
