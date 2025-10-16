@@ -31,9 +31,36 @@ class AutoTestRunner {
     };
   }
 
+  async checkServerHealth() {
+    try {
+      const http = require('http');
+      return new Promise((resolve) => {
+        const req = http.get('http://localhost:4200', (res) => {
+          resolve(res.statusCode === 200);
+        });
+        req.on('error', () => resolve(false));
+        req.setTimeout(2000, () => {
+          req.destroy();
+          resolve(false);
+        });
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
   async startDevServer() {
-    console.log('🚀 Starte Dev-Server...');
-    console.log('   (Stelle sicher dass Port 4200 frei ist!)');
+    console.log('🚀 Prüfe Dev-Server...');
+    
+    // Prüfe ob Server bereits läuft
+    const isRunning = await this.checkServerHealth();
+    if (isRunning) {
+      console.log('✅ Dev-Server läuft bereits auf http://localhost:4200');
+      return;
+    }
+    
+    console.log('📡 Server läuft nicht - starte automatisch...');
+    console.log('   (Dies dauert ca. 30-60 Sekunden)');
     console.log('');
     
     return new Promise((resolve, reject) => {
@@ -62,7 +89,7 @@ class AutoTestRunner {
           text.includes('localhost:4200')
         )) {
           resolved = true;
-          console.log('\n✅ Dev-Server bereit');
+          console.log('\n✅ Dev-Server bereit auf http://localhost:4200');
           // Warte noch 3 Sekunden zur Sicherheit
           setTimeout(() => resolve(), 3000);
         }
