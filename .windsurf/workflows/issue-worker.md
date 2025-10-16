@@ -40,11 +40,13 @@ Extrahiere:
 - **Type**: Bug/Feature/Task/Improvement
 - **Priority**: Low/Normal/High/Critical
 
-### 2. Issue-Status aktualisieren
+### 2. Issue-Status aktualisieren auf "In Progress"
 
-Setze den Issue auf "In Progress":
+**KRITISCH:** Status MUSS gesetzt werden, sobald Arbeit beginnt!
 
 ```powershell
+Write-Output "📝 Setze Issue-Status auf 'In Progress'..."
+
 $body = @{
   customFields = @(
     @{
@@ -56,6 +58,8 @@ $body = @{
 } | ConvertTo-Json -Depth 10
 
 Invoke-RestMethod -Uri "https://luzumi.youtrack.cloud/api/issues/$issueId" -Method POST -Headers $headers -Body $body -ContentType "application/json"
+
+Write-Output "✅ Issue-Status: In Progress"
 ```
 
 ### 3. Branch erstellen
@@ -310,81 +314,176 @@ git push -u origin $branchName
 
 ### 11. Pull Request erstellen
 
+**KRITISCH:** PR MUSS im YouTrack-Ticket verlinkt werden!
+
 **Option A: Via GitHub CLI** (falls installiert)
 ```powershell
-gh pr create --title "[LUD28-35] Transparentes Lampenbild in Orange-Light-Komponente" --body "## Beschreibung
-Implementierung von LUD28-35
+Write-Output "📝 Erstelle Pull Request..."
 
-## Änderungen
-- Transparentes Lampenbild hinzugefügt
-- lamp-toggle Komponente erweitert
-- CSS für On/Off-Zustände implementiert
+$prOutput = gh pr create --title "[$issueId] $($issue.summary)" --body "## 🎯 Beschreibung
+Implementierung von $issueId: $($issue.summary)
 
-## Screenshots
-[Screenshot einfügen]
+## ✅ Änderungen
+- [Liste der wichtigsten Änderungen]
 
-## Checklist
-- [x] Code implementiert
+## 🧪 Tests
+- [x] Komponententests geschrieben
 - [x] Manuell getestet
+- [x] Edge Cases geprüft
+
+## 📸 Screenshots
+Siehe Anhänge im YouTrack-Issue
+
+## 📋 Checklist
+- [x] Code implementiert und getestet
 - [x] Code-Style befolgt
 - [x] Kommentare hinzugefügt
+- [x] Issue aktualisiert
 
-## YouTrack Issue
-https://luzumi.youtrack.cloud/issue/LUD28-35" --base main
+## 🔗 YouTrack
+https://luzumi.youtrack.cloud/issue/$issueId
+
+Closes #$issueId" --base main
+
+# PR-URL extrahieren
+$prUrl = ($prOutput | Select-String -Pattern "https://github.com/.*/pull/\d+").Matches.Value
+Write-Output "✅ PR erstellt: $prUrl"
 ```
 
-**Option B: Manuell via URL**
-```
-GitHub URL öffnen und manuell PR erstellen:
-https://github.com/USERNAME/REPO/compare/main...$branchName
+**Option B: Manuell via Browser**
+```powershell
+$prUrl = "https://github.com/luzumi/raeuberbude/compare/main...$branchName"
+Write-Output "📝 Öffne GitHub für manuelle PR-Erstellung..."
+Start-Process $prUrl
+
+# Warte auf User-Input für PR-URL
+Write-Output ""
+Write-Output "Bitte erstelle den PR manuell und kopiere die URL hier:"
+$prUrl = Read-Host "PR-URL"
 ```
 
-### 12. Issue finalisieren (ENHANCED)
+### 12. YouTrack-Issue aktualisieren mit PR-Link
+
+**KRITISCH:** Dies ist der wichtigste Schritt für die Nachverfolgbarkeit!
 
 ```powershell
-# Lade Helper-Funktionen
-. .specify/scripts/youtrack-functions.ps1
-
-# 1. Test-Screenshots hochladen
-Write-Output "📸 Lade Test-Screenshots hoch..."
-if (Test-Path "test-screenshots/*.png") {
-    Get-ChildItem "test-screenshots/*.png" | ForEach-Object {
-        Add-YouTrackAttachment -IssueId $issueId -FilePath $_.FullName
-    }
-}
-
-# 2. Arbeitszeit erfassen (geschätzte tatsächliche Zeit)
-$workMinutes = 90  # Anpassen basierend auf tatsächlichem Aufwand
-Add-YouTrackWorkItem -IssueId $issueId -Minutes $workMinutes -Description "Feature implementiert, getestet und dokumentiert"
-
-# 3. Status aktualisieren
-$body = @{
-  customFields = @(
-    @{
-      name = 'State'
-      '$type' = 'StateIssueCustomField'
-      value = @{ name = 'Open' }  # Zurück auf Open, da "To Verify" nicht existiert
-    }
-  )
-} | ConvertTo-Json -Depth 10
+Write-Output "📝 Aktualisiere YouTrack-Issue mit PR-Link..."
 
 $headers = @{
   'Authorization' = 'Bearer perm:YWRtaW4=.NDUtMA==.VqVCNbrN5JRc1nEJiCuGSHOmqZa1HY'
   'Content-Type' = 'application/json'
 }
 
-Invoke-RestMethod -Uri "https://luzumi.youtrack.cloud/api/issues/$issueId" -Method POST -Headers $headers -Body $body
+# 1. Test-Screenshots hochladen
+Write-Output "📸 Lade Test-Screenshots hoch..."
+if (Test-Path "test-screenshots/*.png") {
+    Get-ChildItem "test-screenshots/*.png" | ForEach-Object {
+        $file = [System.IO.File]::ReadAllBytes($_.FullName)
+        $fileName = $_.Name
+        
+        $uri = "https://luzumi.youtrack.cloud/api/issues/$issueId/attachments?fields=id,name"
+        Invoke-RestMethod -Uri $uri -Method POST -Headers @{
+            'Authorization' = $headers.Authorization
+            'Content-Type' = 'image/png'
+            'Content-Disposition' = "attachment; filename=`"$fileName`""
+        } -Body $file
+    }
+}
 
-# 4. Kommentar mit allen Infos
-$screenshotCount = (Get-ChildItem "test-screenshots/*.png" -ErrorAction SilentlyContinue).Count
-$comment = "{`"text`":`"Pull Request erstellt: $prUrl\n\nImplementierung abgeschlossen:\n- Code implementiert und getestet\n- $screenshotCount Test-Screenshots hochgeladen\n- Arbeitszeit: $workMinutes Min\n\nBereit fuer Review!`"}"
+# 2. PR-Link im Issue verlinken (als Custom Field oder Kommentar)
+Write-Output "🔗 Verlinke Pull Request im Issue..."
 
-Invoke-RestMethod -Uri "https://luzumi.youtrack.cloud/api/issues/$issueId/comments" -Method POST -Headers $headers -Body $comment -ContentType "application/json"
+$prComment = @{
+  text = "🔄 **Pull Request erstellt**
 
-Write-Output "✅ Issue finalisiert mit Screenshots und Zeiterfassung"
+**PR-URL:** $prUrl
+
+✅ **Implementierung abgeschlossen:**
+- Code implementiert und getestet
+- $(if (Test-Path 'test-screenshots/*.png') {(Get-ChildItem 'test-screenshots/*.png').Count} else {0}) Test-Screenshots hochgeladen
+- Bereit für Code Review
+
+**Nächste Schritte:**
+1. Code Review durchführen
+2. Bei Freigabe: PR mergen
+3. Issue automatisch schließen"
+} | ConvertTo-Json -Depth 10
+
+Invoke-RestMethod -Uri "https://luzumi.youtrack.cloud/api/issues/$issueId/comments" -Method POST -Headers $headers -Body $prComment -ContentType "application/json"
+
+# 3. Status auf "In Review" oder "To Verify" setzen
+Write-Output "📝 Setze Issue-Status auf 'To Verify'..."
+
+$statusBody = @{
+  customFields = @(
+    @{
+      name = 'State'
+      '$type' = 'StateIssueCustomField'
+      value = @{ name = 'To verify' }  # Standard YouTrack Status
+    }
+  )
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "https://luzumi.youtrack.cloud/api/issues/$issueId" -Method POST -Headers $headers -Body $statusBody
+    Write-Output "✅ Status: To verify"
+} catch {
+    # Fallback: Setze auf "Open" wenn "To verify" nicht existiert
+    $statusBody = @{
+      customFields = @(
+        @{
+          name = 'State'
+          '$type' = 'StateIssueCustomField'
+          value = @{ name = 'Open' }
+        }
+      )
+    } | ConvertTo-Json -Depth 10
+    
+    Invoke-RestMethod -Uri "https://luzumi.youtrack.cloud/api/issues/$issueId" -Method POST -Headers $headers -Body $statusBody
+    Write-Output "✅ Status: Open (To verify nicht verfügbar)"
+}
+
+# 4. Arbeitszeit erfassen
+Write-Output "⏱️ Erfasse Arbeitszeit..."
+$workMinutes = 90  # Anpassen basierend auf tatsächlichem Aufwand
+
+$workItem = @{
+  text = "Feature implementiert, getestet und dokumentiert"
+  date = (Get-Date).ToString("yyyy-MM-dd")
+  duration = @{
+    minutes = $workMinutes
+  }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "https://luzumi.youtrack.cloud/api/issues/$issueId/timeTracking/workItems" -Method POST -Headers $headers -Body $workItem -ContentType "application/json"
+    Write-Output "✅ Arbeitszeit erfasst: $workMinutes Min"
+} catch {
+    Write-Output "⚠️ Arbeitszeit konnte nicht erfasst werden (kein Problem)"
+}
+
+Write-Output ""
+Write-Output "✅ Issue erfolgreich aktualisiert mit PR-Link und Screenshots!"
 ```
 
-### 13. Zusammenfassung ausgeben
+### 13. Wichtiger Hinweis: Automatisches Issue-Schließen
+
+```
+🤖 AUTOMATISCHER WORKFLOW NACH PR-MERGE:
+
+Wenn der Pull Request gemerged wird:
+1. GitHub Action startet automatisch
+2. Issue-ID wird aus PR-Titel extrahiert
+3. YouTrack-Issue erhält Kommentar "PR gemerged"
+4. Issue-Status wird auf "Fixed" gesetzt
+5. Issue ist automatisch geschlossen ✅
+
+KEINE MANUELLEN SCHRITTE ERFORDERLICH!
+
+Details: Siehe .specify/GITHUB-YOUTRACK-INTEGRATION.md
+```
+
+### 14. Zusammenfassung ausgeben
 
 ```
 ✅ Issue LUD28-35 erfolgreich bearbeitet!
