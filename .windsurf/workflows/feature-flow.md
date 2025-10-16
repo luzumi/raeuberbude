@@ -50,94 +50,97 @@ Write-Output "━━━━━━━━━━━━━━━━━━━━━━
 Write-Output ""
 ```
 
-### Phase 2: Coding Agent beauftragen
+### Phase 2: Coding Agent beauftragen (VOLLAUTOMATISCH)
 
-```markdown
-📝 **Phase 1: Implementierung**
-
-Starte Coding Agent für $issueId...
-```
+// turbo
 
 ```powershell
-# Simuliere Coding Agent Aufruf
-# In Realität würde hier /issue-worker aufgerufen
-Write-Output "👨‍💻 Coding Agent startet..."
+Write-Output "📝 Phase 1: Implementierung"
+Write-Output "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 Write-Output ""
-Write-Output "Möchtest du dass der Coding Agent jetzt implementiert?"
-Write-Output "- Ja → Implementierung startet"
-Write-Output "- Nein → Workflow pausiert"
+Write-Output "👨‍💻 Coding Agent startet automatisch..."
+Write-Output ""
+
+# Rufe issue-worker workflow auf (vollautomatisch)
+# Der Agent macht:
+# 1. Issue laden
+# 2. Status → "In Progress"
+# 3. Branch erstellen
+# 4. Code implementieren
+# 5. Committen & Pushen
 ```
 
-**User bestätigt "Ja":**
-
-```
-/issue-worker $issueId
-```
-
-**Coding Agent arbeitet ab:**
-1. Issue laden
-2. Branch erstellen
-3. Code implementieren
-4. Basis-Tests durchführen
-5. Committen
+**Coding Agent läuft vollautomatisch durch - KEIN USER-INPUT ERFORDERLICH!**
 
 **Output:** Branch-Name, Commit-Hash
 
-### Phase 3: Testing Agent beauftragen
+### Phase 3: Automatisches Testing (VOLLAUTOMATISCH)
 
-```markdown
-🧪 **Phase 2: Testing**
-
-Coding Agent hat implementiert!
-Branch: feature/LUD28-36-lampenbild
-Commits: 2
-
-Starte Testing Agent für umfassende Tests...
-```
+// turbo
 
 ```powershell
 Write-Output ""
 Write-Output "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-Write-Output "🧪 Testing Phase startet..."
+Write-Output "🧪 Phase 2: Automatisches Testing"
+Write-Output "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 Write-Output ""
+Write-Output "🤖 Starte vollautomatischen Test-Runner..."
+Write-Output ""
+
+# Führe automatische Tests durch mit Puppeteer
+node .specify/scripts/auto-test-feature.js "test-config-$issueId.json"
 ```
 
-**Testing Agent Aufruf:**
-```
-/testing-agent $issueId --mode=full --auto-report
-```
+**Was passiert vollautomatisch:**
+1. ✅ Dev-Server startet
+2. ✅ Browser öffnet (headless)
+3. ✅ Tests werden durchgeführt
+4. ✅ Console-Logs gesammelt
+5. ✅ Screenshots erstellt
+6. ✅ Report generiert
+7. ✅ Server stoppt
 
-**Testing Agent führt durch:**
-1. Komponententests schreiben und ausführen
-2. E2E-Tests schreiben und ausführen
-3. Manuelle Browser-Tests
-4. Screenshots erstellen
-5. Test-Report generieren
+**KEIN USER-INPUT! Keine Browser-Logs manuell kopieren!**
 
-### Phase 4: Bug-Analyse
+**Output:** `test-results/auto-test-report.md` mit allen Infos
 
-```markdown
-📊 **Test-Ergebnisse analysieren...**
-```
+### Phase 4: Bug-Analyse (AUTOMATISCH)
+
+// turbo
 
 ```powershell
-# Test-Results auswerten
-$testResults = Get-Content "test-results/summary.json" | ConvertFrom-Json
-
-$totalTests = $testResults.total
-$passedTests = $testResults.passed
-$failedTests = $testResults.failed
-
-Write-Output "Test-Ergebnisse:"
-Write-Output "- Total: $totalTests"
-Write-Output "- Passed: $passedTests ✅"
-Write-Output "- Failed: $failedTests ❌"
+Write-Output ""
+Write-Output "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+Write-Output "📊 Analysiere Test-Ergebnisse..."
 Write-Output ""
 
-if ($failedTests -gt 0) {
-    Write-Output "⚠️ Bugs gefunden! Starte Bug-Fix-Loop..."
+# Test-Results auswerten (automatisch generiert)
+$testReport = Get-Content "test-results/auto-test-report.json" | ConvertFrom-Json
+
+$totalTests = $testReport.totalTests
+$passedTests = $testReport.passed
+$failedTests = $testReport.failed
+$passRate = $testReport.passRate
+$consoleErrors = $testReport.logAnalysis.errors
+
+Write-Output "🧪 Test-Ergebnisse:"
+Write-Output "   Tests: $passedTests/$totalTests passed ($passRate%)"
+Write-Output "   Console-Errors: $consoleErrors"
+Write-Output "   Screenshots: $($testReport.screenshots.Count)"
+Write-Output ""
+
+# Entscheidung: Bugs oder fertig?
+$hasCriticalIssues = ($failedTests -gt 0) -or ($consoleErrors -gt 0)
+
+if ($hasCriticalIssues) {
+    Write-Output "⚠️ Bugs gefunden!"
+    Write-Output "   - $failedTests Test(s) fehlgeschlagen"
+    Write-Output "   - $consoleErrors Console-Error(s)"
+    Write-Output ""
+    Write-Output "🔧 Starte Bug-Fix-Loop..."
 } else {
-    Write-Output "✅ Alle Tests bestanden! Bereit für Pull Request."
+    Write-Output "✅ Alle Tests bestanden! Keine Console-Errors!"
+    Write-Output "📝 Bereit für Pull Request."
 }
 ```
 

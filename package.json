@@ -7,6 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false",
+    "test:auto": "node .specify/scripts/auto-test-feature.js",
+    "test:orange-light": "node .specify/scripts/auto-test-feature.js test-config-orange-light.json",
     "prepare": "husky install",
     "serve:logs": "node server/index.js"
   },

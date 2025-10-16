@@ -1,0 +1,84 @@
+{
+  "feature": "Orange Light - Transparent Lamp Image",
+  "issueId": "LUD28-36",
+  "tests": [
+    {
+      "name": "Page loads successfully",
+      "navigate": "/bude",
+      "waitFor": ".grid-container",
+      "expect": {
+        "selector": ".grid-container",
+        "type": "visible"
+      }
+    },
+    {
+      "name": "Orange Light tile is visible",
+      "waitFor": ".grid-item.orange-light",
+      "screenshotBefore": true,
+      "expect": {
+        "selector": ".grid-item.orange-light",
+        "type": "visible"
+      }
+    },
+    {
+      "name": "Lamp image is displayed",
+      "waitFor": ".grid-item.orange-light img.lamp-icon",
+      "expect": {
+        "selector": ".grid-item.orange-light img.lamp-icon",
+        "type": "visible"
+      }
+    },
+    {
+      "name": "Lamp is in OFF state initially",
+      "waitFor": ".grid-item.orange-light img.lamp-icon.off",
+      "screenshotBefore": true,
+      "expect": {
+        "selector": ".grid-item.orange-light img.lamp-icon.off",
+        "type": "visible"
+      }
+    },
+    {
+      "name": "Click toggles lamp to ON",
+      "action": "click",
+      "selector": ".grid-item.orange-light",
+      "waitAfter": 2000,
+      "screenshotAfter": true,
+      "expect": {
+        "selector": ".grid-item.orange-light img.lamp-icon.on",
+        "type": "visible"
+      }
+    },
+    {
+      "name": "Click toggles lamp back to OFF",
+      "action": "click",
+      "selector": ".grid-item.orange-light",
+      "waitAfter": 2000,
+      "screenshotAfter": true,
+      "expect": {
+        "selector": ".grid-item.orange-light img.lamp-icon.off",
+        "type": "visible"
+      }
+    },
+    {
+      "name": "Long press opens detail view",
+      "action": "longPress",
+      "selector": ".grid-item.orange-light",
+      "duration": 600,
+      "waitAfter": 1000,
+      "screenshotAfter": true,
+      "expect": {
+        "selector": "app-orange-light",
+        "type": "visible"
+      }
+    },
+    {
+      "name": "Multiple rapid clicks handled gracefully",
+      "navigate": "/bude",
+      "waitFor": ".grid-item.orange-light",
+      "action": "click",
+      "selector": ".grid-item.orange-light",
+      "waitAfter": 100,
+      "screenshotAfter": true
+    }
+  ]
+}
