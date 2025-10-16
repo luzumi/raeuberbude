@@ -15,7 +15,7 @@ import { map } from 'rxjs/operators';
   template: `
     <div class="lamp-container">
       <img 
-        src="/assets/icons/orange-light-lamp.svg" 
+        src="assets/icons/orange-light-lamp.svg" 
         alt="Orange Light" 
         class="lamp-icon"
         [class.on]="isOn"

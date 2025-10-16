@@ -152,7 +152,11 @@ export class BudeComponent implements OnInit {
    */
   private toggleOrangeLight(): void {
     const entityId = 'light.wiz_tunable_white_640190';
-    this.ha.callService('light', 'toggle', { entity_id: entityId }).subscribe();
+    console.log('🔄 Orange Light Toggle triggered');
+    this.ha.callService('light', 'toggle', { entity_id: entityId }).subscribe({
+      next: () => console.log('✅ Toggle successful'),
+      error: (err) => console.error('❌ Toggle failed:', err)
+    });
   }
 
   onMenuButtonClick() {
