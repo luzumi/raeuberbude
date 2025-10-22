@@ -1,0 +1,29 @@
+<div class="speedometer">
+  <svg viewBox="0 0 200 200" class="dial">
+    <!-- Hintergrundbogen -->
+    <path
+      [attr.d]="arcD"
+      stroke="#222"
+      stroke-width="12"
+      fill="none"
+      stroke-linecap="round"
+    />
+
+    <!-- Farbsegmente über 240° (240→0→120) -->
+    <ng-container *ngFor="let seg of segments">
+      <path [attr.d]="seg.d" [attr.stroke]="seg.color" stroke-width="12" fill="none" stroke-linecap="round" />
+    </ng-container>
+
+    <!-- Zeiger -->
+    <g [style.transform]="'rotate(' + rotation + 'deg)'" style="transform-origin: 100px 130px; transition: transform 0.5s ease-out;">
+      <line x1="100" y1="130" x2="100" y2="50" stroke="#fff" stroke-width="4" stroke-linecap="round" />
+      <circle cx="100" cy="130" r="6" fill="#fff" />
+    </g>
+
+    <!-- Beschriftungen -->
+    <text x="100" y="100" text-anchor="middle" fill="#fff" font-size="12">{{ title }}</text>
+    <text x="100" y="120" text-anchor="middle" fill="#00e0a7" font-size="20" font-weight="bold">{{ value }}</text>
+    <text x="40" y="175" fill="#aaa" font-size="10">{{ min }}</text>
+    <text x="150" y="175" fill="#aaa" font-size="10">{{ max }}</text>
+  </svg>
+</div>

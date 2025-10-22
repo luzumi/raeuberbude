@@ -1,12 +1,413 @@
-import { Component } from '@angular/core';
+import {CommonModule} from '@angular/common';
+import { SpeedometerComponent } from '@shared/components/speedometer/speedometer';
+import {Component, OnDestroy, OnInit} from '@angular/core';
+import {Entity, HomeAssistantService} from '@services/home-assistant/home-assistant.service';
+import {Subscription} from 'rxjs';
 
 /**
  * Minimale Platzhalteransicht für den PC (Creator).
  */
-@Component({
+@Component( {
   selector: 'app-creator-minimal',
   standalone: true,
-  template: '<div class="device">PC</div>',
+  imports: [CommonModule, SpeedometerComponent],
+  templateUrl: './creator-minimal.html',
+  styleUrls: ['./creator-minimal.scss'],
   host: { 'style': 'display:block;width:100%;height:100%;' }
-})
-export class CreatorMinimal {}
+} )
+export class CreatorMinimal implements OnInit, OnDestroy {
+  // Zustand
+  pcOn = false;
+
+  // Prozentwerte + Sparklines
+  cpuPercent = 0;
+  ramPercent = 0;
+  metric2Label: string = 'RAM';
+  freqPercent = 0;
+  freqValueDisplay = '';
+  cpuAngle = 0;
+  memAngle = 0;
+  freqAngle = 0;
+  private cpuHistory: number[] = [];
+  private ramHistory: number[] = [];
+  cpuPath = '';
+  ramPath = '';
+  private readonly MAX_POINTS = 40;
+  private readonly FREQ_MAX_DEFAULT_MHZ = 5000; // 5 GHz Fallback
+
+  // Gauge Backgrounds (conic-gradient)
+  cpuGaugeBg = '';
+  memGaugeBg = '';
+  freqGaugeBg = '';
+  arcBg = `conic-gradient(from -120deg,
+    #e53935 0deg,      /* rot (links) */
+    #ffb300 60deg,     /* orange */
+    #cddc39 120deg,    /* gelb/grünlich */
+    #4caf50 180deg,    /* grün */
+    #26c6da 240deg,    /* türkis (rechts) */
+    transparent 240deg 360deg
+  )`;
+
+  // Verfügbarkeiten/Aktionen
+  wolAvailable = false;
+  monitorOnAvailable = false;
+  shutdownAvailable = false;
+  restartAvailable = false;
+  sleepAvailable = false;
+  mediaAvailable = false;
+
+  private wolAction?: { domain: string; service: string; data: any };
+  private monitorOnAction?: { domain: string; service: string; data: any };
+  private monitorOffAction?: { domain: string; service: string; data: any };
+  private shutdownAction?: { domain: string; service: string; data: any };
+  private restartAction?: { domain: string; service: string; data: any };
+  private sleepAction?: { domain: string; service: string; data: any };
+  private mediaEntityId?: string; // media_player.* für Play/Pause
+  private onlineBinaryId?: string; // bevorzugter Online-Ping-Sensor
+  private statusSensorId?: string; // bevorzugter Status-Sensor (letzter Systemstatus)
+  private monitorSwitchId?: string; // optionaler Switch für Monitor (toggle)
+  private monitorLastAction?: 'on' | 'off';
+
+  private sub?: Subscription;
+
+  constructor(private readonly hass: HomeAssistantService) {}
+
+  ngOnInit(): void {
+    // Abonniere alle Entity-Änderungen und führe Autodiscovery + Werte-Update durch
+    this.sub = this.hass.entities$.subscribe( (entities) => {
+      this.autodiscover( entities );
+      this.updateMetricsAndState( entities );
+    } );
+  }
+
+  private makeGaugeBg(percent: number, color: string): string {
+    const p = Math.max(0, Math.min(100, percent));
+    const angle = Math.round((p / 100) * 240); // 0..240°
+    // Fülle nur den 240°-Bogen (Rest bleibt transparent)
+    return `conic-gradient(from -120deg, ${color} 0deg ${angle}deg, rgba(255,255,255,0.12) ${angle}deg 240deg, transparent 240deg 360deg)`;
+  }
+
+  private angleFromPercent(percent: number): number {
+    // Map 0..100% auf -120..+120 Grad (Speedometer-Stil)
+    const clamped = Math.max(0, Math.min(100, percent));
+    return -120 + (clamped / 100) * 240;
+  }
+
+  // ---- Helpers ----
+  private norm(s?: string): string { return (s || '').toLowerCase(); }
+
+  private textOf(e: Entity): string { return `${e.entity_id} ${(e.attributes?.friendly_name || '')}`; }
+
+  private hasAny(hay: string, words: string[]): boolean {
+    const s = this.norm(hay);
+    return words.some(w => s.includes(this.norm(w)));
+  }
+
+  private pcMatches(id: string, friendly?: string): boolean {
+    const x = this.norm(id) + ' ' + this.norm(friendly);
+    return x.includes('creator_z590_p1') || x.includes('creator-z590-p1') || x.includes('creatorz590p1') || x.includes('creator') || x.includes('pc');
+  }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
+  }
+
+  // ---- UI Actions ----
+  wakePc(): void {
+    if ( !this.wolAction ) return;
+    this.hass.callService( this.wolAction.domain, this.wolAction.service, this.wolAction.data ).subscribe();
+  }
+
+  monitorOn(): void { this.toggleMonitor(); }
+
+  toggleMonitor(): void {
+    // 1) Switch vorhanden -> toggle
+    if (this.monitorSwitchId) {
+      this.hass.callService('switch', 'toggle', { entity_id: this.monitorSwitchId }).subscribe();
+      return;
+    }
+    // 2) Button/Script on/off vorhanden -> flip basierend auf letzter Aktion
+    if (this.monitorOnAction && this.monitorOffAction) {
+      const doOff = this.monitorLastAction !== 'off';
+      const act = doOff ? this.monitorOffAction : this.monitorOnAction;
+      this.hass.callService(act.domain, act.service, act.data).subscribe();
+      this.monitorLastAction = doOff ? 'off' : 'on';
+      return;
+    }
+    // 3) Nur eine Richtung verfügbar
+    if (this.monitorOffAction) {
+      this.hass.callService(this.monitorOffAction.domain, this.monitorOffAction.service, this.monitorOffAction.data).subscribe();
+      this.monitorLastAction = 'off';
+      return;
+    }
+    if (this.monitorOnAction) {
+      this.hass.callService(this.monitorOnAction.domain, this.monitorOnAction.service, this.monitorOnAction.data).subscribe();
+      this.monitorLastAction = 'on';
+      return;
+    }
+  }
+
+  shutdown(): void {
+    if ( !this.shutdownAction ) return;
+    this.hass.callService( this.shutdownAction.domain, this.shutdownAction.service, this.shutdownAction.data ).subscribe();
+  }
+
+  restart(): void {
+    if ( !this.restartAction ) return;
+    this.hass.callService( this.restartAction.domain, this.restartAction.service, this.restartAction.data ).subscribe();
+  }
+
+  sleep(): void {
+    if ( !this.sleepAction ) return;
+    this.hass.callService( this.sleepAction.domain, this.sleepAction.service, this.sleepAction.data ).subscribe();
+  }
+
+  playPause(): void {
+    if ( !this.mediaEntityId ) return;
+    this.hass.callService( 'media_player', 'media_play_pause', { entity_id: this.mediaEntityId } ).subscribe();
+  }
+
+  // ---- Discovery + State ----
+  private autodiscover(entities: Entity[]): void {
+    // Keyword-Sets für Monitor-Erkennung
+    const MON_ON_KEYS = ['monitor_on','display_on','screen_on','bildschirm an','monitor an','display an','monitoraufwachen','monitor_aufwachen','aufwecken','aufwachen'];
+    const MON_OFF_KEYS = ['monitor_off','display_off','screen_off','bildschirm aus','monitor aus','display aus','monitorschlafen','monitor_schlafen','schlafen'];
+
+    this.wolAction = undefined;
+    this.monitorOnAction = undefined;
+    this.monitorOffAction = undefined;
+    this.shutdownAction = undefined;
+    this.restartAction = undefined;
+    this.sleepAction = undefined;
+    this.mediaEntityId = undefined;
+    this.onlineBinaryId = undefined;
+    this.statusSensorId = undefined;
+    // WOL: button/script/switch mit "wol" oder "wake"
+    const wol = entities.find( e => this.pcMatches( e.entity_id, e.attributes?.friendly_name ) && e.entity_id.match( /^(button|script|switch)\./ ) && (this.norm( e.entity_id ).includes( 'wol' ) || this.norm( e.entity_id ).includes( 'wake' )) );
+    if ( wol ) this.wolAction = this.toAction( wol );
+    this.wolAvailable = !!this.wolAction;
+
+    // Monitor an/aus: button/script + optional switch
+    const monOn = entities.find(e => this.pcMatches(e.entity_id, e.attributes?.friendly_name) && e.entity_id.match(/^(button|script)\./) && this.hasAny(this.textOf(e), MON_ON_KEYS));
+    if (monOn) this.monitorOnAction = this.toAction(monOn);
+    const monOff = entities.find(e => this.pcMatches(e.entity_id, e.attributes?.friendly_name) && e.entity_id.match(/^(button|script)\./) && this.hasAny(this.textOf(e), MON_OFF_KEYS));
+    if (monOff) this.monitorOffAction = this.toAction(monOff);
+    const monSwitch = entities.find(e => e.entity_id.startsWith('switch.') && (this.hasAny(e.entity_id, ['monitor','display','screen']) || this.hasAny(e.attributes?.friendly_name || '', ['monitor','display','screen'])));
+    this.monitorSwitchId = monSwitch?.entity_id;
+    this.monitorOnAvailable = !!(this.monitorSwitchId || this.monitorOnAction || this.monitorOffAction);
+
+    // Shutdown/Restart/Sleep
+    const shutdown = entities.find( e => this.pcMatches( e.entity_id, e.attributes?.friendly_name ) && e.entity_id.match( /^(button|script)\./ ) && (this.norm( e.entity_id ).includes( 'shutdown' ) || this.norm( e.entity_id ).includes( 'power_off' )) );
+    if ( shutdown ) this.shutdownAction = this.toAction( shutdown );
+    this.shutdownAvailable = !!this.shutdownAction;
+
+    const restart = entities.find( e => this.pcMatches( e.entity_id, e.attributes?.friendly_name ) && e.entity_id.match( /^(button|script)\./ ) && (this.norm( e.entity_id ).includes( 'restart' ) || this.norm( e.entity_id ).includes( 'reboot' )) );
+    if ( restart ) this.restartAction = this.toAction( restart );
+    this.restartAvailable = !!this.restartAction;
+
+    const sleep = entities.find( e => this.pcMatches( e.entity_id, e.attributes?.friendly_name ) && e.entity_id.match( /^(button|script)\./ ) && (this.norm( e.entity_id ).includes( 'sleep' ) || this.norm( e.entity_id ).includes( 'hibernate' )) );
+    if ( sleep ) this.sleepAction = this.toAction( sleep );
+    this.sleepAvailable = !!this.sleepAction;
+
+    // Media Player für Play/Pause
+    const mp = entities.find( e => e.entity_id.startsWith( 'media_player.' ) && this.pcMatches( e.entity_id, e.attributes?.friendly_name ) );
+    this.mediaEntityId = mp?.entity_id;
+    this.mediaAvailable = !!this.mediaEntityId;
+
+    // Bevorzugter Online-Binary-Sensor: "Creator Online" oder "PC Online" (Ping)
+    const onlineBin = entities.find(e => e.entity_id.startsWith('binary_sensor.') && (
+      this.norm(e.entity_id).includes('creator_online') ||
+      this.norm(e.entity_id).includes('pc_online') ||
+      (e.attributes?.friendly_name || '').toLowerCase() === 'creator online' ||
+      (e.attributes?.friendly_name || '').toLowerCase() === 'pc online' ||
+      (this.pcMatches(e.entity_id, e.attributes?.friendly_name) && this.norm(e.entity_id).includes('online'))
+    ));
+    this.onlineBinaryId = onlineBin?.entity_id;
+
+    // Bevorzugter Status-Sensor: letztes Systemstatus-Änderung (z.B. CREATOR-Z590-P1_letztesystemstatus_nderung)
+    const statusSensor = entities.find(e => e.entity_id.startsWith('sensor.') && (
+      this.norm(e.entity_id).includes('letztesystemstatus') ||
+      this.norm(e.entity_id).includes('status_anderung') ||
+      this.norm(e.entity_id).includes('statusanderung') ||
+      (e.attributes?.friendly_name || '').toLowerCase().includes('letzte') && (e.attributes?.friendly_name || '').toLowerCase().includes('status')
+    ));
+    this.statusSensorId = statusSensor?.entity_id;
+  }
+
+  private toAction(e: Entity): { domain: string; service: string; data: any } {
+    const domain = e.entity_id.split('.')[0];
+    const data = { entity_id: e.entity_id };
+    let service = 'turn_on';
+    if (domain === 'button') service = 'press';
+    if (domain === 'switch') service = 'turn_on';
+    if (domain === 'script') service = 'turn_on';
+    return { domain, service, data };
+  }
+
+  private updateMetricsAndState(entities: Entity[]): void {
+    // CPU und RAM Sensoren finden
+    const by = (pred: (e: Entity) => boolean) => entities.find(pred);
+    const isCreator = (e: Entity) => this.pcMatches(e.entity_id, e.attributes?.friendly_name);
+
+    // Priorisierte exakte Sensoren
+    const cpuExact = by(e => e.entity_id.startsWith('sensor.') && this.pcMatches(e.entity_id, e.attributes?.friendly_name) && this.norm(e.entity_id).endsWith('_cpulast'));
+    const gpuExact = by(e => e.entity_id.startsWith('sensor.') && this.pcMatches(e.entity_id, e.attributes?.friendly_name) && this.norm(e.entity_id).endsWith('_gpulast'));
+
+    const cpu = cpuExact ?? by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && (
+      this.hasAny(e.entity_id, ['cpu']) || this.hasAny(e.attributes?.friendly_name || '', ['cpu'])
+    ) && (
+      this.hasAny(e.entity_id, ['usage','load','percent','last','auslast','auslastung','util']) || this.hasAny(e.attributes?.friendly_name || '', ['usage','load','percent','last','auslastung','util'])
+    ));
+    const ram = by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && (
+      this.hasAny(e.entity_id, ['ram','memory','arbeitsspeicher','speicher']) || this.hasAny(e.attributes?.friendly_name || '', ['ram','memory','arbeitsspeicher','speicher'])
+    ) && (
+      this.hasAny(e.entity_id, ['used','usage','percent','last','auslast','auslastung']) || this.hasAny(e.attributes?.friendly_name || '', ['used','usage','percent','last','auslastung'])
+    ));
+    const gpu = gpuExact ?? by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && (
+      this.hasAny(e.entity_id, ['gpu']) || this.hasAny(e.attributes?.friendly_name || '', ['gpu'])
+    ) && (
+      this.hasAny(e.entity_id, ['usage','load','percent','last','auslast','auslastung','util']) || this.hasAny(e.attributes?.friendly_name || '', ['usage','load','percent','last','auslastung','util'])
+    ));
+    // CPU-Frequenzsensor (z.B. "*_aktuelletaktfrequenz", oder Keywords ohne CPU-Pflicht)
+    const freqExact = by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && this.norm(e.entity_id).includes('aktuelletaktfrequenz'));
+    const freq = freqExact ?? by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && (
+      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('freq') ||
+      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('frequency') ||
+      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('clock') ||
+      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('takt') ||
+      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('taktfrequenz')
+    ));
+
+    // Werte extrahieren als Prozent (0..100)
+    const toPercent = (e?: Entity): number => {
+      if (!e) return 0;
+      const rawStr = typeof e.state === 'number' ? String(e.state) : String(e.state || '');
+      let val = typeof e.state === 'number' ? e.state : Number.parseFloat(rawStr.replace(',', '.'));
+      if (!isFinite(val)) return 0;
+      const unit = (e.attributes?.['unit_of_measurement'] || '').toString().toLowerCase();
+      // Falls Einheit Prozent oder Wert sehr klein (0..1): auf 0..100 skalieren
+      if (unit.includes('%')) {
+        if (val <= 1) val *= 100;
+      } else {
+        if (val <= 1) val *= 100;
+      }
+      return Math.max(0, Math.min(100, val));
+    };
+
+    const cpuVal = cpu ? toPercent(cpu) : 0;
+    // Zweiter Tachometer: bevorzugt GPU, sonst RAM
+    let secondVal = 0;
+    if (gpu) {
+      secondVal = toPercent(gpu);
+      this.metric2Label = 'GPU';
+    } else if (ram) {
+      secondVal = toPercent(ram);
+      this.metric2Label = 'RAM';
+    } else {
+      secondVal = 0;
+      this.metric2Label = 'RAM';
+    }
+    this.cpuPercent = cpuVal;
+    this.ramPercent = secondVal;
+
+    // Frequenzwert als Prozent berechnen (gegen Max MHz)
+    const toFreqPercent = (e?: Entity): { percent: number; display: string } => {
+      if (!e) return { percent: 0, display: '' };
+      const rawStr = String(e.state || '').replace(',', '.');
+      let val = Number.parseFloat(rawStr);
+      if (!isFinite(val)) return { percent: 0, display: '' };
+      const unit = (e.attributes?.['unit_of_measurement'] || '').toString().toLowerCase();
+      // In MHz normalisieren
+      let mhz = val;
+      if (unit.includes('ghz')) mhz = val * 1000;
+      if (unit.includes('mhz')) mhz = val;
+      // Max aus Attributen erraten
+      const maxAttr = e.attributes?.['max'] ?? e.attributes?.['max_mhz'] ?? e.attributes?.['boost_mhz'] ?? e.attributes?.['turbo'] ?? e.attributes?.['max_frequency'] ?? e.attributes?.['maxfreq'];
+      let max = typeof maxAttr === 'number' ? maxAttr : Number.parseFloat(String(maxAttr || '').replace(',', '.'));
+      if (!isFinite(max) || max <= 0) max = this.FREQ_MAX_DEFAULT_MHZ;
+      const percent = Math.max(0, Math.min(100, (mhz / max) * 100));
+      const display = unit.includes('ghz') ? `${val.toFixed(2)} GHz` : `${Math.round(mhz)} MHz`;
+      return { percent, display };
+    };
+
+    const fp = toFreqPercent(freq);
+    this.freqPercent = fp.percent;
+    this.freqValueDisplay = fp.display;
+
+    // History fortschreiben
+    this.pushHistory(this.cpuHistory, cpuVal);
+    this.pushHistory(this.ramHistory, secondVal);
+    this.cpuPath = this.buildPath(this.cpuHistory);
+    this.ramPath = this.buildPath(this.ramHistory);
+
+    // Gauge-Hintergründe aktualisieren
+    this.cpuGaugeBg = this.makeGaugeBg(this.cpuPercent, '#90caf9');
+    this.memGaugeBg = this.makeGaugeBg(this.ramPercent, '#80e27e');
+    this.freqGaugeBg = this.makeGaugeBg(this.freqPercent, '#fdd835');
+
+    // Needle-Winkel aktualisieren
+    this.cpuAngle = this.angleFromPercent(this.cpuPercent);
+    this.memAngle = this.angleFromPercent(this.ramPercent);
+    this.freqAngle = this.angleFromPercent(this.freqPercent);
+
+    // PC-On Heuristik
+    const mp = this.mediaEntityId ? entities.find(e => e.entity_id === this.mediaEntityId) : undefined;
+    const mpOn = mp ? (mp.state && mp.state !== 'off' && mp.state !== 'unavailable') : false;
+    const onlineBinary = this.onlineBinaryId
+      ? entities.find(e => e.entity_id === this.onlineBinaryId)
+      : entities.find(e => e.entity_id.startsWith('binary_sensor.') && isCreator(e) && (e.entity_id.toLowerCase().includes('online') || e.entity_id.toLowerCase().includes('power')));
+    const online = onlineBinary ? onlineBinary.state === 'on' : false;
+    // Frequenzsensor: online, wenn vorhanden und numerisch > 0
+    const parseNum = (v: any) => typeof v === 'number' ? v : Number.parseFloat(v);
+    const freqNum = freq ? parseNum(freq.state) : NaN;
+    const freqOnline = !!freq && freq.state !== 'unavailable' && freq.state !== 'unknown' && isFinite(freqNum) && freqNum > 0;
+    const cpuOnline = !!cpu && cpu.state !== 'unavailable' && cpu.state !== 'unknown';
+    const ramOnline = !!ram && ram.state !== 'unavailable' && ram.state !== 'unknown';
+    // Verfügbarkeiten werden in autodiscover gesetzt
+    // Priorität 1: Status-Sensor (letzte Systemstatus-Änderung)
+    if (this.statusSensorId) {
+      const s = entities.find(e => e.entity_id === this.statusSensorId);
+      const val = (s?.state || '').toString().toLowerCase();
+      const onlineEvents = new Set(['hassagentstarted','resume','consoleconnect','remoteconnect','sessionlogon','sessionunlock','sessionremotecontrol']);
+      const offlineEvents = new Set(['logoff','systemshutdown','suspend','consoledisconnect','remotedisconnect','sessionlock','sessionlogoff']);
+      const statusOnline = onlineEvents.has(val) || (!offlineEvents.has(val) && (val.includes('resume') || val.includes('start') || val.includes('logon') || val.includes('unlock') || val.includes('connect')));
+      this.pcOn = statusOnline;
+      return;
+    }
+
+    // Priorität 2: Ping-Binary-Sensor – Single Source of Truth
+    if (this.onlineBinaryId) {
+      this.pcOn = online;
+      return;
+    }
+
+    // Fallback: Frequenz-/Media-/CPU-/RAM-Heuristik
+    this.pcOn = freqOnline || mpOn || online || cpuOnline || ramOnline || cpuVal > 0 || secondVal > 0;
+  }
+
+  private pushHistory(arr: number[], val: number): void {
+    arr.push(val);
+    if (arr.length > this.MAX_POINTS) arr.shift();
+    // Seed initial, damit der Graph nicht leer startet
+    if (arr.length < Math.min(5, this.MAX_POINTS) && arr.length === 1) {
+      while (arr.length < 10) arr.push(val);
+    }
+  }
+
+  private buildPath(values: number[]): string {
+    if ( !values.length ) return '';
+    const w = 100;
+    const h = 24;
+    const n = values.length;
+    const step = n > 1 ? w / (n - 1) : w;
+    const pts: Array<{ x: number; y: number }> = values.map( (v, i) => ({
+      x: Math.round( i * step * 100 ) / 100,
+      y: Math.round( (h - (v / 100) * h) * 100 ) / 100
+    }) );
+    let d = `M ${ pts[0].x } ${ pts[0].y }`;
+    for ( let i = 1; i < pts.length; i++ ) {
+      d += ` L ${ pts[i].x } ${ pts[i].y }`;
+    }
+    return d;
+  }
+}

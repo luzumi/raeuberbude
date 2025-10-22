@@ -1,0 +1,51 @@
+<div class="device creator-minimal">
+  <div class="top-row">
+    <div class="status">
+      <div class="dot" [class.on]="pcOn" [class.off]="!pcOn"></div>
+      <div class="name">Creator PC</div>
+      <div class="state">{{ pcOn ? 'Online' : 'Offline' }}</div>
+    </div>
+
+    <div class="actions-right" *ngIf="!pcOn">
+      <button class="btn primary" (click)="$event.stopPropagation(); wakePc()" [class.inactive]="!wolAvailable" [title]="wolAvailable ? 'Wake on LAN' : 'Aktion nicht verfügbar'">
+        ⚡ WOL
+      </button>
+    </div>
+  </div>
+
+  <div class="content" *ngIf="pcOn; else offlineTpl">
+    <div class="gauges">
+      <app-speedometer [title]="'CPU'" [value]="cpuPercent"></app-speedometer>
+      <app-speedometer [title]="metric2Label" [value]="ramPercent"></app-speedometer>
+      <app-speedometer [title]="'Takt'" [value]="freqPercent" [min]="0" [max]="5000"></app-speedometer>
+    </div>
+
+    <div class="buttons">
+      <button class="btn" (click)="$event.stopPropagation(); monitorOn()" [class.inactive]="!monitorOnAvailable" [title]="monitorOnAvailable ? 'Monitor aufwecken' : 'Aktion nicht verfügbar'">
+        🖥️ Monitor an
+      </button>
+      <button class="btn" (click)="$event.stopPropagation(); playPause()" [class.inactive]="!mediaAvailable" [title]="mediaAvailable ? 'Media Play/Pause' : 'Aktion nicht verfügbar'">
+        ⏯️ Play/Pause
+      </button>
+      <div class="spacer"></div>
+      <button class="btn warn" (click)="$event.stopPropagation(); sleep()" [class.inactive]="!sleepAvailable" [title]="sleepAvailable ? 'Ruhezustand' : 'Aktion nicht verfügbar'">
+        🌙 Sleep
+      </button>
+      <button class="btn warn" (click)="$event.stopPropagation(); restart()" [class.inactive]="!restartAvailable" [title]="restartAvailable ? 'Neu starten' : 'Aktion nicht verfügbar'">
+        🔁 Restart
+      </button>
+      <button class="btn danger" (click)="$event.stopPropagation(); shutdown()" [class.inactive]="!shutdownAvailable" [title]="shutdownAvailable ? 'Herunterfahren' : 'Aktion nicht verfügbar'">
+        ⏻ Shutdown
+      </button>
+    </div>
+  </div>
+
+  <ng-template #offlineTpl>
+    <div class="offline-box">
+      <div>PC ist offline.</div>
+      <button class="btn primary" (click)="$event.stopPropagation(); wakePc()" [class.inactive]="!wolAvailable" [title]="wolAvailable ? 'Wake on LAN' : 'Aktion nicht verfügbar'">
+        ⚡ Aufwecken
+      </button>
+    </div>
+  </ng-template>
+</div>

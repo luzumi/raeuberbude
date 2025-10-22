@@ -5,7 +5,7 @@
     <button
       class="filter-button"
       [class.active]="showOnlyBookmarked"
-      (click)="toggleBookmarkFilter()"
+      (click)="toggleBookmarkFilter(); $event.stopPropagation()"
       title="Nur gebookmarkte Befehle anzeigen">
       {{ showOnlyBookmarked ? '⭐ Nur Favoriten' : '☆ Alle Befehle' }}
     </button>
@@ -75,7 +75,7 @@
             <input
               type="checkbox"
               [checked]="cmd.bookmarked"
-              (change)="toggleBookmark(cmd)"
+              (change)="toggleBookmark(cmd); $event.stopPropagation(); $event.preventDefault()"
               title="Als Favorit markieren">
           </td>
         </tr>
