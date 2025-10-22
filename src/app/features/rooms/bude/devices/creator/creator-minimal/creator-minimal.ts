@@ -1,27 +1,28 @@
 import {CommonModule} from '@angular/common';
 import { SpeedometerComponent } from '@shared/components/speedometer/speedometer';
 import {Component, OnDestroy, OnInit} from '@angular/core';
-import {Entity, HomeAssistantService} from '@services/home-assistant/home-assistant.service';
 import {Subscription} from 'rxjs';
+import { Entity, HomeAssistantService } from '@services/home-assistant/home-assistant.service';
 
 /**
  * Minimale Platzhalteransicht für den PC (Creator).
  */
-@Component( {
+@Component({
   selector: 'app-creator-minimal',
   standalone: true,
   imports: [CommonModule, SpeedometerComponent],
   templateUrl: './creator-minimal.html',
-  styleUrls: ['./creator-minimal.scss'],
+  styleUrls: ['./creator-minimal.layout.scss'],
   host: { 'style': 'display:block;width:100%;height:100%;' }
-} )
+})
 export class CreatorMinimal implements OnInit, OnDestroy {
   // Zustand
   pcOn = false;
-
+  private wasPcOn: boolean | undefined;
   // Prozentwerte + Sparklines
   cpuPercent = 0;
   ramPercent = 0;
+  gpuPercent = 0;
   metric2Label: string = 'RAM';
   freqPercent = 0;
   freqValueDisplay = '';
@@ -34,6 +35,13 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   ramPath = '';
   private readonly MAX_POINTS = 40;
   private readonly FREQ_MAX_DEFAULT_MHZ = 5000; // 5 GHz Fallback
+
+  // Screenshot (Spy)
+  private readonly SCREENSHOT_URL = 'http://192.168.178.24:8123/local/creator_screenshots/PC-screenshot.png';
+  screenshotUrl: string = '';
+  screenshotStatus: string = '';
+  private screenshotRefreshInterval?: number;
+  private screenshotIntervalMs: number = 1000;
 
   // Gauge Backgrounds (conic-gradient)
   cpuGaugeBg = '';
@@ -77,6 +85,11 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     this.sub = this.hass.entities$.subscribe( (entities) => {
       this.autodiscover( entities );
       this.updateMetricsAndState( entities );
+      // Start/Stop Screenshot-Refresh je nach PC-Status
+      if (this.wasPcOn !== this.pcOn) {
+        if (this.pcOn) this.startScreenshotRefresh(); else this.stopScreenshotRefresh();
+        this.wasPcOn = this.pcOn;
+      }
     } );
   }
 
@@ -110,6 +123,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
+    this.stopScreenshotRefresh();
   }
 
   // ---- UI Actions ----
@@ -295,20 +309,11 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     };
 
     const cpuVal = cpu ? toPercent(cpu) : 0;
-    // Zweiter Tachometer: bevorzugt GPU, sonst RAM
-    let secondVal = 0;
-    if (gpu) {
-      secondVal = toPercent(gpu);
-      this.metric2Label = 'GPU';
-    } else if (ram) {
-      secondVal = toPercent(ram);
-      this.metric2Label = 'RAM';
-    } else {
-      secondVal = 0;
-      this.metric2Label = 'RAM';
-    }
+    // CPU/GPU/RAM getrennt berechnen
     this.cpuPercent = cpuVal;
-    this.ramPercent = secondVal;
+    this.gpuPercent = gpu ? toPercent(gpu) : 0;
+    this.ramPercent = ram ? toPercent(ram) : 0;
+    this.metric2Label = this.gpuPercent ? 'GPU' : 'RAM';
 
     // Frequenzwert als Prozent berechnen (gegen Max MHz)
     const toFreqPercent = (e?: Entity): { percent: number; display: string } => {
@@ -336,7 +341,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
 
     // History fortschreiben
     this.pushHistory(this.cpuHistory, cpuVal);
-    this.pushHistory(this.ramHistory, secondVal);
+    this.pushHistory(this.ramHistory, this.ramPercent);
     this.cpuPath = this.buildPath(this.cpuHistory);
     this.ramPath = this.buildPath(this.ramHistory);
 
@@ -382,7 +387,39 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     }
 
     // Fallback: Frequenz-/Media-/CPU-/RAM-Heuristik
-    this.pcOn = freqOnline || mpOn || online || cpuOnline || ramOnline || cpuVal > 0 || secondVal > 0;
+    this.pcOn = freqOnline || mpOn || online || cpuOnline || ramOnline || cpuVal > 0 || this.gpuPercent > 0 || this.ramPercent > 0;
+  }
+
+  // --- Screenshot Refresh ---
+  private startScreenshotRefresh(): void {
+    this.stopScreenshotRefresh();
+    this.updateScreenshotUrl();
+    this.screenshotRefreshInterval = window.setInterval(() => {
+      this.updateScreenshotUrl();
+    }, this.screenshotIntervalMs);
+  }
+
+  private stopScreenshotRefresh(): void {
+    if (this.screenshotRefreshInterval) {
+      clearInterval(this.screenshotRefreshInterval);
+      this.screenshotRefreshInterval = undefined;
+    }
+  }
+
+  private updateScreenshotUrl(): void {
+    this.screenshotUrl = `${this.SCREENSHOT_URL}?t=${Date.now()}`;
+  }
+
+  onScreenshotLoad(): void {
+    this.screenshotStatus = 'Bild aktualisiert';
+  }
+
+  onScreenshotError(): void {
+    this.screenshotStatus = 'Fehler beim Laden';
+  }
+
+  getCurrentTimestamp(): string {
+    return new Date().toLocaleTimeString();
   }
 
   private pushHistory(arr: number[], val: number): void {

@@ -49,3 +49,4 @@ Thumbs.db
 
 # Playwright auth state
 playwright/.auth/
+/test-results/
