@@ -27,36 +27,58 @@
 
       <!-- Befehls-Kachel mit Schnellzugriffen und Dropdowns -->
       <div class="tile" (click)="$event.stopPropagation()">
-        <div class="remote-controls">
-          <button class="tv-button" (click)="sendSamsungCommand('KEY_MUTE'); $event.stopPropagation();">🔇 Mute</button>
-          <button class="tv-button" (click)="sendSamsungCommand('KEY_LEFT'); $event.stopPropagation();"><span><<<</span>🔁</button>
-          <button class="tv-button" (click)="sendSamsungCommand('KEY_SOURCE'); $event.stopPropagation();">🔁 Source wechseln</button>
-          <button class="tv-button" (click)="sendSamsungCommand('KEY_RIGHT'); $event.stopPropagation();">🔁>>></button>
-        </div>
+        <div class="remote-wrapper">
+          <div class="remote-grid">
+            <!-- Row 1: Power | Up | Mute -->
+            <button class="tv-button" title="Power" (click)="togglePower(); $event.stopPropagation()">⏻</button>
+            <button class="tv-button" title="Up" (click)="sendSamsungCommand('KEY_UP'); $event.stopPropagation()">▲</button>
+            <button class="tv-button" title="Mute" (click)="sendSamsungCommand('KEY_MUTE'); $event.stopPropagation()">🔇</button>
 
-        <!-- Einfache Keypad-Demo -->
-        <app-keypad (keyPressed)="sendSamsungCommand('KEY_RIGHT')" [columns]="1" [keys]="['>']"></app-keypad>
+            <!-- Row 2: Left | Enter | Right -->
+            <button class="tv-button" title="Left" (click)="sendSamsungCommand('KEY_LEFT'); $event.stopPropagation()">◀</button>
+            <button class="tv-button" title="Enter" (click)="sendSamsungCommand('KEY_ENTER'); $event.stopPropagation()">⏎</button>
+            <button class="tv-button" title="Right" (click)="sendSamsungCommand('KEY_RIGHT'); $event.stopPropagation()">▶</button>
+
+            <!-- Row 3: Back | Down | Play/Pause -->
+            <button class="tv-button" title="Back" (click)="sendSamsungCommand('KEY_RETURN'); $event.stopPropagation()">↩</button>
+            <button class="tv-button" title="Down" (click)="sendSamsungCommand('KEY_DOWN'); $event.stopPropagation()">▼</button>
+            <button class="tv-button" title="Play/Pause" (click)="sendSamsungCommand('KEY_PLAY'); $event.stopPropagation()">⏯</button>
+          </div>
+
+          <div class="num-grid">
+            <button class="tv-button" (click)="onDigit('1'); $event.stopPropagation()">1</button>
+            <button class="tv-button" (click)="onDigit('2'); $event.stopPropagation()">2</button>
+            <button class="tv-button" (click)="onDigit('3'); $event.stopPropagation()">3</button>
+            <button class="tv-button" (click)="onDigit('4'); $event.stopPropagation()">4</button>
+            <button class="tv-button" (click)="onDigit('5'); $event.stopPropagation()">5</button>
+            <button class="tv-button" (click)="onDigit('6'); $event.stopPropagation()">6</button>
+            <button class="tv-button" (click)="onDigit('7'); $event.stopPropagation()">7</button>
+            <button class="tv-button" (click)="onDigit('8'); $event.stopPropagation()">8</button>
+            <button class="tv-button" (click)="onDigit('9'); $event.stopPropagation()">9</button>
+            <button class="tv-button span-3" (click)="onDigit('0'); $event.stopPropagation()">0</button>
+          </div>
+        </div>
 
         <div class="select-wrapper">
           <!-- FireTV command selector -->
           <select class="tv-select" [(ngModel)]="selectedFireCommand" (change)="sendFireTvCommand(selectedFireCommand!)">
             <option value="" disabled selected>FireTV Befehl</option>
-            <option *ngFor="let cmd of fireTvCommands" [value]="cmd">{{ cmd }}</option>
+            @for (cmd of fireTvCommands; track cmd) {
+              <option [value]="cmd">{{ cmd }}</option>
+            }
           </select>
 
           <!-- Samsung TV command selector -->
           <select class="tv-select" [(ngModel)]="selectedSamsungCommand" (change)="sendSamsungCommand(selectedSamsungCommand!)">
             <option value="" disabled selected>Samsung Befehl</option>
-            <option *ngFor="let cmd of samsungCommands" [value]="cmd">{{ cmd }}</option>
+            @for (cmd of samsungCommands; track cmd) {
+              <option [value]="cmd">{{ cmd }}</option>
+            }
           </select>
         </div>
       </div>
-
-      <!-- Eingebettete FireTV-Komponente füllt freie Kachel -->
-      <div class="tile firetv-tile" (click)="$event.stopPropagation()">
-        <app-firetv (onDeviceClick)="onDeviceClick()"></app-firetv>
-      </div>
     </div>
+    <app-firetv></app-firetv>
   </div>
 } @else {
   <div class="device samsung-tv">
@@ -64,4 +86,3 @@
     TV nicht gefunden
   </div>
 }
-

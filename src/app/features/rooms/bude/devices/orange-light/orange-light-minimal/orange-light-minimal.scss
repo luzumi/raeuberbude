@@ -1,0 +1,92 @@
+/* Orange Light Minimal - Dekoratives Lampenbild Styling */
+
+.lamp-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.lamp-icon {
+  width: 60%;
+  max-width: 120px;
+  height: auto;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  
+  /* ON-Zustand: Normal mit Glow-Effekt */
+  &.on {
+    opacity: 1;
+    filter: drop-shadow(0 0 15px rgba(255, 165, 0, 0.8))
+            drop-shadow(0 0 25px rgba(255, 200, 50, 0.5))
+            drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  /* OFF-Zustand: Gedimmt */
+  &.off {
+    opacity: 0.4;
+    filter: brightness(0.6) grayscale(30%) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
+  
+  /* UNAVAILABLE-Zustand: Graustufen */
+  &.unavailable {
+    opacity: 0.3;
+    filter: grayscale(100%) brightness(0.7) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
+}
+
+.lamp-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Glow-Animation für eingeschaltete Lampe */
+@keyframes glow {
+  from {
+    filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.6))
+            drop-shadow(0 0 20px rgba(255, 200, 50, 0.3))
+            drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
+  to {
+    filter: drop-shadow(0 0 20px rgba(255, 165, 0, 1))
+            drop-shadow(0 0 30px rgba(255, 200, 50, 0.7))
+            drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
+}
+
+/* Responsive: Kleinere Bildschirme */
+@media (max-width: 768px) {
+  .lamp-icon {
+    width: 50%;
+    max-width: 80px;
+  }
+  
+  .lamp-label {
+    font-size: 0.8rem;
+  }
+}
+
+/* Responsive: Sehr kleine Bildschirme */
+@media (max-width: 480px) {
+  .lamp-container {
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+  
+  .lamp-icon {
+    width: 45%;
+    max-width: 60px;
+  }
+  
+  .lamp-label {
+    font-size: 0.7rem;
+  }
+}

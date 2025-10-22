@@ -9,7 +9,7 @@
   gap: 0.5rem;
   //margin-top: 80px; // Platz für den fixierten Header
   padding: 1rem;
-  height: calc(100vh - 100px);
+  max-height: calc(100vh - 80px);
   background: radial-gradient(circle at center, rgba(0,150,136,.2), rgba(0,0,0,.9));
 
   // Wenn es eine ungerade Anzahl an Kacheln gibt,
@@ -32,10 +32,11 @@
 
 /* Detailansicht OHNE Auto-Flow, damit nichts „spaltenweise“ wegläuft */
 .dashboard-container.detail-view {
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(5, 1fr); // 5 Spalten
+  grid-auto-flow: unset;                 // kein Auto-Flow
+  gap: 0.25rem;
   // Erste Zeile fix auf 20vh begrenzen, restlicher Platz für die Detailansicht
-  grid-template-rows: 20vh 1fr;
-  /* WICHTIG: kein grid-auto-flow: column */
+  grid-template-rows: 18vh 1fr;
 }
 
 /* Unterer Content füllt IMMER die komplette Breite */
@@ -47,10 +48,21 @@
   height: 100%;
 }
 
-/* Obere Reihe: alle „Menü-/Kachel“-Items einfach normal fließen lassen */
+/* Obere Reihe: eine Spalte über volle Breite; Inhalte als Flex-Items */
 .dashboard-container .grid-item.top-row {
   grid-row: 1;              // obere Zeile
-  grid-column: auto;        // Grid verteilt gleichmäßig
+  grid-column: 1 / -1;      // über alle Spalten spannen (effektiv 1 "Col" in der Zeile)
+  display: flex;            // Flex-Layout für die inaktiven Devices
+  flex-direction: column;   // untereinander anordnen
+  align-items: stretch;     // volle Breite
+  justify-content: flex-start;
+  gap: 0.5rem;              // Abstand zwischen den Items
+}
+
+/* Inaktive Devices innerhalb der oberen Zeile: jeweils volle Breite */
+.dashboard-container .grid-item.top-row > * {
+  flex: 0 0 100%;
+  width: 100%;
 }
 
 /* Verhindert das „Verschieben“ der Buttons, das Platz links übrig lässt */

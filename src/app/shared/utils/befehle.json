@@ -1,0 +1,807 @@
+[
+  {
+    "entity_id": "remote.fire_tv",
+    "name": "Fire_TV",
+    "commands": [
+      "POWER",
+      "HOME",
+      "BACK",
+      "UP",
+      "DOWN",
+      "LEFT",
+      "RIGHT",
+      "ENTER",
+      "MENU",
+      "PLAY",
+      "PAUSE",
+      "PLAY_PAUSE",
+      "REWIND",
+      "FAST_FORWARD",
+      "VOLUME_UP",
+      "VOLUME_DOWN",
+      "MUTE",
+      "SLEEP",
+      "?"
+    ],
+    "source": "fallback"
+  },
+  {
+    "adb_command": {
+      "name": "ADB command",
+      "description": "Sends an ADB command to an Android / Fire TV device.",
+      "fields": {
+        "command": {
+          "required": true,
+          "example": "HOME",
+          "selector": {
+            "text": null
+          },
+          "name": "Command",
+          "description": "Either a key command or an ADB shell command."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "integration": "androidtv",
+            "domain": [
+              "media_player"
+            ]
+          }
+        ]
+      }
+    },
+    "learn_sendevent": {
+      "name": "Learn sendevent",
+      "description": "Translates a key press on a remote into ADB 'sendevent' commands. You must press one button on the remote within 8 seconds of performing this action.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "integration": "androidtv",
+            "domain": [
+              "media_player"
+            ]
+          }
+        ]
+      }
+    },
+    "download": {
+      "name": "Download",
+      "description": "Downloads a file from your Android / Fire TV device to your Home Assistant instance.",
+      "fields": {
+        "device_path": {
+          "required": true,
+          "example": "/storage/emulated/0/Download/example.txt",
+          "selector": {
+            "text": null
+          },
+          "name": "Device path",
+          "description": "The filepath on the Android / Fire TV device."
+        },
+        "local_path": {
+          "required": true,
+          "example": "/config/www/example.txt",
+          "selector": {
+            "text": null
+          },
+          "name": "Local path",
+          "description": "The filepath on your Home Assistant instance."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "integration": "androidtv",
+            "domain": [
+              "media_player"
+            ]
+          }
+        ]
+      }
+    },
+    "upload": {
+      "name": "Upload",
+      "description": "Uploads a file from your Home Assistant instance to an Android / Fire TV device.",
+      "fields": {
+        "device_path": {
+          "required": true,
+          "example": "/storage/emulated/0/Download/example.txt",
+          "selector": {
+            "text": null
+          },
+          "name": "Device path",
+          "description": "The filepath on the Android / Fire TV device."
+        },
+        "local_path": {
+          "required": true,
+          "example": "/config/www/example.txt",
+          "selector": {
+            "text": null
+          },
+          "name": "Local path",
+          "description": "The filepath on your Home Assistant instance."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "integration": "androidtv",
+            "domain": [
+              "media_player"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "turn_on": {
+      "name": "Turn on",
+      "description": "Turns on the power of the media player.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              128
+            ]
+          }
+        ]
+      }
+    },
+    "turn_off": {
+      "name": "Turn off",
+      "description": "Turns off the power of the media player.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              256
+            ]
+          }
+        ]
+      }
+    },
+    "toggle": {
+      "name": "Toggle",
+      "description": "Toggles a media player on/off.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              384
+            ]
+          }
+        ]
+      }
+    },
+    "volume_up": {
+      "name": "Turn up volume",
+      "description": "Turns up the volume.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              4,
+              1024
+            ]
+          }
+        ]
+      }
+    },
+    "volume_down": {
+      "name": "Turn down volume",
+      "description": "Turns down the volume.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              4,
+              1024
+            ]
+          }
+        ]
+      }
+    },
+    "media_play_pause": {
+      "name": "Play/Pause",
+      "description": "Toggles play/pause.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              16385
+            ]
+          }
+        ]
+      }
+    },
+    "media_play": {
+      "name": "Play",
+      "description": "Starts playing.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              16384
+            ]
+          }
+        ]
+      }
+    },
+    "media_pause": {
+      "name": "Pause",
+      "description": "Pauses.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              1
+            ]
+          }
+        ]
+      }
+    },
+    "media_stop": {
+      "name": "Stop",
+      "description": "Stops playing.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              4096
+            ]
+          }
+        ]
+      }
+    },
+    "media_next_track": {
+      "name": "Next",
+      "description": "Selects the next track.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              32
+            ]
+          }
+        ]
+      }
+    },
+    "media_previous_track": {
+      "name": "Previous",
+      "description": "Selects the previous track.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              16
+            ]
+          }
+        ]
+      }
+    },
+    "clear_playlist": {
+      "name": "Clear playlist",
+      "description": "Removes all items from the playlist.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              8192
+            ]
+          }
+        ]
+      }
+    },
+    "volume_set": {
+      "name": "Set volume",
+      "description": "Sets the volume level.",
+      "fields": {
+        "volume_level": {
+          "required": true,
+          "selector": {
+            "number": {
+              "min": 0,
+              "max": 1,
+              "step": 0.01
+            }
+          },
+          "name": "Level",
+          "description": "The volume. 0 is inaudible, 1 is the maximum volume."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              4
+            ]
+          }
+        ]
+      }
+    },
+    "volume_mute": {
+      "name": "Mute/unmute volume",
+      "description": "Mutes or unmutes the media player.",
+      "fields": {
+        "is_volume_muted": {
+          "required": true,
+          "selector": {
+            "boolean": null
+          },
+          "name": "Muted",
+          "description": "Defines whether or not it is muted."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              8
+            ]
+          }
+        ]
+      }
+    },
+    "media_seek": {
+      "name": "Seek",
+      "description": "Allows you to go to a different part of the media that is currently playing.",
+      "fields": {
+        "seek_position": {
+          "required": true,
+          "selector": {
+            "number": {
+              "min": 0,
+              "max": 9223372036854776000,
+              "step": 0.01,
+              "mode": "box"
+            }
+          },
+          "name": "Position",
+          "description": "Target position in the currently playing media. The format is platform dependent."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              2
+            ]
+          }
+        ]
+      }
+    },
+    "join": {
+      "name": "Join",
+      "description": "Groups media players together for synchronous playback. Only works on supported multiroom audio systems.",
+      "fields": {
+        "group_members": {
+          "required": true,
+          "example": "- media_player.multiroom_player2\n- media_player.multiroom_player3\n",
+          "selector": {
+            "entity": {
+              "multiple": true,
+              "domain": "media_player"
+            }
+          },
+          "name": "Group members",
+          "description": "The players which will be synced with the playback specified in 'Targets'."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              524288
+            ]
+          }
+        ]
+      }
+    },
+    "select_source": {
+      "name": "Select source",
+      "description": "Sends the media player the command to change input source.",
+      "fields": {
+        "source": {
+          "required": true,
+          "example": "video1",
+          "selector": {
+            "text": null
+          },
+          "name": "Source",
+          "description": "Name of the source to switch to. Platform dependent."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              2048
+            ]
+          }
+        ]
+      }
+    },
+    "select_sound_mode": {
+      "name": "Select sound mode",
+      "description": "Selects a specific sound mode.",
+      "fields": {
+        "sound_mode": {
+          "example": "Music",
+          "selector": {
+            "text": null
+          },
+          "name": "Sound mode",
+          "description": "Name of the sound mode to switch to."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              65536
+            ]
+          }
+        ]
+      }
+    },
+    "play_media": {
+      "name": "Play media",
+      "description": "Starts playing specified media.",
+      "fields": {
+        "media_content_id": {
+          "required": true,
+          "example": "https://home-assistant.io/images/cast/splash.png",
+          "selector": {
+            "text": null
+          },
+          "name": "Content ID",
+          "description": "The ID of the content to play. Platform dependent."
+        },
+        "media_content_type": {
+          "required": true,
+          "example": "music",
+          "selector": {
+            "text": null
+          },
+          "name": "Content type",
+          "description": "The type of the content to play, such as image, music, tv show, video, episode, channel, or playlist."
+        },
+        "enqueue": {
+          "filter": {
+            "supported_features": [
+              2097152
+            ]
+          },
+          "required": false,
+          "selector": {
+            "select": {
+              "options": [
+                "play",
+                "next",
+                "add",
+                "replace"
+              ],
+              "translation_key": "enqueue"
+            }
+          },
+          "name": "Enqueue",
+          "description": "If the content should be played now or be added to the queue."
+        },
+        "announce": {
+          "filter": {
+            "supported_features": [
+              1048576
+            ]
+          },
+          "required": false,
+          "example": "true",
+          "selector": {
+            "boolean": null
+          },
+          "name": "Announce",
+          "description": "If the media should be played as an announcement."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              512
+            ]
+          }
+        ]
+      }
+    },
+    "browse_media": {
+      "name": "Browse media",
+      "description": "Browses the available media.",
+      "fields": {
+        "media_content_type": {
+          "required": false,
+          "example": "music",
+          "selector": {
+            "text": null
+          },
+          "name": "Content type",
+          "description": "The type of the content to browse, such as image, music, tv show, video, episode, channel, or playlist."
+        },
+        "media_content_id": {
+          "required": false,
+          "example": "A:ALBUMARTIST/Beatles",
+          "selector": {
+            "text": null
+          },
+          "name": "Content ID",
+          "description": "The ID of the content to browse. Integration dependent."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              131072
+            ]
+          }
+        ]
+      },
+      "response": {
+        "optional": false
+      }
+    },
+    "search_media": {
+      "name": "Search media",
+      "description": "Searches the available media.",
+      "fields": {
+        "search_query": {
+          "required": true,
+          "example": "Beatles",
+          "selector": {
+            "text": null
+          },
+          "name": "Search query",
+          "description": "The term to search for."
+        },
+        "media_content_type": {
+          "required": false,
+          "example": "music",
+          "selector": {
+            "text": null
+          },
+          "name": "Content type",
+          "description": "The type of the content to browse, such as image, music, tv show, video, episode, channel, or playlist."
+        },
+        "media_content_id": {
+          "required": false,
+          "example": "A:ALBUMARTIST/Beatles",
+          "selector": {
+            "text": null
+          },
+          "name": "Content ID",
+          "description": "The ID of the content to browse. Integration dependent."
+        },
+        "media_filter_classes": {
+          "required": false,
+          "example": [
+            "album",
+            "artist"
+          ],
+          "selector": {
+            "text": {
+              "multiple": true
+            }
+          },
+          "name": "Media class filter",
+          "description": "List of media classes to filter the search results by."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              4194304
+            ]
+          }
+        ]
+      },
+      "response": {
+        "optional": false
+      }
+    },
+    "shuffle_set": {
+      "name": "Set shuffle",
+      "description": "Enables or disables the shuffle mode.",
+      "fields": {
+        "shuffle": {
+          "required": true,
+          "selector": {
+            "boolean": null
+          },
+          "name": "Shuffle mode",
+          "description": "Whether the media should be played in randomized order or not."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              32768
+            ]
+          }
+        ]
+      }
+    },
+    "unjoin": {
+      "name": "Unjoin",
+      "description": "Removes the player from a group. Only works on platforms which support player groups.",
+      "fields": {},
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              524288
+            ]
+          }
+        ]
+      }
+    },
+    "repeat_set": {
+      "name": "Set repeat",
+      "description": "Sets the repeat mode.",
+      "fields": {
+        "repeat": {
+          "required": true,
+          "selector": {
+            "select": {
+              "options": [
+                "off",
+                "all",
+                "one"
+              ],
+              "translation_key": "repeat"
+            }
+          },
+          "name": "Repeat mode",
+          "description": "Whether the media (one or all) should be played in a loop or not."
+        }
+      },
+      "target": {
+        "entity": [
+          {
+            "domain": [
+              "media_player"
+            ],
+            "supported_features": [
+              262144
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "adb_key_commands": [
+      "HOME", "BACK", "UP", "DOWN", "LEFT", "RIGHT", "ENTER", "MENU", "APP_SWITCH",
+      "POWER", "SLEEP", "WAKEUP",
+      "VOLUME_UP", "VOLUME_DOWN", "MUTE",
+      "MEDIA_PLAY", "MEDIA_PAUSE", "MEDIA_PLAY_PAUSE", "MEDIA_NEXT", "MEDIA_PREVIOUS", "MEDIA_STOP", "MEDIA_REWIND", "MEDIA_FAST_FORWARD"
+    ],
+    "adb_shell_examples": [
+      "input keyevent 3",
+      "input keyevent 4",
+      "input keyevent 19",
+      "input keyevent 20",
+      "input keyevent 21",
+      "input keyevent 22",
+      "input keyevent 66",
+      "input keyevent 82",
+      "input keyevent 187",
+      "input keyevent 26",
+      "input keyevent 223",
+      "input keyevent 224",
+      "input keyevent 24",
+      "input keyevent 25",
+      "input keyevent 164",
+      "input keyevent 126",
+      "input keyevent 127",
+      "input keyevent 85",
+      "input keyevent 87",
+      "input keyevent 88",
+      "input keyevent 86",
+      "input keyevent 89",
+      "input keyevent 90",
+      "am start -a android.intent.action.VIEW -d https://www.youtube.com",
+      "input text 'Hello%20World'"
+    ],
+    "websocket_examples": {
+      "androidtv_adb_command": {
+        "type": "call_service",
+        "domain": "androidtv",
+        "service": "adb_command",
+        "service_data": { "entity_id": "media_player.fire_tv", "command": "HOME" }
+      }
+    }
+  }
+]

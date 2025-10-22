@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 // Extended with `map` to transform WebSocket responses when fetching states
-import {BehaviorSubject, from, Observable, Subscription, map} from 'rxjs';
+import {BehaviorSubject, from, Observable, Subscription, map, forkJoin, switchMap, of, tap} from 'rxjs';
 import {WebSocketBridgeService} from './websocketBridgeService';
 import {environment} from '../../../environments/environments';
+import { getSupportedMediaPlayerFeatures } from './media-player.helper';
 
 export interface Entity {
   entity_id: string;
@@ -48,13 +49,55 @@ export class HomeAssistantService {
   public readonly entities$ = this.entitiesSubject.asObservable();
 
   constructor(private readonly http: HttpClient, private readonly bridge: WebSocketBridgeService) {
+    // Log WebSocket connection status
+    console.log('[HA] WebSocket connected:', this.bridge.isConnected());
+    
+    // Subscribe to WebSocket logs
+    this.bridge.logs$.subscribe(log => {
+      if (log.dir === '->' && log.type === 'call_service') {
+        console.log('[WS→] Sending service call:', log.summary, log.payload);
+      } else if (log.dir === 'queue') {
+        console.warn('[WS⏸️] Message queued (not connected yet):', log.summary);
+      }
+    });
+    
     this.refreshEntities();
 
     this.bridge.subscribeEvent('state_changed').subscribe((event:any) => {
-      const newState = event.data?.new_state as Entity;
-      if (newState?.entity_id) {
-        this.entitiesMap.set(newState.entity_id, newState);
-        this.entitiesSubject.next([...this.entitiesMap.values()]);
+      console.log('[HA] state_changed event RAW:', event);
+      
+      // Compressed format: event.c oder event.a
+      if (event.c) {
+        console.log('[HA] Compressed format detected');
+        // event.c = { "entity_id": { "+": { "s": "on", "a": {...} } } }
+        for (const [entityId, changes] of Object.entries(event.c)) {
+          const change = (changes as any)['+'];
+          if (change && change.s !== undefined) {
+            const currentEntity = this.entitiesMap.get(entityId);
+            if (currentEntity) {
+              // Update state und attributes
+              const updatedEntity: Entity = {
+                ...currentEntity,
+                state: change.s,
+                attributes: { ...currentEntity.attributes, ...change.a }
+              };
+              console.log(`[HA] Updating entity (compressed): ${entityId} → ${change.s}`);
+              this.entitiesMap.set(entityId, updatedEntity);
+              this.entitiesSubject.next([...this.entitiesMap.values()]);
+            }
+          }
+        }
+      }
+      // Standard format: event.data.new_state
+      else if (event.data?.new_state) {
+        const newState = event.data.new_state as Entity;
+        if (newState?.entity_id) {
+          console.log(`[HA] Updating entity (standard): ${newState.entity_id} → ${newState.state}`);
+          this.entitiesMap.set(newState.entity_id, newState);
+          this.entitiesSubject.next([...this.entitiesMap.values()]);
+        }
+      } else {
+        console.warn('[HA] Unknown event format:', event);
       }
     });
   }
@@ -62,22 +105,52 @@ export class HomeAssistantService {
   public refreshEntities(): void {
     // Aufruf erfolgt relativ, da der Dev-Server die Anfrage proxyt.
     this.http.get<Entity[]>(`${this.baseUrl}/states`, { headers: this.headers })
-      .subscribe((entities) => {
-        this.entitiesMap.clear();
-        for (const e of entities) {
-          this.entitiesMap.set(e.entity_id, e);
+      .subscribe({
+        next: (entities) => {
+          console.debug('[HA][HTTP] /states OK:', Array.isArray(entities) ? entities.length : 0, 'entities');
+          this.entitiesMap.clear();
+          for (const e of entities) {
+            this.entitiesMap.set(e.entity_id, e);
+          }
+          this.entitiesSubject.next(entities);
+        },
+        error: (err) => {
+          console.warn('[HA][HTTP] /states fehlgeschlagen – fallback via WebSocket get_states', err);
+          // Fallback: Seed via WS get_states
+          this.getStatesWs().subscribe({
+            next: (states) => {
+              console.debug('[HA][WS] Seeded entities from get_states:', states.length);
+              this.entitiesMap.clear();
+              for (const e of states) {
+                this.entitiesMap.set(e.entity_id, e);
+              }
+              this.entitiesSubject.next(states);
+            },
+            error: (wsErr) => console.error('[HA][WS] get_states ebenfalls fehlgeschlagen – keine Entities verfügbar', wsErr)
+          });
         }
-        this.entitiesSubject.next(entities);
       });
   }
 
   public callService<T>(domain: string, service: string, data: any): Observable<HassServiceResponse> {
+    const isConnected = this.bridge.isConnected();
+    console.log(`[HA] Calling service: ${domain}.${service} (WS connected: ${isConnected})`, data);
+    
+    if (!isConnected) {
+      console.warn('[HA] ⚠️ WebSocket NOT connected! Message will be queued.');
+    }
+    
     return from(this.bridge.send({
       type: 'call_service',
       domain,
       service,
       service_data: data
-    } as unknown as Omit<HassServiceResponse, "id">));
+    } as unknown as Omit<HassServiceResponse, "id">)).pipe(
+      tap({
+        next: (response) => console.log(`[HA] ✅ Service response:`, response),
+        error: (error) => console.error(`[HA] ❌ Service error:`, error)
+      })
+    );
   }
 
   /**
@@ -116,5 +189,316 @@ export class HomeAssistantService {
       const players = entities.filter(e => e.entity_id.startsWith(name + '.'));
       console.log('Alle MediaPlayer:', players.map(p => p.entity_id));
     });
+  }
+
+  /**
+   * Lists all media_player entities provided by a specific integration platform (e.g., 'dlna_dmr')
+   * together with their supported command names derived from supported_features.
+   */
+  public listCommandsForPlatform(platform: string): Observable<Array<{ entity_id: string; name?: string; features: string[] }>> {
+    const entityRegistry$ = from(this.bridge.send({ type: 'config/entity_registry/list' })).pipe(
+      map((res: any) => (res.result ?? []) as any[])
+    );
+    const states$ = this.getStatesWs();
+
+    return forkJoin([entityRegistry$, states$]).pipe(
+      map(([registry, states]) => {
+        const targets = registry
+          .filter((e: any) => e.platform === platform && e.domain === 'media_player')
+          .map((e: any) => e.entity_id as string);
+
+        return targets.map((id: string) => {
+          const s = states.find(st => st.entity_id === id);
+          return {
+            entity_id: id,
+            name: s?.attributes?.friendly_name,
+            features: s ? getSupportedMediaPlayerFeatures(s) : []
+          };
+        });
+      })
+    );
+  }
+
+  /** Convenience wrapper for DLNA DMR integration. */
+  public listDlnaDmrCommands(): Observable<Array<{ entity_id: string; name?: string; features: string[] }>> {
+    return this.listCommandsForPlatform('dlna_dmr');
+  }
+
+  /** Returns a pretty-printed JSON string of DLNA DMR entities and their features. */
+  public getDlnaDmrCommandsJson(): Observable<string> {
+    return this.listDlnaDmrCommands().pipe(
+      map(list => JSON.stringify(list, null, 2))
+    );
+  }
+
+  // -------- FireTV commands discovery --------
+  private toCommandList(val: unknown): string[] {
+    if (Array.isArray(val)) {
+      return val.map(v => v).filter(Boolean);
+    }
+    if (typeof val === 'string') {
+      return val.split(/\s*,\s*|\s+/).map(s => s.trim()).filter(Boolean);
+    }
+    if (val && typeof val === 'object') {
+      return Object.keys(val as Record<string, any>);
+    }
+    return [];
+  }
+
+  private extractCommandsFromAttrs(attrs: any): string[] {
+    if (!attrs) return [];
+    const candidates = ['command_list', 'commands', 'available_commands', 'extra_commands', 'supported_commands', 'command_mapping'];
+    const first = candidates
+      .map(key => this.toCommandList(attrs[key]))
+      .find(list => list.length > 0);
+    return first ?? [];
+  }
+
+  private normalizeName(s?: string): string {
+    return (s || '').toLowerCase().replaceAll(/[^a-z0-9]+/g, '');
+  }
+
+  /** Resolve the FireTV remote entity_id from the states snapshot. */
+  private resolveFireTvRemote(states: Entity[]): Entity | undefined {
+    const byId = states.find(e => e.entity_id === 'remote.fire_tv');
+    if (byId) return byId;
+
+    const anyRemoteFire = states.find(e => e.entity_id.startsWith('remote.') && this.normalizeName(e.attributes?.friendly_name).includes('firetv'));
+    if (anyRemoteFire) return anyRemoteFire;
+
+    const fireMedia = states.find(e => e.entity_id === 'media_player.fire_tv' || this.normalizeName(e.attributes?.friendly_name).includes('firetv'));
+    if (fireMedia) {
+      const norm = this.normalizeName(fireMedia.attributes?.friendly_name);
+      const matchRemote = states.find(e => e.entity_id.startsWith('remote.') && this.normalizeName(e.attributes?.friendly_name) === norm);
+      if (matchRemote) return matchRemote;
+    }
+    return undefined;
+  }
+
+  /**
+   * Try to obtain available FireTV commands from HA state attributes.
+   * If none are provided by the integration, return a curated default set.
+   */
+  public listFireTvCommands(): Observable<{ entity_id?: string; name?: string; commands: string[]; source: 'attributes' | 'fallback' | 'none' }> {
+    return this.getStatesWs().pipe(
+      map((states) => {
+        const remote = this.resolveFireTvRemote(states);
+        if (!remote) {
+          console.warn('[HA] FireTV remote not found among states.');
+          return { entity_id: undefined, name: undefined, commands: [], source: 'none' as const };
+        }
+        console.log('[HA] FireTV remote entity:', remote.entity_id, 'attrs keys:', Object.keys(remote.attributes || {}));
+        let cmds = this.extractCommandsFromAttrs(remote.attributes);
+
+        // Additionally, try to enrich with media_player source_list (apps/inputs)
+        const media = states.find(e => e.entity_id === 'media_player.fire_tv' || (e.entity_id.startsWith('media_player.') && this.normalizeName(e.attributes?.friendly_name).includes('firetv')));
+        const sourceList = media?.attributes?.source_list;
+        const sources: string[] = Array.isArray(sourceList) ? sourceList : [];
+        const sourceCmds = sources.map(s => `SELECT_SOURCE:${s}`);
+
+        if (cmds.length) {
+          cmds = Array.from(new Set([...cmds, ...sourceCmds]));
+          console.log('[HA] FireTV commands from attributes (+sources if any):', cmds);
+          return { entity_id: remote.entity_id, name: remote.attributes?.friendly_name, commands: cmds, source: 'attributes' as const };
+        }
+        const fallback = [
+          'POWER','HOME','BACK','UP','DOWN','LEFT','RIGHT','ENTER',
+          'MENU','PLAY','PAUSE','PLAY_PAUSE','REWIND','FAST_FORWARD',
+          'VOLUME_UP','VOLUME_DOWN','MUTE','SLEEP','?'
+        ];
+        const merged = Array.from(new Set([...fallback, ...sourceCmds]));
+        console.log('[HA] FireTV commands fallback used (no attributes list exposed by integration). Added sources if present.');
+        return { entity_id: remote.entity_id, name: remote.attributes?.friendly_name, commands: merged, source: 'fallback' as const };
+      })
+    );
+  }
+
+  /** Pretty JSON for FireTV commands to copy. */
+  public getFireTvCommandsJson(): Observable<string> {
+    return this.listFireTvCommands().pipe(map(x => JSON.stringify(x, null, 2)));
+  }
+
+  // -------- FireTV device actions (device_automation) --------
+  private getEntityRegistry$(): Observable<any[]> {
+    return from(this.bridge.send({ type: 'config/entity_registry/list' })).pipe(
+      map((res: any) => (res.result ?? []) as any[])
+    );
+  }
+
+  private getDeviceRegistry$(): Observable<any[]> {
+    return from(this.bridge.send({ type: 'config/device_registry/list' })).pipe(
+      map((res: any) => (res.result ?? []) as any[])
+    );
+  }
+
+  private listActionsForDevice(device_id: string): Observable<any[]> {
+    return from(this.bridge.send({ type: 'device_automation/list_actions', device_id })).pipe(
+      map((res: any) => (res.result ?? []) as any[])
+    );
+  }
+
+  private isFireEntityRegistryEntry(e: any): boolean {
+    const domainOk = e.domain === 'media_player' || e.domain === 'remote';
+    const platform = (e.platform || '').toLowerCase();
+    const platformOk = platform.includes('androidtv') || platform.includes('firetv');
+    const idOk = e.entity_id === 'media_player.fire_tv' || e.entity_id === 'remote.fire_tv';
+    const nameOk = (e.original_name || e.name || '').toLowerCase().includes('fire');
+    return domainOk && (platformOk || idOk || nameOk);
+  }
+
+  private groupFireTvEntitiesByDevice(entities: any[]): Array<{ device_id: string; entity_ids: string[] }> {
+    const fireEntities = entities.filter((e: any) => this.isFireEntityRegistryEntry(e));
+    const byDevice = new Map<string, { device_id: string; entity_ids: string[] }>();
+    for (const e of fireEntities) {
+      if (!e.device_id) continue;
+      if (!byDevice.has(e.device_id)) byDevice.set(e.device_id, { device_id: e.device_id, entity_ids: [] });
+      byDevice.get(e.device_id)!.entity_ids.push(e.entity_id);
+    }
+    return Array.from(byDevice.values());
+  }
+
+  /** Attach device info and actions to a grouped Fire TV device entry. */
+  private mapDeviceActions(
+    group: { device_id: string; entity_ids: string[] },
+    devices: any[],
+    actions: any[]
+  ): { device_id: string; device_info?: any; entity_ids: string[]; actions: any[] } {
+    const info = devices.find((dev: any) => dev.id === group.device_id);
+    return { device_id: group.device_id, device_info: info, entity_ids: group.entity_ids, actions };
+  }
+
+  /** Build action requests for Fire TV groups and join results. Returns empty list if no groups. */
+  private buildDeviceActionsForGroups(
+    groups: Array<{ device_id: string; entity_ids: string[] }>,
+    devices: any[]
+  ): Observable<Array<{ device_id: string; device_info?: any; entity_ids: string[]; actions: any[] }>> {
+    if (!groups || groups.length === 0) {
+      return of([]);
+    }
+    const requests = groups.map(g =>
+      this.listActionsForDevice(g.device_id).pipe(
+        map(actions => this.mapDeviceActions(g, devices, actions))
+      )
+    );
+    return forkJoin(requests);
+  }
+
+  /**
+   * Discover FireTV-related devices via entity registry (androidtv/remote/media_player) and
+   * return their available device actions from Home Assistant's device automation API.
+   */
+  public listFireTvDeviceActions(): Observable<Array<{ device_id: string; device_info?: any; entity_ids: string[]; actions: any[] }>> {
+    return forkJoin([this.getEntityRegistry$(), this.getDeviceRegistry$()]).pipe(
+      map(([entities, devices]) => ({ groups: this.groupFireTvEntitiesByDevice(entities), devices })),
+      switchMap(({ groups, devices }) => this.buildDeviceActionsForGroups(groups, devices))
+    );
+  }
+
+  public getFireTvDeviceActionsJson(): Observable<string> {
+    return this.listFireTvDeviceActions().pipe(
+      map(list => JSON.stringify(list, null, 2))
+    );
+  }
+
+  // -------- Android TV services (domain-level capabilities) --------
+  private getServices$(): Observable<Record<string, any>> {
+    return from(this.bridge.send({ type: 'get_services' })).pipe(
+      map((res: any) => (res.result ?? {}) as Record<string, any>)
+    );
+  }
+
+  public listAndroidTvServices(): Observable<any> {
+    return this.getServices$().pipe(map(all => all['androidtv'] ?? {}));
+  }
+
+  public listDomainServices(domain: string): Observable<any> {
+    return this.getServices$().pipe(map(all => all[domain] ?? {}));
+  }
+
+  public getAndroidTvServicesJson(): Observable<string> {
+    return this.listAndroidTvServices().pipe(
+      map(svc => JSON.stringify(svc, null, 2))
+    );
+  }
+
+  public listMediaPlayerServices(): Observable<any> {
+    return this.listDomainServices('media_player');
+  }
+
+  public getMediaPlayerServicesJson(): Observable<string> {
+    return this.listMediaPlayerServices().pipe(
+      map(svc => JSON.stringify(svc, null, 2))
+    );
+  }
+
+  /**
+   * Aggregate everything relevant for Fire TV into a single JSON blob:
+   * - media_player state and attributes
+   * - decoded supported_features
+   * - androidtv + media_player services (schemas)
+   * - device_automation actions for related devices
+   * - remote entity and extracted commands (or fallback)
+   */
+  public getFireTvCapabilitiesJson(): Observable<string> {
+    const states$ = this.getStatesWs();
+    const mpServices$ = this.listMediaPlayerServices();
+    const atvServices$ = this.listAndroidTvServices();
+    const actions$ = this.listFireTvDeviceActions();
+
+    return forkJoin([states$, mpServices$, atvServices$, actions$]).pipe(
+      map(([states, mpServices, atvServices, deviceActions]) => {
+        // Resolve remote and media entities
+        const remote = this.resolveFireTvRemote(states);
+        const media = states.find(e => e.entity_id === 'media_player.fire_tv' || (e.entity_id.startsWith('media_player.') && this.normalizeName(e.attributes?.friendly_name).includes('firetv')));
+
+        const featureMask = media?.attributes?.supported_features ?? 0;
+        const featureNames = media ? getSupportedMediaPlayerFeatures(media) : [];
+
+        // Build remote commands using same logic as listFireTvCommands()
+        let remoteCmds = remote ? this.extractCommandsFromAttrs(remote.attributes) : [];
+        const sources: string[] = media?.attributes?.source_list ?? [];
+        const sourceCmds = sources.map(s => `SELECT_SOURCE:${s}`);
+        if ( remoteCmds.length ) {
+          remoteCmds = Array.from( new Set( [...remoteCmds, ...sourceCmds] ) );
+        } else {
+          const fallback = [
+            'POWER', 'HOME', 'BACK', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ENTER',
+            'MENU', 'PLAY', 'PAUSE', 'PLAY_PAUSE', 'REWIND', 'FAST_FORWARD',
+            'VOLUME_UP', 'VOLUME_DOWN', 'MUTE', 'SLEEP', '?'
+          ];
+          remoteCmds = Array.from( new Set( [...fallback, ...sourceCmds] ) );
+        }
+
+        const out = {
+          media_player: {
+            entity_id: media?.entity_id,
+            state: media?.state,
+            attributes: media?.attributes ?? {},
+            supported_features: featureMask,
+            feature_names: featureNames,
+            services: mpServices
+          },
+          androidtv: {
+            services: atvServices
+          },
+          remote: {
+            entity_id: remote?.entity_id,
+            attributes: remote?.attributes ?? {},
+            commands: remoteCmds
+          },
+          device_automation: deviceActions,
+          websocket_examples: {
+            get_states: { type: 'get_states' },
+            call_media_play: { type: 'call_service', domain: 'media_player', service: 'media_play', service_data: { entity_id: media?.entity_id || 'media_player.fire_tv' } },
+            call_media_pause: { type: 'call_service', domain: 'media_player', service: 'media_pause', service_data: { entity_id: media?.entity_id || 'media_player.fire_tv' } },
+            call_select_source_example: { type: 'call_service', domain: 'media_player', service: 'select_source', service_data: { entity_id: media?.entity_id || 'media_player.fire_tv', source: sources[0] || 'YouTube' } },
+            androidtv_adb_command_example: { type: 'call_service', domain: 'androidtv', service: 'adb_command', service_data: { entity_id: media?.entity_id || 'media_player.fire_tv', command: 'HOME' } },
+            subscribe_state_changed: { type: 'subscribe_events', event_type: 'state_changed' }
+          }
+        };
+
+        return JSON.stringify(out, null, 2);
+      })
+    );
   }
 }

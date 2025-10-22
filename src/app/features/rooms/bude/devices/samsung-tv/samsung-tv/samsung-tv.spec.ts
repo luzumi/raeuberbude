@@ -23,7 +23,8 @@ describe('SamsungTv', () => {
 
   const mockHomeAssistant = {
     entities$: of(mockEntities),
-    callService: jasmine.createSpy('callService')
+    callService: jasmine.createSpy('callService'),
+    getStatesWs: () => of([])
   };
 
   beforeEach(async () => {

@@ -1,0 +1,19 @@
+.speedometer {
+  /* Standard: Breite steuert, Höhe folgt (wie bisher) */
+  width: var(--sm-width, 100%);
+  height: var(--sm-height, auto);
+  max-width: 100%;
+  aspect-ratio: 1 / 1; /* quadratisch für saubere Skalierung des SVG */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0a0a1a;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.dial {
+  width: 100%;
+  height: 100%;
+}

@@ -1,6 +1,6 @@
 <!-- FireTV-Ansicht im Kachel-Layout, angelehnt an andere Gerätesteuerungen -->
-<div class="device firetv" (click)="onDeviceClicked($event)">
-  <div class="tiles">
+
+  <div class="tiles" (click)="onDeviceClicked($event)">
     <!-- Status- und Lautstärke-Kachel -->
     <div class="tile" (click)="$event.stopPropagation()">
       <h2>{{ name }}</h2>
@@ -21,7 +21,6 @@
         </app-horizontal-slider>
         <span>{{ volume() }}%</span>
       </div>
-    </div>
 
     <!-- Fernbedienungs-Kachel -->
     <div class="tile" (click)="$event.stopPropagation()">
@@ -35,7 +34,145 @@
         <button (click)="firetv?.select(); $event.stopPropagation()">OK</button>
         <button (click)="firetv?.playPause(); $event.stopPropagation()">Play/Pause</button>
       </div>
+
+      <!-- Dropdown mit zusätzlichen Befehlen vom Home Assistant -->
+      <select *ngIf="commands.length" [(ngModel)]="selectedCommand" (change)="sendCustomCommand(selectedCommand!)">
+        <option value="" disabled selected>Weitere Befehle</option>
+        <option *ngFor="let cmd of commands" [value]="cmd">{{ cmd }}</option>
+      </select>
+
+      <!-- Toolbar: WS Logs öffnen -->
+      <div class="keyboard-toolbar">
+        <span class="flex-spacer"></span>
+        <button class="open-logs" (click)="openLogs(); $event.stopPropagation()">WS Logs</button>
+        <button class="open-logs" (click)="toggleDockedLogs(); $event.stopPropagation()">
+          {{ showDockedLogs ? 'Logs abdocken' : 'Logs andocken' }}
+        </button>
+      </div>
+
+      <!-- Test-Keyboard mit Gruppennavigation und Paginierung -->
+      <div class="keyboard" (click)="$event.stopPropagation()">
+        <!-- Ebene 1: Gruppenübersicht -->
+        <ng-container *ngIf="!activeGroupId; else groupCmdView">
+          <h3>ADB & Remote Gruppen</h3>
+          <div class="group-grid">
+            <button *ngFor="let g of adbGroups" (click)="openGroup(g.id)">{{ g.title }}</button>
+          </div>
+        </ng-container>
+
+        <!-- Ebene 2: Befehlsliste der aktiven Gruppe mit Paging -->
+        <ng-template #groupCmdView>
+          <div class="keyboard-toolbar">
+            <button class="back" (click)="backToGroups()">← Gruppen</button>
+            <span class="group-title">{{ activeGroup?.title }}</span>
+            <span class="flex-spacer"></span>
+            <input type="text" [(ngModel)]="filter" placeholder="Filter commands..." />
+          </div>
+          <div class="keyboard-grid">
+            <button *ngFor="let cmd of visibleCommands" (click)="runKey(cmd)">{{ cmd }}</button>
+          </div>
+          <div class="pager">
+            <button (click)="prevPage()" [disabled]="pageIndex===0">« Prev</button>
+            <span>{{ pageIndex + 1 }} / {{ totalPages }}</span>
+            <button (click)="nextPage()" [disabled]="pageIndex >= totalPages - 1">Next »</button>
+          </div>
+
+          <div class="adb-bar">
+            <input type="text" [(ngModel)]="adbCmd" placeholder="ADB or key (e.g., HOME, input keyevent 3)" />
+            <button (click)="sendAdbCommand()">Send ADB</button>
+          </div>
+          <div class="adb-actions">
+            <button [disabled]="adbTestRunning" (click)="runAllAdbTests()">
+              {{ adbTestRunning ? 'Running ADB tests…' : 'Run all ADB tests' }}
+            </button>
+            <button (click)="copyAdbTestResults()">Copy ADB results</button>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- Angedockte WS-Logs innerhalb der FireTV-Ansicht -->
+      <!-- Diagnose: führt eine ADB-Suite aus und sammelt WS-Informationen -->
+      <div class="diagnostics">
+        <div class="dialog-header">
+          <h3>WS Diagnose</h3>
+          <span class="flex-spacer"></span>
+          <button (click)="runWsDiagnostics()">Starten</button>
+          <button (click)="copyWsDiagnostics()" [disabled]="!diagnosticsReport">Report kopieren</button>
+        </div>
+        <div class="diag-body" *ngIf="diagnosticsReport as rep">
+          <div class="diag-summary">
+            <span><strong>Runs:</strong> {{ rep.runs.length }}</span>
+            <span><strong>OK:</strong> {{ rep.totals.ok }}</span>
+            <span><strong>ERR:</strong> {{ rep.totals.err }}</span>
+            <span *ngIf="rep.totals.avgLatencyMs"><strong>Ø Latenz:</strong> {{ rep.totals.avgLatencyMs }} ms</span>
+          </div>
+          <div class="diag-list">
+            <div class="diag-item" *ngFor="let r of rep.runs">
+              <div class="row">
+                <span class="label">{{ r.spec.label }}</span>
+                <span class="state" [class.ok]="r.success" [class.err]="r.success===false">{{ r.success ? 'OK' : 'ERR' }}</span>
+                <span class="lat">{{ r.latencyMs }} ms</span>
+                <span class="counts" *ngIf="r.stats">↑{{ r.stats.sentCount }} ↓{{ r.stats.recvCount }}</span>
+                <span class="bytes" *ngIf="r.stats">{{ r.stats.bytesOut + r.stats.bytesIn }} chars</span>
+              </div>
+              <div class="row sub">
+                <span class="cmd">{{ r.spec.command }}</span>
+                <span class="id" *ngIf="r.id">#{{ r.id }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Angedockte WS-Logs innerhalb der FireTV-Ansicht -->
+      <div class="docked-logs" *ngIf="showDockedLogs">
+        <div class="dialog-header">
+          <h3>WebSocket Logs (angedockt)</h3>
+          <span class="flex-spacer"></span>
+          <button (click)="clearWsLogs()">Clear</button>
+          <button (click)="toggleDockedLogs()">Schließen</button>
+        </div>
+        <div class="log-list">
+          <div class="log-item" *ngFor="let e of wsLogs">
+            <div class="meta">
+              <span class="time">{{ e.time }}</span>
+              <span class="dir" [class.ok]="e.dir==='auth' || e.dir==='->' || e.dir==='<-'" [class.err]="e.dir==='error'">{{ e.dir }}</span>
+              <span class="type">{{ e.type || '-' }}</span>
+              <span class="id" *ngIf="e.id">#{{ e.id }}</span>
+              <span class="summary">{{ e.summary }}</span>
+            </div>
+            <pre class="payload" *ngIf="e.payload">{{ e.payload | json }}</pre>
+            <pre class="payload error" *ngIf="e.error">{{ e.error | json }}</pre>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
+  <!-- Overlay-Dialog für WebSocket Logs -->
+  <div class="overlay" *ngIf="showLogs" (click)="closeLogs()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>WebSocket Logs</h3>
+        <span class="flex-spacer"></span>
+        <button (click)="clearWsLogs()">Clear</button>
+        <button (click)="closeLogs()">Close</button>
+      </div>
+      <div class="log-list">
+        <div class="log-item" *ngFor="let e of wsLogs">
+          <div class="meta">
+            <span class="time">{{ e.time }}</span>
+            <span class="dir" [class.ok]="e.dir==='auth' || e.dir==='->' || e.dir==='<-'" [class.err]="e.dir==='error'">{{ e.dir }}</span>
+            <span class="type">{{ e.type || '-' }}</span>
+            <span class="id" *ngIf="e.id">#{{ e.id }}</span>
+            <span class="summary">{{ e.summary }}</span>
+            <span class="len" *ngIf="e.rawLen">({{ e.rawLen }} chars)</span>
+            <span class="count" *ngIf="(e.count ?? 1) > 1">×{{ e.count }}</span>
+          </div>
+          <pre class="payload" *ngIf="e.payload">{{ e.payload | json }}</pre>
+          <pre class="payload error" *ngIf="e.error">{{ e.error | json }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>

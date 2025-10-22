@@ -81,3 +81,171 @@
   gap: 0.5rem;
 }
 
+/* Dropdown-Stil für zusätzliche Befehle */
+.tile select {
+  padding: 0.4rem 1rem;
+  border: none;
+  border-radius: 2rem;
+  background: radial-gradient(circle at center, rgba(0, 150, 136, 0.2), rgba(0, 0, 0, 0.9));
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Keyboard for testing commands */
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.keyboard-toolbar,
+.adb-bar {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.keyboard-toolbar input,
+.adb-bar input {
+  flex: 1;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.3);
+  color: #fff;
+}
+
+.keyboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+
+.keyboard-grid button {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Gruppen-Übersicht */
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+.keyboard-toolbar {
+  align-items: center;
+}
+
+.keyboard-toolbar .back {
+  padding: 0.4rem 0.8rem;
+}
+
+.keyboard-toolbar .group-title {
+  font-weight: 600;
+}
+
+.keyboard-toolbar .flex-spacer {
+  flex: 1 1 auto;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* Overlay dialog for WebSocket Logs */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  width: min(960px, 92vw);
+  height: min(70vh, 720px);
+  background: #0e0e0e;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  background: radial-gradient(circle at center, rgba(0, 150, 136, 0.15), rgba(0,0,0,0.6));
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.dialog-header .flex-spacer { flex: 1 1 auto; }
+
+.log-list {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column-reverse; /* newest on top visually */
+  gap: 0.4rem;
+}
+
+.log-item {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+}
+
+.log-item .meta {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+}
+
+.log-item .meta .time { color: #9ecfff; }
+.log-item .meta .dir { font-weight: 700; }
+.log-item .meta .dir.ok { color: #8aff8a; }
+.log-item .meta .dir.err { color: #ff8a8a; }
+.log-item .meta .type { color: #ffd29e; }
+.log-item .meta .id { color: #c0c0c0; }
+.log-item .meta .summary { color: #d0ffd0; }
+
+.payload {
+  margin: 0.25rem 0 0;
+  background: rgba(0,0,0,0.4);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  color: #cde3ff;
+  font-size: 0.8rem;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.payload.error { color: #ffd0d0; }
+
+/* Docked logs container inside the FireTV tile */
+.docked-logs {
+  margin-top: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.35);
+}
+
+.docked-logs .log-list {
+  max-height: 280px;
+}
+

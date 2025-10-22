@@ -1,0 +1,75 @@
+name: Close YouTrack Issue on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  close-issue:
+    # Nur wenn PR gemerged wurde (nicht nur geschlossen)
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Extract Issue ID from PR title
+        id: extract-issue
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
+          
+          # Extrahiere Issue-ID aus PR-Titel (Format: "[LUD28-35]" oder "LUD28-35")
+          ISSUE_ID=$(echo "$PR_TITLE" | grep -oP '\[?([A-Z]+-\d+)\]?' | tr -d '[]' | head -n1)
+          
+          if [ -z "$ISSUE_ID" ]; then
+            echo "⚠️ Keine Issue-ID im PR-Titel gefunden"
+            echo "has_issue=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Issue-ID gefunden: $ISSUE_ID"
+            echo "has_issue=true" >> $GITHUB_OUTPUT
+            echo "issue_id=$ISSUE_ID" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Close YouTrack Issue
+        if: steps.extract-issue.outputs.has_issue == 'true'
+        run: |
+          ISSUE_ID="${{ steps.extract-issue.outputs.issue_id }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          MERGED_BY="${{ github.event.pull_request.merged_by.login }}"
+          
+          echo "🔄 Schließe YouTrack Issue: $ISSUE_ID"
+          
+          # 1. Kommentar hinzufügen
+          curl -X POST \
+            "https://luzumi.youtrack.cloud/api/issues/$ISSUE_ID/comments" \
+            -H "Authorization: Bearer ${{ secrets.YOUTRACK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"text\": \"✅ **Pull Request gemerged**\n\n**PR:** $PR_URL\n**Merged by:** @$MERGED_BY\n**Datum:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')\n\nIssue wird automatisch geschlossen.\"
+            }"
+          
+          # 2. Status auf "Fixed" oder "Done" setzen
+          curl -X POST \
+            "https://luzumi.youtrack.cloud/api/issues/$ISSUE_ID" \
+            -H "Authorization: Bearer ${{ secrets.YOUTRACK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "customFields": [
+                {
+                  "name": "State",
+                  "$type": "StateIssueCustomField",
+                  "value": {
+                    "name": "Fixed"
+                  }
+                }
+              ]
+            }'
+          
+          echo "✅ Issue $ISSUE_ID geschlossen!"
+      
+      - name: Notify if no issue found
+        if: steps.extract-issue.outputs.has_issue == 'false'
+        run: |
+          echo "⚠️ WARNUNG: Keine Issue-ID im PR-Titel gefunden!"
+          echo "PR-Titel sollte Format haben: [LUD28-35] oder LUD28-35: ..."
+          echo "Aktueller Titel: ${{ github.event.pull_request.title }}"

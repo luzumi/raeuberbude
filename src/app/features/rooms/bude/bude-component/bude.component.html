@@ -1,5 +1,6 @@
 
 <app-header [userName]="userName"></app-header>
+<button (click)="copyMediaPlayerServicesJson()">copy</button>
 <div class="dashboard-container" [class.detail-view]="menuOpen || activeIndex !== null">
   <!-- Menü-Kachel als eigenes Minimal-Component -->
   <div
@@ -20,7 +21,16 @@
   <!-- When the menu is closed, devices take their grid cells -->
   @if (!menuOpen) {
     @for (device of devices; track $index) {
-      <div class="grid-item" [ngClass]="{ 'active-content': activeIndex === $index }" [style.background]="getGradient(device.type)" (click)="device.type === 'samsung-tv' ? onClickSamsung($index) : onClick($index)">
+      <div class="grid-item"
+           [ngClass]="{ 'active-content': activeIndex === $index }"
+           [style.background]="getGradient(device.type)"
+           (click)="onTileClick(device.type, $index, $event)"
+           (mousedown)="onPressStart(device.type, $index, $event)"
+           (mouseup)="onPressEnd(device.type, $index, $event)"
+           (mouseleave)="onPressCancel($event)"
+           (touchstart)="onPressStart(device.type, $index, $event)"
+           (touchend)="onPressEnd(device.type, $index, $event)"
+           (touchcancel)="onPressCancel($event)">
         @switch (device.type) {
           @case ('pixel') {
             @if (activeIndex === $index) {
