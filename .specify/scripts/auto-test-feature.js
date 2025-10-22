@@ -33,7 +33,7 @@ class AutoTestRunner {
 
   async checkServerHealth() {
     try {
-      const http = require('http');
+      const http = require('node:http');
       return new Promise((resolve) => {
         const req = http.get('http://localhost:4200', (res) => {
           resolve(res.statusCode === 200);

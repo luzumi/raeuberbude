@@ -1,3 +1,136 @@
 <div class="device creator">
-  <button class="back-button" (click)="back.emit()">Zurück</button>
+  <div class="header">
+    <button class="back-button" (click)="onBackClick()">← Zurück</button>
+    <h2>PC Befehle (Creator)</h2>
+    <button
+      class="filter-button"
+      [class.active]="showOnlyBookmarked"
+      (click)="toggleBookmarkFilter()"
+      title="Nur gebookmarkte Befehle anzeigen">
+      {{ showOnlyBookmarked ? '⭐ Nur Favoriten' : '☆ Alle Befehle' }}
+    </button>
+  </div>
+
+  <!-- Lade-Anzeige -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Lade PC-Befehle von Home Assistant...</p>
+  </div>
+
+  <!-- Fehler-Anzeige -->
+  <div *ngIf="loadError && !loading" class="error-container">
+    <h3>⚠️ Fehler</h3>
+    <p>{{ loadError }}</p>
+    <button class="retry-button" (click)="ngOnInit()">🔄 Erneut versuchen</button>
+  </div>
+
+  <!-- Befehls-Tabelle -->
+  <div *ngIf="!loading && !loadError" class="commands-table-container">
+    <div class="stats">
+      <span>📊 Gesamt: {{ commands.length }} Befehle</span>
+      <span *ngIf="showOnlyBookmarked">⭐ Favoriten: {{ filteredCommands.length }}</span>
+    </div>
+
+    <table class="commands-table">
+      <thead>
+        <tr>
+          <th>Entity ID</th>
+          <th>Beschreibung</th>
+          <th>Aktueller Status</th>
+          <th>Aktion</th>
+          <th>Test-Status</th>
+          <th>Favorit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let cmd of filteredCommands"
+            [class.bookmarked]="cmd.bookmarked"
+            [class.sensor-row]="cmd.service === 'none'">
+          <td class="command-name" [title]="cmd.entityId || cmd.command">
+            {{ cmd.entityId || cmd.command }}
+          </td>
+          <td class="command-description">{{ cmd.description }}</td>
+          <td class="command-current-state">
+            <span class="state-badge" [class.state-on]="cmd.currentState === 'on'"
+                                       [class.state-off]="cmd.currentState === 'off'">
+              {{ cmd.currentState || '—' }}
+            </span>
+          </td>
+          <td class="command-action">
+            <button
+              *ngIf="cmd.service !== 'none'"
+              class="execute-button"
+              [disabled]="testingCommand === cmd.command"
+              (click)="executeCommand(cmd); $event.stopPropagation()">
+              {{ testingCommand === cmd.command ? '⏳ Läuft...' : '▶ Ausführen' }}
+            </button>
+            <span *ngIf="cmd.service === 'none'" class="read-only-label">📖 Nur lesen</span>
+          </td>
+          <td class="command-status">
+            <span *ngIf="!cmd.tested" class="status-icon untested">—</span>
+            <span *ngIf="cmd.tested && cmd.testSuccess" class="status-icon success" title="Test erfolgreich">✓</span>
+            <span *ngIf="cmd.tested && !cmd.testSuccess" class="status-icon failure" title="Test fehlgeschlagen">✗</span>
+          </td>
+          <td class="command-bookmark">
+            <input
+              type="checkbox"
+              [checked]="cmd.bookmarked"
+              (change)="toggleBookmark(cmd)"
+              title="Als Favorit markieren">
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="filteredCommands.length === 0" class="no-commands">
+      <p>{{ showOnlyBookmarked ? '⭐ Keine Favoriten markiert. Markiere Befehle als Favoriten.' : '❌ Keine Befehle gefunden.' }}</p>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !loadError" class="info-panel">
+    <h3>ℹ️ Hinweise</h3>
+    <ul>
+      <li><strong>PC:</strong> Nur Entities von CREATOR-Z590-P1 werden angezeigt</li>
+      <li><strong>HASS.Agent:</strong> Stelle sicher, dass HASS.Agent auf dem PC läuft und mit Home Assistant verbunden ist</li>
+      <li><strong>MQTT:</strong> Mosquitto Broker muss laufen und in Home Assistant konfiguriert sein</li>
+      <li><strong>Live-Status:</strong> Der aktuelle Status wird in Echtzeit über WebSocket aktualisiert</li>
+      <li><strong>Sensoren:</strong> Sensor-Entities sind nur lesbar und können nicht ausgeführt werden</li>
+      <li><strong>Favoriten:</strong> Werden lokal im Browser gespeichert</li>
+      <li><strong>Spy-Script:</strong> Beim Ausführen von "Starte Spy" wird ein Live-Screenshot-Dialog geöffnet</li>
+    </ul>
+  </div>
+
+  <!-- Spy-Screenshot Dialog -->
+  <div *ngIf="showSpyDialog" class="spy-dialog-overlay" (click)="closeSpyDialog()">
+    <div class="spy-dialog" (click)="$event.stopPropagation()">
+      <div class="spy-dialog-header">
+        <h3>🔍 Live PC-Screenshot</h3>
+        <button class="close-button" (click)="closeSpyDialog()" title="Schließen und Spy stoppen">✕</button>
+      </div>
+      <div class="spy-dialog-content">
+        <!-- Debug Info - FESTE HÖHE -->
+        <div class="debug-info" style="color: #fff; background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 4px; margin-bottom: 1rem; font-family: monospace; font-size: 0.85rem; max-width: 100%; overflow-wrap: break-word; width: 100%; flex-shrink: 0; min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+          <div><strong>Status:</strong> {{ imageLoadStatus }}</div>
+          <div *ngIf="imageErrorMessage" style="color: #ff6b6b; margin-top: 0.5rem;"><strong>❌ Fehler:</strong> {{ imageErrorMessage }}</div>
+        </div>
+
+        <img
+          [src]="spyScreenshotUrl"
+          alt="PC Screenshot"
+          class="spy-screenshot"
+          (load)="onImageLoad()"
+          (error)="onImageError($event)">
+
+        <div class="spy-info">
+          <span class="refresh-indicator">🔄 Aktualisiert alle {{timeout}}ms</span>
+          <span class="timestamp">{{ imageLoadStatus }}</span>
+        </div>
+      </div>
+      <div class="spy-dialog-footer">
+        <button class="stop-spy-button" (click)="closeSpyDialog()">
+          🛑 Spy stoppen und schließen
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

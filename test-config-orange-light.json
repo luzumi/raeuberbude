@@ -3,6 +3,28 @@
   "issueId": "LUD28-36",
   "tests": [
     {
+      "name": "Login first",
+      "navigate": "/",
+      "waitFor": "input[type='text']",
+      "action": "type",
+      "selector": "input[type='text']",
+      "value": "admin",
+      "waitAfter": 500
+    },
+    {
+      "name": "Enter password",
+      "action": "type",
+      "selector": "input[type='password']",
+      "value": "admin",
+      "waitAfter": 500
+    },
+    {
+      "name": "Click login button",
+      "action": "click",
+      "selector": "button",
+      "waitAfter": 2000
+    },
+    {
       "name": "Page loads successfully",
       "navigate": "/bude",
       "waitFor": ".grid-container",
