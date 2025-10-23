@@ -1,6 +1,6 @@
 /**
  * Automatisierter Feature-Test mit Puppeteer
- * 
+ *
  * Läuft komplett automatisch:
  * 1. Startet Dev-Server
  * 2. Öffnet Browser
@@ -8,7 +8,7 @@
  * 4. Sammelt Logs & Screenshots
  * 5. Stoppt Server
  * 6. Generiert Report
- * 
+ *
  * KEIN USER-INPUT ERFORDERLICH!
  */
 
@@ -45,24 +45,26 @@ class AutoTestRunner {
         });
       });
     } catch (e) {
+      console.warn(e.message)
+    }
       return false;
     }
   }
 
   async startDevServer() {
     console.log('🚀 Prüfe Dev-Server...');
-    
+
     // Prüfe ob Server bereits läuft
     const isRunning = await this.checkServerHealth();
     if (isRunning) {
       console.log('✅ Dev-Server läuft bereits auf http://localhost:4200');
       return;
     }
-    
+
     console.log('📡 Server läuft nicht - starte automatisch...');
     console.log('   (Dies dauert ca. 30-60 Sekunden)');
     console.log('');
-    
+
     return new Promise((resolve, reject) => {
       this.devServer = spawn('npm', ['start'], {
         shell: true,
@@ -71,19 +73,19 @@ class AutoTestRunner {
 
       let output = '';
       let resolved = false;
-      
+
       this.devServer.stdout.on('data', (data) => {
         const text = data.toString();
         output += text;
-        
+
         // Logge Fortschritt
         if (text.includes('%')) {
           process.stdout.write('.');
         }
-        
+
         // Warte auf "compiled successfully" oder "Local: http://localhost:4200"
         if (!resolved && (
-          text.includes('compiled successfully') || 
+          text.includes('compiled successfully') ||
           text.includes('Compiled successfully') ||
           text.includes('Local:') ||
           text.includes('localhost:4200')
@@ -116,14 +118,14 @@ class AutoTestRunner {
 
   async startBrowser() {
     console.log('🌐 Öffne Browser...');
-    
+
     this.browser = await puppeteer.launch({
       headless: true, // Im Hintergrund
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-    
+
     this.page = await this.browser.newPage();
-    
+
     // Console-Logs sammeln
     this.page.on('console', msg => {
       this.results.logs.push({
@@ -132,7 +134,7 @@ class AutoTestRunner {
         timestamp: new Date().toISOString()
       });
     });
-    
+
     // Fehler sammeln
     this.page.on('pageerror', error => {
       this.results.logs.push({
@@ -141,15 +143,15 @@ class AutoTestRunner {
         timestamp: new Date().toISOString()
       });
     });
-    
+
     console.log('✅ Browser geöffnet');
   }
 
   async runTests() {
     console.log('🧪 Führe Tests durch...');
-    
+
     const tests = this.config.tests || [];
-    
+
     for (const test of tests) {
       try {
         console.log(`  ▶️  ${test.name}`);
@@ -166,91 +168,127 @@ class AutoTestRunner {
     }
   }
 
-  async runSingleTest(test) {
-    // Navigation
-    if (test.navigate) {
-      await this.page.goto(`http://localhost:4200${test.navigate}`, {
-        waitUntil: 'networkidle0',
-        timeout: 30000
-      });
+
+    async runSingleTest(test) {
+        await this.navigateToPage(test);
+        await this.takeScreenshotBefore(test);
+        await this.waitForElement(test);
+        await this.executeAction(test);
+        await this.waitAfterAction(test);
+        await this.takeScreenshotAfter(test);
+        await this.performAssertion(test);
     }
 
-    // Screenshot vor Aktion
-    if (test.screenshotBefore) {
-      const screenshotPath = `test-results/${test.name}-before.png`;
-      await this.page.screenshot({ path: screenshotPath });
-      this.results.screenshots.push(screenshotPath);
+    async navigateToPage(test) {
+        if (test.navigate) {
+            await this.page.goto(`http://localhost:4200${test.navigate}`, {
+                waitUntil: 'networkidle0',
+                timeout: 30000
+            });
+        }
     }
 
-    // Warte auf Element
-    if (test.waitFor) {
-      await this.page.waitForSelector(test.waitFor, { timeout: 10000 });
+    async takeScreenshotBefore(test) {
+        if (test.screenshotBefore) {
+            const screenshotPath = `test-results/${test.name}-before.png`;
+            await this.page.screenshot({path: screenshotPath});
+            this.results.screenshots.push(screenshotPath);
+        }
     }
 
-    // Aktion durchführen
-    if (test.action === 'click') {
-      await this.page.click(test.selector);
-    } else if (test.action === 'type') {
-      await this.page.type(test.selector, test.value);
-    } else if (test.action === 'longPress') {
-      await this.page.hover(test.selector);
-      await this.page.mouse.down();
-      await this.page.waitForTimeout(test.duration || 600);
-      await this.page.mouse.up();
+    async waitForElement(test) {
+        if (test.waitFor) {
+            await this.page.waitForSelector(test.waitFor, {timeout: 10000});
+        }
     }
 
-    // Warte auf Ergebnis
-    if (test.waitAfter) {
-      await this.page.waitForTimeout(test.waitAfter);
+    async executeAction(test) {
+        if (test.action === 'click') {
+            await this.page.click(test.selector);
+        } else if (test.action === 'type') {
+            await this.page.type(test.selector, test.value);
+        } else if (test.action === 'longPress') {
+            await this.performLongPress(test);
+        }
     }
 
-    // Screenshot nach Aktion
-    if (test.screenshotAfter) {
-      const screenshotPath = `test-results/${test.name}-after.png`;
-      await this.page.screenshot({ path: screenshotPath });
-      this.results.screenshots.push(screenshotPath);
+    async performLongPress(test) {
+        await this.page.hover(test.selector);
+        await this.page.mouse.down();
+        await this.page.waitForTimeout(test.duration || 600);
+        await this.page.mouse.up();
     }
 
-    // Assertion
-    if (test.expect) {
-      const element = await this.page.$(test.expect.selector);
-      
-      if (test.expect.type === 'visible') {
-        if (!element) throw new Error(`Element ${test.expect.selector} nicht gefunden`);
-      } else if (test.expect.type === 'hasClass') {
+    async waitAfterAction(test) {
+        if (test.waitAfter) {
+            await this.page.waitForTimeout(test.waitAfter);
+        }
+    }
+
+    async takeScreenshotAfter(test) {
+        if (test.screenshotAfter) {
+            const screenshotPath = `test-results/${test.name}-after.png`;
+            await this.page.screenshot({path: screenshotPath});
+            this.results.screenshots.push(screenshotPath);
+        }
+    }
+
+    async performAssertion(test) {
+        if (!test.expect) return;
+
+        const element = await this.page.$(test.expect.selector);
+
+        if (test.expect.type === 'visible') {
+            await this.assertElementVisible(element, test.expect.selector);
+        } else if (test.expect.type === 'hasClass') {
+            await this.assertElementHasClass(element, test.expect.value);
+        } else if (test.expect.type === 'text') {
+            await this.assertElementContainsText(element, test.expect.value);
+        }
+    }
+
+    async assertElementVisible(element, selector) {
+        if (!element) {
+            throw new Error(`Element ${selector} nicht gefunden`);
+        }
+    }
+
+    async assertElementHasClass(element, expectedClass) {
         const className = await element.evaluate(el => el.className);
-        if (!className.includes(test.expect.value)) {
-          throw new Error(`Element hat nicht Klasse ${test.expect.value}`);
+        if (!className.includes(expectedClass)) {
+            throw new Error(`Element hat nicht Klasse ${expectedClass}`);
         }
-      } else if (test.expect.type === 'text') {
-        const text = await element.evaluate(el => el.textContent);
-        if (!text.includes(test.expect.value)) {
-          throw new Error(`Text enthält nicht "${test.expect.value}"`);
-        }
-      }
     }
-  }
+
+    async assertElementContainsText(element, expectedText) {
+        const text = await element.evaluate(el => el.textContent);
+        if (!text.includes(expectedText)) {
+            throw new Error(`Text enthält nicht "${expectedText}"`);
+        }
+    }
 
   async analyzeConsoleLogs() {
     console.log('\n📋 Analysiere Console-Logs...');
-    
+
     const errors = this.results.logs.filter(log => log.type === 'error');
     const warnings = this.results.logs.filter(log => log.type === 'warning');
-    const criticalLogs = this.results.logs.filter(log => 
-      log.text.includes('❌') || 
+    const criticalLogs = this.results.logs.filter(log =>
+      log.text.includes('❌') ||
       log.text.includes('FAILED') ||
       log.text.includes('WebSocket NOT connected')
     );
-    
+
     console.log(`  - Errors: ${errors.length}`);
     console.log(`  - Warnings: ${warnings.length}`);
     console.log(`  - Critical: ${criticalLogs.length}`);
-    
+
     if (errors.length > 0) {
       console.log('\n⚠️ Gefundene Fehler:');
-      errors.forEach(err => console.log(`  - ${err.text}`));
+      for (const err of errors) {
+        console.log(`  - ${err.text}`);
+      }
     }
-    
+
     return {
       errors: errors.length,
       warnings: warnings.length,
@@ -261,12 +299,12 @@ class AutoTestRunner {
 
   async generateReport() {
     console.log('\n📊 Generiere Test-Report...');
-    
+
     const logAnalysis = await this.analyzeConsoleLogs();
-    
+
     const totalTests = this.results.passed.length + this.results.failed.length;
     const passRate = totalTests > 0 ? Math.round((this.results.passed.length / totalTests) * 100) : 0;
-    
+
     const report = {
       timestamp: new Date().toISOString(),
       feature: this.config.feature,
@@ -279,22 +317,22 @@ class AutoTestRunner {
       logAnalysis,
       screenshots: this.results.screenshots
     };
-    
+
     // Report als JSON speichern
     const reportPath = 'test-results/auto-test-report.json';
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-    
+
     // Markdown-Report
     const mdReport = this.generateMarkdownReport(report);
     fs.writeFileSync('test-results/auto-test-report.md', mdReport);
-    
+
     return report;
   }
 
   generateMarkdownReport(report) {
     return `# 🧪 Automatischer Test-Report
 
-**Feature:** ${report.feature}  
+**Feature:** ${report.feature}
 **Datum:** ${new Date(report.timestamp).toLocaleString('de-DE')}
 
 ---
@@ -344,20 +382,20 @@ ${report.failedTests.map(t => `- **${t.name}**: ${t.error}`).join('\n')}
 
 ## 🎯 Fazit
 
-${report.failed === 0 && report.logAnalysis.errors === 0 
-  ? '✅ **Alle Tests bestanden! Feature ist bereit für PR.**' 
+${report.failed === 0 && report.logAnalysis.errors === 0
+  ? '✅ **Alle Tests bestanden! Feature ist bereit für PR.**'
   : `⚠️ **${report.failed} Test(s) fehlgeschlagen oder ${report.logAnalysis.errors} Console-Errors gefunden. Bugfixes erforderlich.**`}
 `;
   }
 
   async cleanup() {
     console.log('\n🧹 Aufräumen...');
-    
+
     if (this.browser) {
       await this.browser.close();
       console.log('  ✅ Browser geschlossen');
     }
-    
+
     if (this.devServer) {
       this.devServer.kill();
       console.log('  ✅ Dev-Server gestoppt');
@@ -375,7 +413,7 @@ ${report.failed === 0 && report.logAnalysis.errors === 0
       await this.startBrowser();
       await this.runTests();
       const report = await this.generateReport();
-      
+
       console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('✅ Automatischer Test abgeschlossen!');
       console.log(`📊 ${report.passed}/${report.totalTests} Tests bestanden (${report.passRate}%)`);
@@ -383,9 +421,9 @@ ${report.failed === 0 && report.logAnalysis.errors === 0
       console.log(`📸 ${report.screenshots.length} Screenshots erstellt`);
       console.log('📁 Report: test-results/auto-test-report.md');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-      
+
       return report;
-      
+
     } catch (error) {
       console.error('❌ Test-Fehler:', error);
       throw error;
@@ -400,22 +438,48 @@ module.exports = AutoTestRunner;
 
 // CLI-Verwendung
 if (require.main === module) {
-  const configFile = process.argv[2] || 'test-config.json';
-  
-  if (!fs.existsSync(configFile)) {
-    console.error(`❌ Config-Datei nicht gefunden: ${configFile}`);
-    process.exit(1);
+  const configFile = process.argv[2];
+  let config;
+
+  if (configFile && fs.existsSync(configFile)) {
+    config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+  } else {
+    const issueId = process.argv[3] || process.env.ISSUE_ID || process.env.AUTO_TEST_ISSUE_ID || 'UNKNOWN';
+    console.log(`ℹ️  Keine gültige Config-Datei angegeben. Starte mit Default-Konfiguration${issueId !== 'UNKNOWN' ? ' für ' + issueId : ''}...`);
+    config = {
+      feature: `Auto Smoke Test${issueId !== 'UNKNOWN' ? ' - ' + issueId : ''}`,
+      issueId,
+      tests: [
+        {
+          name: 'App loads',
+          navigate: '/',
+          waitFor: 'body',
+          screenshotAfter: true,
+          expect: { selector: 'body', type: 'visible' }
+        }
+      ]
+    };
   }
-  
-  const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-  
+
   const runner = new AutoTestRunner(config);
   runner.run()
     .then(report => {
-      process.exit(report.failed === 0 && report.logAnalysis.errors === 0 ? 0 : 1);
+      if (!report) {
+        console.error('❌ Kein Test-Report erhalten');
+        process.exit(1);
+        return;
+      }
+
+      const hasFailedTests = (report.failed || 0) > 0;
+      const hasLogErrors = (report.logAnalysis?.errors || 0) > 0;
+
+      console.log(`📊 Tests: ${hasFailedTests ? 'FAILED' : 'PASSED'}`);
+      console.log(`📋 Logs: ${hasLogErrors ? 'ERRORS' : 'CLEAN'}`);
+
+      process.exit(hasFailedTests || hasLogErrors ? 1 : 0);
     })
     .catch(error => {
-      console.error('Fatal error:', error);
+      console.error('❌ Fatal error:', error.message || error);
       process.exit(1);
     });
 }

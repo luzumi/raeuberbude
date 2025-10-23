@@ -74,6 +74,25 @@ Write-Output ""
 
 **Output:** Branch-Name, Commit-Hash
 
+### Zwischenschritt: Code Review (AUTOMATISCH)
+
+// turbo
+
+```powershell
+Write-Output ""
+Write-Output "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+Write-Output "🔎 Code Review"
+Write-Output "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+Write-Output ""
+
+# Review-Agent prüfen lassen (führt Build/Tests aus, fasst Findings zusammen)
+/review-agent $issueId
+
+# Hinweis: Der Review-Agent erzeugt bei Erfolg automatisch ein Test-Issue
+# und ruft den Testing-Agent auf. Der folgende Testing-Abschnitt dient als Fallback,
+# falls der Review-Agent nicht verwendet werden soll.
+```
+
 ### Phase 3: Automatisches Testing (VOLLAUTOMATISCH)
 
 // turbo

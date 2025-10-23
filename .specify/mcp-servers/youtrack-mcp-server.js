@@ -3,7 +3,12 @@ const axios = require('axios');
 const https = require('node:https');
 const fs = require('node:fs');
 const path = require('node:path');
+const multer = require('multer');
+const FormData = require('form-data');
 require('dotenv').config();
+
+// Konfiguration für Datei-Uploads
+const upload = multer({ dest: 'uploads/' });
 
 const app = express();
 app.use(express.json());
@@ -22,8 +27,8 @@ const { YOU_TRACK_API_URL, TOKEN } = (() => {
         };
       }
     }
-  } catch (_) {
-    // ignore secrets parsing errors; fall back to env/defaults
+  } catch (err) {
+    console.warn('Error reading youtrack.secrets.json' + err.message);
   }
   return {
     YOU_TRACK_API_URL: envUrl || 'https://luzumi.youtrack.cloud',
@@ -41,7 +46,7 @@ async function resolveProjectId(inputProject, axiosOpts) {
   if (inputProject && typeof inputProject === 'object' && inputProject.id) {
     return inputProject.id;
   }
-  let shortName = undefined;
+  let shortName;
   if (inputProject && typeof inputProject === 'object' && inputProject.shortName) {
     shortName = inputProject.shortName;
   } else if (typeof inputProject === 'string' && inputProject.length > 0) {
@@ -126,7 +131,7 @@ app.post('/createIssue', async (req, res) => {
     const { summary, description } = req.body;
     const axiosOpts = {
       headers: {
-        Authorization: `Bearer ${TOKEN}`,
+        Authorization: `Bearer ${normalizedToken()}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
@@ -146,20 +151,13 @@ app.post('/createIssue', async (req, res) => {
     const payload = { project: { id: resolvedProjectId }, summary, description, customFields };
 
     if (process.env.LOG_REQUESTS === 'true') {
-      const { Authorization, ...safeHeaders } = { Authorization: `Bearer ${TOKEN}` };
+      const { Authorization, ...safeHeaders } = { Authorization: `Bearer ${normalizedToken()}` };
       console.log('[YouTrack] Request', {
         method: 'POST', url: `${YOU_TRACK_API_URL}/api/issues`, headers: safeHeaders, payload
       });
     }
 
-    const response = await axios.post(`${YOU_TRACK_API_URL}/api/issues`, payload, {
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
-    });
+    const response = await axios.post(`${YOU_TRACK_API_URL}/api/issues`, payload, axiosOpts);
     res.json({ id: response.data.id, ...response.data });
   } catch (error) {
     const status = error.response?.status || 500;
@@ -168,32 +166,86 @@ app.post('/createIssue', async (req, res) => {
   }
 });
 
-app.post('/', (req, res) => {
-  // Leite an /issues weiter
-  const { summary, description, ...rest } = req.body;
-  const axiosOpts = {
-    headers: {
-      Authorization: `Bearer ${normalizedToken()}`,
-      'Content-Type': 'application/json'
-    }
-  };
+// Zusatz-Endpunkte
 
-  // Führe die gleiche Logik wie in /issues aus
-  resolveProjectId(req.body?.project, axiosOpts)
-    .then(projectId => {
-      const payload = {
-        project: { id: projectId },
-        summary: summary || 'No summary',
-        description: description || '',
-        ...rest
-      };
-      return axios.post(`${YOU_TRACK_API_URL}/api/issues`, payload, axiosOpts);
-    })
-    .then(response => res.json(response.data))
-    .catch(error => {
-      console.error('Error in root endpoint:', error.message);
-      res.status(500).json({ error: error.message });
+// Kommentare hinzufügen
+app.post('/issues/:issueId/comments', async (req, res) => {
+  try {
+    const { text } = req.body || {};
+    if (!text) return res.status(400).json({ success: false, error: 'text ist erforderlich' });
+    const axiosOpts = {
+      headers: {
+        Authorization: `Bearer ${normalizedToken()}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
+    };
+    const response = await axios.post(`${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(req.params.issueId)}/comments`, { text }, axiosOpts);
+    res.json({ success: true, id: response.data?.id, ...response.data });
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+    res.status(status).json({ success: false, error: data, status });
+  }
+});
+
+// Healthcheck
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true, url: YOU_TRACK_API_URL });
+});
+
+// Datei an Issue anhängen (z.B. Screenshots, Logs)
+app.post('/issues/:issueId/attachments', upload.single('file'), async (req, res) => {
+  try {
+    const { issueId } = req.params;
+    const token = normalizedToken();
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded. Use multipart/form-data with field "file".'
+      });
+    }
+
+    const fileContent = fs.readFileSync(req.file.path);
+    const formData = new FormData();
+    formData.append('file', fileContent, {
+      filename: req.file.originalname || path.basename(req.file.path),
+      contentType: req.file.mimetype || 'application/octet-stream'
     });
+
+    const response = await axios.post(
+      `${YOU_TRACK_API_URL}/api/issues/${issueId}/attachments?fields=id,name,size,url`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          ...formData.getHeaders()
+        },
+        httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined,
+        maxBodyLength: Infinity
+      }
+    );
+
+    // Temporäre Datei löschen
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      success: true,
+      attachment: response.data
+    });
+  } catch (error) {
+    console.error('Error uploading attachment:', error.message);
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path); // Aufräumen
+    }
+    res.status(500).json({
+      success: false,
+      error: error.response?.data?.error || error.message
+    });
+  }
 });
 
 // MCP-spezifische Endpunkte
@@ -206,8 +258,8 @@ app.post('/mcp/editor', (req, res) => {
   });
 });
 
-// Root-Endpunkt für MCP-Handshake
-app.post('/', (req, res) => {
+// Root-Endpunkt für MCP-Handshake (GET)
+app.get('/', (req, res) => {
   res.status(200).json({
     name: "YouTrack MCP Server",
     version: "1.0",
