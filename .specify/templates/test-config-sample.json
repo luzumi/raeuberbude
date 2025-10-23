@@ -1,0 +1,13 @@
+{
+  "feature": "Sample Smoke Test",
+  "issueId": "LUD-XX",
+  "tests": [
+    {
+      "name": "App loads",
+      "navigate": "/",
+      "waitFor": "body",
+      "screenshotAfter": true,
+      "expect": { "selector": "body", "type": "visible" }
+    }
+  ]
+}

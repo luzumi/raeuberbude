@@ -50,3 +50,7 @@ Thumbs.db
 # Playwright auth state
 playwright/.auth/
 /test-results/
+
+# YouTrack MCP secrets & uploads
+/.specify/mcp-servers/youtrack.secrets.json
+/uploads/
