@@ -42,6 +42,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   screenshotStatus: string = '';
   private screenshotRefreshInterval?: number;
   private screenshotIntervalMs: number = 1000;
+  private lastScreenshotLoadAt?: number;
+  private lastSpyTriggerAt?: number;
+  private readonly spyRetryMs = 5000; // alle 5s Spy-Start erneut versuchen, wenn kein Bild lädt
 
   // Gauge Backgrounds (conic-gradient)
   cpuGaugeBg = '';
@@ -75,6 +78,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   private statusSensorId?: string; // bevorzugter Status-Sensor (letzter Systemstatus)
   private monitorSwitchId?: string; // optionaler Switch für Monitor (toggle)
   private monitorLastAction?: 'on' | 'off';
+  // Spy/Screenshot Start/Stop
+  private spyStartAction?: { domain: string; service: string; data: any };
+  private spyStopAction?: { domain: string; service: string; data: any };
 
   private sub?: Subscription;
 
@@ -91,6 +97,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
         this.wasPcOn = this.pcOn;
       }
     } );
+    // Sicherheitsnetz: auch ohne Statuswechsel direkt versuchen zu starten
+    this.loadSpyOverrideFromLocalStorage();
+    this.startScreenshotRefresh();
   }
 
   private makeGaugeBg(percent: number, color: string): string {
@@ -196,6 +205,8 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     this.mediaEntityId = undefined;
     this.onlineBinaryId = undefined;
     this.statusSensorId = undefined;
+    this.spyStartAction = undefined;
+    this.spyStopAction = undefined;
     // WOL: button/script/switch mit "wol" oder "wake"
     const wol = entities.find( e => this.pcMatches( e.entity_id, e.attributes?.friendly_name ) && e.entity_id.match( /^(button|script|switch)\./ ) && (this.norm( e.entity_id ).includes( 'wol' ) || this.norm( e.entity_id ).includes( 'wake' )) );
     if ( wol ) this.wolAction = this.toAction( wol );
@@ -209,6 +220,21 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     const monSwitch = entities.find(e => e.entity_id.startsWith('switch.') && (this.hasAny(e.entity_id, ['monitor','display','screen']) || this.hasAny(e.attributes?.friendly_name || '', ['monitor','display','screen'])));
     this.monitorSwitchId = monSwitch?.entity_id;
     this.monitorOnAvailable = !!(this.monitorSwitchId || this.monitorOnAction || this.monitorOffAction);
+
+    // Spy Start/Stop (z.B. Screenshot-Aufnahme)
+    const SPY_KEYS = ['spy','screenshot','screen','capture','snapshot','snap','bild','monitor'];
+    const START_KEYS = ['start','enable','begin','on','record','aufnehmen','starten','aktivieren'];
+    const STOP_KEYS = ['stop','disable','end','off','stopp','beenden','deaktivieren','anhalten'];
+    const spyStart = entities.find(e => this.pcMatches(e.entity_id, e.attributes?.friendly_name)
+      && e.entity_id.match(/^(button|script|switch)\./)
+      && this.hasAny(this.textOf(e), SPY_KEYS)
+      && this.hasAny(this.textOf(e), START_KEYS));
+    if (spyStart) this.spyStartAction = this.toAction(spyStart);
+    const spyStop = entities.find(e => this.pcMatches(e.entity_id, e.attributes?.friendly_name)
+      && e.entity_id.match(/^(button|script|switch)\./)
+      && this.hasAny(this.textOf(e), SPY_KEYS)
+      && this.hasAny(this.textOf(e), STOP_KEYS));
+    if (spyStop) this.spyStopAction = this.toAction(spyStop);
 
     // Shutdown/Restart/Sleep
     const shutdown = entities.find( e => this.pcMatches( e.entity_id, e.attributes?.friendly_name ) && e.entity_id.match( /^(button|script)\./ ) && (this.norm( e.entity_id ).includes( 'shutdown' ) || this.norm( e.entity_id ).includes( 'power_off' )) );
@@ -251,6 +277,16 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   private toAction(e: Entity): { domain: string; service: string; data: any } {
     const domain = e.entity_id.split('.')[0];
     const data = { entity_id: e.entity_id };
+    let service = 'turn_on';
+    if (domain === 'button') service = 'press';
+    if (domain === 'switch') service = 'turn_on';
+    if (domain === 'script') service = 'turn_on';
+    return { domain, service, data };
+  }
+
+  private toActionById(entityId: string): { domain: string; service: string; data: any } {
+    const domain = entityId.split('.')[0];
+    const data = { entity_id: entityId };
     let service = 'turn_on';
     if (domain === 'button') service = 'press';
     if (domain === 'switch') service = 'turn_on';
@@ -392,9 +428,23 @@ export class CreatorMinimal implements OnInit, OnDestroy {
 
   // --- Screenshot Refresh ---
   private startScreenshotRefresh(): void {
-    this.stopScreenshotRefresh();
+    // bereits aktiv? Dann nichts tun
+    if (this.screenshotRefreshInterval) return;
+    // versuche ggf. Spy-Aufnahme zu starten
+    if (!this.spyStartAction) {
+      console.debug('[CreatorMinimal] no spy start action found (autodiscovery). You can set localStorage keys "creator.spyStart"/"creator.spyStop" with entity_id to override.');
+    }
+    this.startSpyCapture();
     this.updateScreenshotUrl();
     this.screenshotRefreshInterval = window.setInterval(() => {
+      // Wenn seit > spyRetryMs kein Bild geladen wurde → Spy erneut starten
+      const now = Date.now();
+      const lastOk = this.lastScreenshotLoadAt ?? 0;
+      const lastSpy = this.lastSpyTriggerAt ?? 0;
+      if (now - lastOk > this.spyRetryMs && now - lastSpy > this.spyRetryMs) {
+        console.debug('[CreatorMinimal] screenshot stale, retry spy-start');
+        this.startSpyCapture();
+      }
       this.updateScreenshotUrl();
     }, this.screenshotIntervalMs);
   }
@@ -404,18 +454,49 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       clearInterval(this.screenshotRefreshInterval);
       this.screenshotRefreshInterval = undefined;
     }
+    // versuche ggf. Spy-Aufnahme zu stoppen
+    this.stopSpyCapture();
   }
 
   private updateScreenshotUrl(): void {
-    this.screenshotUrl = `${this.SCREENSHOT_URL}?t=${Date.now()}`;
+    const t = Date.now();
+    this.screenshotUrl = `${this.SCREENSHOT_URL}?t=${t}`;
+    // Log zur Diagnose (kann später entfernt werden)
+    console.debug('[CreatorMinimal] refresh screenshot', this.screenshotUrl);
+  }
+
+  private startSpyCapture(): void {
+    if (!this.spyStartAction) return;
+    this.lastSpyTriggerAt = Date.now();
+    console.debug('[CreatorMinimal] call spy start', this.spyStartAction);
+    this.hass.callService(this.spyStartAction.domain, this.spyStartAction.service, this.spyStartAction.data).subscribe();
+  }
+
+  private stopSpyCapture(): void {
+    if (!this.spyStopAction) return;
+    console.debug('[CreatorMinimal] call spy stop', this.spyStopAction);
+    this.hass.callService(this.spyStopAction.domain, this.spyStopAction.service, this.spyStopAction.data).subscribe();
+  }
+
+  private loadSpyOverrideFromLocalStorage(): void {
+    try {
+      const s = localStorage.getItem('creator.spyStart');
+      const p = localStorage.getItem('creator.spyStop');
+      if (s) this.spyStartAction = this.toActionById(s);
+      if (p) this.spyStopAction = this.toActionById(p);
+      if (s || p) console.debug('[CreatorMinimal] loaded spy overrides from localStorage', { s, p });
+    } catch {}
   }
 
   onScreenshotLoad(): void {
     this.screenshotStatus = 'Bild aktualisiert';
+    this.lastScreenshotLoadAt = Date.now();
+    console.debug('[CreatorMinimal] screenshot loaded ok');
   }
 
   onScreenshotError(): void {
     this.screenshotStatus = 'Fehler beim Laden';
+    console.warn('[CreatorMinimal] screenshot error');
   }
 
   getCurrentTimestamp(): string {
