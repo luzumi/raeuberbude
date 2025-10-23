@@ -168,6 +168,55 @@ app.post('/createIssue', async (req, res) => {
   }
 });
 
+app.post('/', (req, res) => {
+  // Leite an /issues weiter
+  const { summary, description, ...rest } = req.body;
+  const axiosOpts = {
+    headers: {
+      Authorization: `Bearer ${normalizedToken()}`,
+      'Content-Type': 'application/json'
+    }
+  };
+
+  // Führe die gleiche Logik wie in /issues aus
+  resolveProjectId(req.body?.project, axiosOpts)
+    .then(projectId => {
+      const payload = {
+        project: { id: projectId },
+        summary: summary || 'No summary',
+        description: description || '',
+        ...rest
+      };
+      return axios.post(`${YOU_TRACK_API_URL}/api/issues`, payload, axiosOpts);
+    })
+    .then(response => res.json(response.data))
+    .catch(error => {
+      console.error('Error in root endpoint:', error.message);
+      res.status(500).json({ error: error.message });
+    });
+});
+
+// MCP-spezifische Endpunkte
+app.post('/mcp/editor', (req, res) => {
+  res.status(200).json({
+    success: true,
+    capabilities: {
+      editor: false  // Editor-Funktionen deaktivieren
+    }
+  });
+});
+
+// Root-Endpunkt für MCP-Handshake
+app.post('/', (req, res) => {
+  res.status(200).json({
+    name: "YouTrack MCP Server",
+    version: "1.0",
+    capabilities: {
+      editor: false
+    }
+  });
+});
+
 const PORT = process.env.PORT || 5180;
 app.listen(PORT, () => {
   console.log(`YouTrack MCP Server listening on port ${PORT}`);
