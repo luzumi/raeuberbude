@@ -8,6 +8,9 @@
   --rm-wheel-radius: 200px;      /* bisher fix im room-menu */
   --rm-button-size: clamp(2.5rem, 6vw, 4rem); /* existiert schon component-seitig; hier als Fallback */
   --page-padding: 24px;
+  /* Moderne Header-Farben (überschreibbar) */
+  --header-bg: linear-gradient(90deg, #0f172a 0%, #1f2937 100%);
+  --header-fg: #ffffff;
 }
 
 /* Tablet: <= 960px */

@@ -16,6 +16,8 @@ const puppeteer = require('puppeteer');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const axios = require('axios');
+const FormData = require('form-data');
 
 class AutoTestRunner {
   constructor(config) {
@@ -29,6 +31,136 @@ class AutoTestRunner {
       logs: [],
       screenshots: []
     };
+  }
+  
+  async uploadFileToYouTrack(issueId, filePath) {
+    try {
+      const baseUrl = process.env.MCP_BASE_URL || 'http://localhost:5180';
+      const form = new FormData();
+      form.append('file', fs.createReadStream(filePath));
+      const res = await axios.post(
+        `${baseUrl}/issues/${encodeURIComponent(issueId)}/attachments`,
+        form,
+        { headers: { ...form.getHeaders() }, maxBodyLength: Infinity }
+      );
+      console.log(`  📎 Hochgeladen: ${path.basename(filePath)} → ${res.data?.attachment?.name || 'OK'}`);
+      return res.data; // { success, attachment: { id,name,size,url,absoluteUrl? } }
+    } catch (err) {
+      console.warn(`  ⚠️ Upload fehlgeschlagen: ${path.basename(filePath)} – ${err.message || err}`);
+      return null;
+    }
+  }
+
+  async uploadArtifacts(issueId) {
+    const files = [];
+    if (Array.isArray(this.results?.screenshots)) {
+      files.push(...this.results.screenshots);
+    }
+    if (this.lastReportPaths?.json) files.push(this.lastReportPaths.json);
+    if (this.lastReportPaths?.md) files.push(this.lastReportPaths.md);
+
+    if (!files.length) {
+      console.log('📤 Keine Artefakte zum Hochladen gefunden.');
+      return [];
+    }
+
+    console.log(`📤 Lade ${files.length} Artefakt(e) nach YouTrack hoch...`);
+    let ok = 0;
+    const uploaded = [];
+    for (const f of files) {
+      if (f && fs.existsSync(f)) {
+        const res = await this.uploadFileToYouTrack(issueId, f);
+        if (res && res.attachment) {
+          ok++;
+          uploaded.push({
+            file: f,
+            name: res.attachment.name,
+            size: res.attachment.size,
+            url: res.attachment.absoluteUrl || res.attachment.url
+          });
+        }
+      } else {
+        console.warn(`  ⚠️ Datei nicht gefunden: ${f}`);
+      }
+    }
+    console.log(`✅ Upload abgeschlossen: ${ok}/${files.length} hochgeladen.`);
+    return uploaded;
+  }
+
+  async applyYouTrackCommand(issueId, { query, comment, silent = true }) {
+    try {
+      const baseUrl = process.env.MCP_BASE_URL || 'http://localhost:5180';
+      const payload = { query: query || null, comment: comment || null, silent };
+      await axios.post(`${baseUrl}/issues/${encodeURIComponent(issueId)}/commands`, payload, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return true;
+    } catch (e) {
+      console.warn(`⚠️ Command fehlgeschlagen (${query || 'comment'}): ${e.message || e}`);
+      return false;
+    }
+  }
+
+  async postYouTrackComment(issueId, text) {
+    try {
+      const baseUrl = process.env.MCP_BASE_URL || 'http://localhost:5180';
+      await axios.post(`${baseUrl}/issues/${encodeURIComponent(issueId)}/comments`, { text }, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return true;
+    } catch (e) {
+      console.warn(`⚠️ Kommentar fehlgeschlagen: ${e.message || e}`);
+      return false;
+    }
+  }
+
+  async trySetState(issueId, candidates = []) {
+    for (const st of candidates) {
+      const ok = await this.applyYouTrackCommand(issueId, { query: `State ${st}`, silent: true });
+      if (ok) return st;
+    }
+    return null;
+  }
+
+  async setIssueStage(issueId, stage, report = null, uploaded = []) {
+    try {
+      if (stage === 'starting') {
+        await this.applyYouTrackCommand(issueId, { query: 'Assignee me', silent: true });
+        await this.applyYouTrackCommand(issueId, { query: 'tag Automation tag Smoke', silent: true });
+        await this.trySetState(issueId, ['In Bearbeitung','To Do','Open','Submitted']);
+        await this.postYouTrackComment(issueId, '[Automation] Tests werden gestartet.');
+      } else if (stage === 'finished-success') {
+        await this.trySetState(issueId, ['Erledigt','Done']);
+        const lines = [];
+        lines.push('Automation abgeschlossen: SUCCESS');
+        if (report) {
+          lines.push(`Tests: ${report.passed}/${report.totalTests} bestanden (${report.passRate}%)`);
+          lines.push(`Console-Errors: ${report.logAnalysis?.errors || 0}`);
+        }
+        if (uploaded && uploaded.length) {
+          lines.push('Attachments:');
+          for (const a of uploaded) {
+            lines.push(`- ${a.name}${a.url ? ` → ${a.url}` : ''}`);
+          }
+        }
+        await this.postYouTrackComment(issueId, lines.join('\n'));
+      } else if (stage === 'finished-failure') {
+        await this.trySetState(issueId, ['To Do','Open','In Bearbeitung','Submitted']);
+        const lines = [];
+        lines.push('Automation abgeschlossen: FAILED');
+        if (report) {
+          lines.push(`Tests: ${report.passed}/${report.totalTests} bestanden (${report.passRate}%)`);
+          lines.push(`Console-Errors: ${report.logAnalysis?.errors || 0}`);
+        }
+        if (uploaded && uploaded.length) {
+          lines.push('Attachments:');
+          for (const a of uploaded) {
+            lines.push(`- ${a.name}${a.url ? ` → ${a.url}` : ''}`);
+          }
+        }
+        await this.postYouTrackComment(issueId, lines.join('\n'));
+      }
+    } catch { /* non-blocking */ }
   }
 
   async checkServerHealth() {
