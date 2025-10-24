@@ -16,6 +16,7 @@ export class AppButtonComponent {
   @Input() color = '#ccc';
   @Input() backgroundColor = '#000';
   @Input() activeColor = '#fff';
+  @Input() hoverColor = '#bbb';
   @Input() active = false;
   @Input() size = '70px';
   @Input() fontSize = '10px';

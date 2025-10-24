@@ -3,6 +3,7 @@ import { SpeedometerComponent } from '@shared/components/speedometer/speedometer
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {Subscription} from 'rxjs';
 import { Entity, HomeAssistantService } from '@services/home-assistant/home-assistant.service';
+import { AppButtonComponent } from '@shared/components/app-button/app-button';
 
 /**
  * Minimale Platzhalteransicht für den PC (Creator).
@@ -10,7 +11,7 @@ import { Entity, HomeAssistantService } from '@services/home-assistant/home-assi
 @Component({
   selector: 'app-creator-minimal',
   standalone: true,
-  imports: [CommonModule, SpeedometerComponent],
+  imports: [CommonModule, SpeedometerComponent, AppButtonComponent],
   templateUrl: './creator-minimal.html',
   styleUrls: ['./creator-minimal.layout.scss'],
   host: { 'style': 'display:block;width:100%;height:100%;' }
@@ -324,6 +325,12 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     ) && (
       this.hasAny(e.entity_id, ['usage','load','percent','last','auslast','auslastung','util']) || this.hasAny(e.attributes?.friendly_name || '', ['usage','load','percent','last','auslastung','util'])
     ));
+    // GPU-Temperatur (optional)
+    const gpuTempSensor = by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && (
+      this.hasAny(e.entity_id, ['gpu','graphics']) || this.hasAny(e.attributes?.friendly_name || '', ['gpu','graphics'])
+    ) && (
+      this.hasAny(e.entity_id, ['temp','temperature','temperatur','°c','celsius']) || this.hasAny(e.attributes?.friendly_name || '', ['temp','temperature','temperatur','°c','celsius'])
+    ));
     // GPU-Temperatur-Sensor robust ermitteln
     const gpuTempExact = by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && this.norm(e.entity_id).endsWith('_gputemperatur'));
     const looksLikeTempUnit = (e: Entity) => {
@@ -359,6 +366,13 @@ export class CreatorMinimal implements OnInit, OnDestroy {
         if (val <= 1) val *= 100;
       }
       return Math.max(0, Math.min(100, val));
+    };
+    // Zahl ohne Prozent-Transformation
+    const toNumber = (e?: Entity): number => {
+      if (!e) return 0;
+      const rawStr = typeof e.state === 'number' ? String(e.state) : String(e.state || '');
+      const val = typeof e.state === 'number' ? e.state : Number.parseFloat(rawStr.replace(',', '.'));
+      return isFinite(val) ? val : 0;
     };
     // Temperatur auf °C normalisieren
     const toCelsius = (e?: Entity): number => {

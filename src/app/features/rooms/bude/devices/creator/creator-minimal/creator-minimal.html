@@ -14,8 +14,8 @@
 
   </div>
 
-  <div class="content" style="display:flex; flex-direction:column; height:100%; min-height:0; gap:.75rem;" *ngIf="pcOn; else offlineTpl">
-    <div class="gauges gauges-row" style="display:flex; align-items:center; justify-content:space-between; height:20%; min-height:0; gap:.75rem; --g-gap:.75rem;">
+  <div class="content" *ngIf="pcOn; else offlineTpl">
+    <div class="gauges gauges-row">
       <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'CPU'" [value]="cpuPercent"></app-speedometer>
       <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
       <div class="gauge-wrapper gpu-wrapper" style="flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3); position:relative;">
@@ -26,8 +26,8 @@
       <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'Takt'" [value]="freqPercent" [max]="5300"></app-speedometer>
     </div>
 
-    <div class="screenshot" style="height:40%; min-height:0;">
-      <div class="screenshot-card" style="height:100%; display:flex; align-items:center; justify-content:center;">
+    <div class="screenshot">
+      <div class="screenshot-card">
         <img [src]="screenshotUrl"
              (load)="onScreenshotLoad()"
              (error)="onScreenshotError()"
@@ -40,23 +40,66 @@
       </div>
     </div>
 
-    <div class="buttons" style="flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:space-between; gap:.5rem; overflow:hidden;">
-      <button class="btn" (click)="$event.stopPropagation(); monitorOn()" [class.inactive]="!monitorOnAvailable" [title]="monitorOnAvailable ? 'Monitor aufwecken' : 'Aktion nicht verfügbar'">
-        🖥️ Monitor an
-      </button>
-      <button class="btn" (click)="$event.stopPropagation(); playPause()" [class.inactive]="!mediaAvailable" [title]="mediaAvailable ? 'Media Play/Pause' : 'Aktion nicht verfügbar'">
-        ⏯️ Play/Pause
-      </button>
-      <div class="spacer"></div>
-      <button class="btn warn" (click)="$event.stopPropagation(); sleep()" [class.inactive]="!sleepAvailable" [title]="sleepAvailable ? 'Ruhezustand' : 'Aktion nicht verfügbar'">
-        🌙 Sleep
-      </button>
-      <button class="btn warn" (click)="$event.stopPropagation(); restart()" [class.inactive]="!restartAvailable" [title]="restartAvailable ? 'Neu starten' : 'Aktion nicht verfügbar'">
-        🔁 Restart
-      </button>
-      <button class="btn danger" (click)="$event.stopPropagation(); shutdown()" [class.inactive]="!shutdownAvailable" [title]="shutdownAvailable ? 'Herunterfahren' : 'Aktion nicht verfügbar'">
-        ⏻ Shutdown
-      </button>
+    <div class="buttons">
+      <app-button
+        name="Monitor an"
+        [svgIcon]="'/assets/icons/monitor.svg'"
+        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
+        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [active]="false"
+        [glowOn]="false"
+        (click)="monitorOnAvailable ? monitorOn() : null"
+        [attr.title]="monitorOnAvailable ? 'Monitor aufwecken' : 'Monitor aus'"
+      ></app-button>
+
+      <app-button
+        name="Play/Pause"
+        [svgIcon]="'/assets/icons/playpause.svg'"
+        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
+        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [active]="false"
+        [glowOn]="false"
+        (click)="mediaAvailable ? playPause() : null"
+        [attr.title]="mediaAvailable ? 'Media Play/Pause' : 'Aktion nicht verfügbar'"
+      ></app-button>
+
+      <app-button
+        name="Sleep"
+        [svgIcon]="'/assets/icons/sleep.svg'"
+        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
+        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [active]="false"
+        [glowOn]="false"
+        (click)="sleepAvailable ? sleep() : null"
+        [attr.title]="sleepAvailable ? 'Ruhezustand' : 'Aktion nicht verfügbar'"
+      ></app-button>
+
+      <app-button
+        name="Restart"
+        [svgIcon]="'/assets/icons/restart.svg'"
+        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
+        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [active]="false"
+        [glowOn]="false"
+        (click)="restartAvailable ? restart() : null"
+        [attr.title]="restartAvailable ? 'Neu starten' : 'Aktion nicht verfügbar'"
+      ></app-button>
+
+      <app-button
+        name="Shutdown"
+        [svgIcon]="'/assets/icons/shutdown.svg'"
+        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
+        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [active]="false"
+        [glowOn]="false"
+        (click)="shutdownAvailable ? shutdown() : null"
+        [attr.title]="shutdownAvailable ? 'Herunterfahren' : 'Aktion nicht verfügbar'"
+      ></app-button>
     </div>
   </div>
 
