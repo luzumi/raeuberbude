@@ -75,20 +75,36 @@ async function main() {
   }
 
   try {
-    // origin default branch ermitteln
-    let defaultBranch = 'main';
+    // Basis-Branch priorisiert: develope-agents (Fallback: origin/default)
+    let baseBranch = 'develope-agents';
+    run('git', ['fetch', 'origin']);
     try {
-      const ref = run('git', ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']);
-      const m = ref.match(/refs\/remotes\/origin\/(.+)$/);
-      if (m && m[1]) defaultBranch = m[1];
+      run('git', ['ls-remote', '--exit-code', '--heads', 'origin', baseBranch]);
     } catch {
-      // Fallback: prüfe main oder master
-      try { run('git', ['ls-remote', '--exit-code', '--heads', 'origin', 'main']); defaultBranch = 'main'; }
-      catch { defaultBranch = 'master'; }
+      // origin default branch ermitteln
+      baseBranch = 'main';
+      try {
+        const ref = run('git', ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']);
+        const m = ref.match(/refs\/remotes\/origin\/(.+)$/);
+        if (m && m[1]) baseBranch = m[1];
+      } catch {
+        try { run('git', ['ls-remote', '--exit-code', '--heads', 'origin', 'main']); baseBranch = 'main'; }
+        catch { baseBranch = 'master'; }
+      }
     }
 
-    run('git', ['fetch', 'origin']);
-    run('git', ['checkout', '-b', branchName, `origin/${defaultBranch}`]);
+    // Versuche Checkout, wenn lokale Änderungen blockieren -> einmal stashen und erneut
+    try {
+      run('git', ['checkout', '-b', branchName, `origin/${baseBranch}`]);
+    } catch (e) {
+      warn('Checkout blockiert (vermutlich lokale Änderungen). Versuche automatisches Stash...');
+      try {
+        run('git', ['stash', 'push', '-m', 'planner-auto-stash']);
+        run('git', ['checkout', '-b', branchName, `origin/${baseBranch}`]);
+      } catch (e2) {
+        throw e2;
+      }
+    }
     run('git', ['push', '-u', 'origin', branchName]);
     log(`✅ Branch erstellt und gepusht: ${branchName}`);
   } catch (e) {
@@ -96,9 +112,38 @@ async function main() {
     warn('Bitte Branch manuell anlegen und pushen.');
   }
 
+  // Versuche, Link zum Branch auf GitHub zu ermitteln
+  let branchUrl = '';
+  try {
+    const remoteUrl = run('git', ['remote', 'get-url', 'origin']);
+    // gitea/github ssh/https -> https URL formen
+    if (remoteUrl.startsWith('git@')) {
+      const m = remoteUrl.match(/^git@([^:]+):(.+)\.git$/);
+      if (m) branchUrl = `https://${m[1]}/${m[2]}/tree/${encodeURIComponent(branchName)}`;
+    } else if (remoteUrl.startsWith('https://')) {
+      const clean = remoteUrl.replace(/\.git$/, '');
+      branchUrl = `${clean}/tree/${encodeURIComponent(branchName)}`;
+    }
+  } catch {}
+
+  // Ticket aktualisieren: Status + Kommentar
+  try {
+    await axios.post(`${baseUrl}/issues/${encodeURIComponent(issueId)}/commands`, { query: 'State In Bearbeitung', silent: true }, { headers: { 'Content-Type': 'application/json' } });
+    const lines = [
+      '🪵 Branch angelegt und gepusht',
+      `- Name: \
+\`${branchName}\``,
+      branchUrl ? `- Link: ${branchUrl}` : null
+    ].filter(Boolean).join('\n');
+    await axios.post(`${baseUrl}/issues/${encodeURIComponent(issueId)}/comments`, { text: lines }, { headers: { 'Content-Type': 'application/json' } });
+  } catch (e) {
+    warn(`Konnte Issue nicht aktualisieren: ${e.message || e}`);
+  }
+
   log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   log(`Issue:   ${issueId}`);
   log(`Branch:  ${branchName}`);
+  if (branchUrl) log(`Link:    ${branchUrl}`);
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
 

@@ -36,12 +36,10 @@ class AutoTestRunner {
   async uploadFileToYouTrack(issueId, filePath) {
     try {
       const baseUrl = process.env.MCP_BASE_URL || 'http://localhost:5180';
-      const form = new FormData();
-      form.append('file', fs.createReadStream(filePath));
       const res = await axios.post(
-        `${baseUrl}/issues/${encodeURIComponent(issueId)}/attachments`,
-        form,
-        { headers: { ...form.getHeaders() }, maxBodyLength: Infinity }
+        `${baseUrl}/issues/${encodeURIComponent(issueId)}/attachments-from-path`,
+        { path: filePath },
+        { headers: { 'Content-Type': 'application/json' }, maxBodyLength: Infinity }
       );
       console.log(`  📎 Hochgeladen: ${path.basename(filePath)} → ${res.data?.attachment?.name || 'OK'}`);
       return res.data; // { success, attachment: { id,name,size,url,absoluteUrl? } }
@@ -419,6 +417,8 @@ class AutoTestRunner {
     // Markdown-Report
     const mdReport = this.generateMarkdownReport(report);
     fs.writeFileSync('test-results/auto-test-report.md', mdReport);
+    // Merke Dateipfade für Upload
+    this.lastReportPaths = { json: reportPath, md: 'test-results/auto-test-report.md' };
     
     return report;
   }
@@ -502,11 +502,35 @@ ${report.failed === 0 && report.logAnalysis.errors === 0
       if (!fs.existsSync('test-results')) {
         fs.mkdirSync('test-results', { recursive: true });
       }
+      const currentIssueId = this.config.issueId || process.env.ISSUE_ID || process.env.AUTO_TEST_ISSUE_ID || null;
+      if (currentIssueId) {
+        await this.setIssueStage(currentIssueId, 'starting');
+      }
 
       await this.startDevServer();
       await this.startBrowser();
       await this.runTests();
       const report = await this.generateReport();
+      
+      // Artefakte in YouTrack (Cloud) hochladen, falls IssueId vorhanden
+      if (currentIssueId) {
+        console.log('');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📤 YouTrack Upload');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        const uploaded = await this.uploadArtifacts(currentIssueId).catch(e => {
+          console.warn('⚠️ Upload-Phase: ', e.message || e);
+          return [];
+        });
+
+        const hasFailedTests = (report.failed || 0) > 0;
+        const hasLogErrors = (report.logAnalysis?.errors || 0) > 0;
+        if (!hasFailedTests && !hasLogErrors) {
+          await this.setIssueStage(currentIssueId, 'finished-success', report, uploaded);
+        } else {
+          await this.setIssueStage(currentIssueId, 'finished-failure', report, uploaded);
+        }
+      }
       
       console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('✅ Automatischer Test abgeschlossen!');
