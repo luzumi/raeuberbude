@@ -48,6 +48,60 @@ export class HomeAssistantService {
   private readonly entitiesSubject = new BehaviorSubject<Entity[]>([]);
   public readonly entities$ = this.entitiesSubject.asObservable();
 
+  // --- Guard-Konfiguration ---
+  private readonly appStartMs = Date.now();
+  private readonly defaultGuardBootMs = 30000; // 30s Startfenster
+
+  private isBootWindowActive(): boolean {
+    const now = Date.now();
+    let guardMs = this.defaultGuardBootMs;
+    try {
+      const override = localStorage.getItem('ha.guardBootMs');
+      const n = override ? Number.parseInt(override, 10) : NaN;
+      if (Number.isFinite(n) && n >= 0) guardMs = n;
+    } catch {}
+    return now - this.appStartMs < guardMs;
+  }
+
+  private guardAllowMonitorOff(): boolean {
+    try {
+      // Opt-in zum Erlauben (z.B. für manuelle Tests): localStorage.setItem('ha.guardAllowMonitorOffOnBoot','true')
+      return localStorage.getItem('ha.guardAllowMonitorOffOnBoot') === 'true';
+    } catch {
+      return false;
+    }
+  }
+
+  private isMonitorOffCall(domain: string, service: string, data: any): { suspicious: boolean; ids: string[]; svc: string } {
+    try {
+      const tokens = ['monitor', 'display', 'screen', 'bildschirm'];
+      const offTokens = ['monitor_off', 'display_off', 'screen_off', 'monitor_aus', 'display_aus', 'bildschirm_aus'];
+      const svcOffTokens = ['off', 'aus', 'standby', 'suspend'];
+      const svc = `${domain}.${(service || '').toLowerCase()}`.toLowerCase();
+      const ids: string[] = Array.isArray(data?.entity_id)
+        ? (data.entity_id as any[]).map(v => String(v).toLowerCase())
+        : data?.entity_id ? [String(data.entity_id).toLowerCase()] : [];
+      const idTexts: string[] = ids.map(id => {
+        try {
+          const ent = this.entitiesMap.get(id);
+          const fn = (ent?.attributes?.friendly_name || '').toString().toLowerCase();
+          return `${id} ${fn}`.trim();
+        } catch {
+          return id;
+        }
+      });
+      const anyTextIncludes = (arr: string[], kws: string[]) => arr.some(txt => kws.some(k => txt.includes(k)));
+      const matchesEntity = anyTextIncludes(idTexts.length ? idTexts : [''], [...tokens, ...offTokens]);
+      const looksOff = (service || '').toLowerCase().includes('turn_off')
+        || (service || '').toLowerCase().includes('toggle')
+        || idTexts.some(txt => txt.includes('off') || txt.includes('aus'))
+        || (tokens.some(t => svc.includes(t)) && svcOffTokens.some(o => svc.includes(o)));
+      return { suspicious: (matchesEntity || tokens.some(t => svc.includes(t))) && looksOff, ids, svc };
+    } catch {
+      return { suspicious: false, ids: [], svc: `${domain}.${service}` };
+    }
+  }
+
   constructor(private readonly http: HttpClient, private readonly bridge: WebSocketBridgeService) {
     // Log WebSocket connection status
     console.log('[HA] WebSocket connected:', this.bridge.isConnected());
@@ -135,19 +189,21 @@ export class HomeAssistantService {
   public callService<T>(domain: string, service: string, data: any): Observable<HassServiceResponse> {
     const isConnected = this.bridge.isConnected();
     console.log(`[HA] Calling service: ${domain}.${service} (WS connected: ${isConnected})`, data);
-    // Sicherheits-Log: Warnen bei potentiell gefährlichen Monitor-/Display-Calls
-    try {
-      const tokens = ['monitor','display','screen','bildschirm'];
-      const svc = `${domain}.${service}`.toLowerCase();
-      const ids: string[] = Array.isArray(data?.entity_id)
-        ? (data.entity_id as any[]).map(v => String(v).toLowerCase())
-        : data?.entity_id ? [String(data.entity_id).toLowerCase()] : [];
-      const matchesEntity = ids.some(id => tokens.some(t => id.includes(t)));
-      const looksOff = service.toLowerCase().includes('turn_off') || ids.some(id => id.includes('off'));
-      if (matchesEntity && looksOff) {
-        console.warn('[HA][GUARD] Verdächtiger Monitor/Display Service-Call erkannt:', { service: svc, entity_id: ids });
+    // Sicherheits-Log und Start-Schutz: blockt gefährliche Calls im Boot-Fenster
+    const guard = this.isMonitorOffCall(domain, service, data);
+    if (guard.suspicious) {
+      console.warn('[HA][GUARD] Verdächtiger Monitor/Display Service-Call erkannt:', { service: guard.svc, entity_id: guard.ids });
+      const isDev = !environment.production;
+      const allowDev = (() => { try { return localStorage.getItem('ha.allowMonitorOffDev') === 'true'; } catch { return false; } })();
+      const inBoot = this.isBootWindowActive();
+      const allowBoot = this.guardAllowMonitorOff();
+      if ((inBoot && !allowBoot) || (isDev && !allowDev)) {
+        const reason = inBoot && !allowBoot ? 'Boot-Fenster' : 'Dev-Guard';
+        console.error(`[HA][GUARD][BLOCK] Blockiere Monitor/Display-Off Call (${reason})`, { service: guard.svc, entity_id: guard.ids });
+        // Fake-success zurückgeben, damit Aufrufer nicht crasht
+        return of({ id: -1, type: 'result', success: true } as unknown as HassServiceResponse);
       }
-    } catch {}
+    }
     
     if (!isConnected) {
       console.warn('[HA] ⚠️ WebSocket NOT connected! Message will be queued.');

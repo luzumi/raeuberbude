@@ -45,6 +45,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   private lastScreenshotLoadAt?: number;
   private lastSpyTriggerAt?: number;
   private readonly spyRetryMs = 5000; // alle 5s Spy-Start erneut versuchen, wenn kein Bild lädt
+  // Boot-Guard (verhindert automatisches Spy-Starten kurz nach App-Start)
+  private readonly componentInitMs = Date.now();
+  private readonly defaultBootMs = 30000; // 30s
 
   // Gauge Backgrounds (conic-gradient)
   cpuGaugeBg = '';
@@ -513,10 +516,27 @@ export class CreatorMinimal implements OnInit, OnDestroy {
 
   private spyAutoStartEnabled(): boolean {
     try {
-      return localStorage.getItem('creator.spyAutoStart') === 'true';
+      const auto = localStorage.getItem('creator.spyAutoStart') === 'true';
+      const allow = localStorage.getItem('ha.allowSpyAutoStart') === 'true';
+      return auto && allow && !this.isBootWindowActive();
     } catch {
       return false;
     }
+  }
+
+  private isBootWindowActive(): boolean {
+    const now = Date.now();
+    let guardMs = this.defaultBootMs;
+    try {
+      const override = localStorage.getItem('ha.guardBootMs');
+      const n = override ? Number.parseInt(override, 10) : NaN;
+      if (Number.isFinite(n) && n >= 0) guardMs = n;
+    } catch {}
+    const active = (now - this.componentInitMs) < guardMs;
+    if (active) {
+      console.debug('[CreatorMinimal][GUARD] Boot-Fenster aktiv – Spy-Autostart unterdrückt');
+    }
+    return active;
   }
 
   onScreenshotLoad(): void {
