@@ -371,7 +371,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       const maxAttr = e.attributes?.['max'] ?? e.attributes?.['max_mhz'] ?? e.attributes?.['boost_mhz'] ?? e.attributes?.['turbo'] ?? e.attributes?.['max_frequency'] ?? e.attributes?.['maxfreq'];
       let max = typeof maxAttr === 'number' ? maxAttr : Number.parseFloat(String(maxAttr || '').replace(',', '.'));
       if (!isFinite(max) || max <= 0) max = this.FREQ_MAX_DEFAULT_MHZ;
-      const percent = Math.max(0, Math.min(100, (mhz / max) * 100));
+      const percent = mhz;
       const display = unit.includes('ghz') ? `${val.toFixed(2)} GHz` : `${Math.round(mhz)} MHz`;
       return { percent, display };
     };
