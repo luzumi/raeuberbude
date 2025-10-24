@@ -23,6 +23,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   cpuPercent = 0;
   ramPercent = 0;
   gpuPercent = 0;
+  gpuTempC = 0;
   metric2Label: string = 'RAM';
   freqPercent = 0;
   freqValueDisplay = '';
@@ -323,6 +324,17 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     ) && (
       this.hasAny(e.entity_id, ['usage','load','percent','last','auslast','auslastung','util']) || this.hasAny(e.attributes?.friendly_name || '', ['usage','load','percent','last','auslastung','util'])
     ));
+    // GPU-Temperatur-Sensor robust ermitteln
+    const gpuTempExact = by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && this.norm(e.entity_id).endsWith('_gputemperatur'));
+    const looksLikeTempUnit = (e: Entity) => {
+      const u = (e.attributes?.['unit_of_measurement'] || '').toString().toLowerCase();
+      return u.includes('°c') || u.includes('celsius') || u === 'c' || u.includes('°f') || u.includes('fahrenheit') || u.includes('k');
+    };
+    const isTempClass = (e: Entity) => (e.attributes?.['device_class'] || '').toString().toLowerCase() === 'temperature';
+    const gpuTemp = gpuTempExact ?? by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && (
+      (this.hasAny(e.entity_id + ' ' + (e.attributes?.friendly_name || ''), ['gpu','grafik']) && this.hasAny(e.entity_id + ' ' + (e.attributes?.friendly_name || ''), ['temp','temperatur','temperature']))
+      || (this.hasAny(e.entity_id + ' ' + (e.attributes?.friendly_name || ''), ['gpu','grafik']) && (isTempClass(e) || looksLikeTempUnit(e)))
+    ));
     // CPU-Frequenzsensor (z.B. "*_aktuelletaktfrequenz", oder Keywords ohne CPU-Pflicht)
     const freqExact = by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && this.norm(e.entity_id).includes('aktuelletaktfrequenz'));
     const freq = freqExact ?? by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && (
@@ -348,12 +360,27 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       }
       return Math.max(0, Math.min(100, val));
     };
+    // Temperatur auf °C normalisieren
+    const toCelsius = (e?: Entity): number => {
+      if (!e) return 0;
+      const rawStr = typeof e.state === 'number' ? String(e.state) : String(e.state || '');
+      let val = typeof e.state === 'number' ? e.state : Number.parseFloat(rawStr.replace(',', '.'));
+      if (!isFinite(val)) return 0;
+      const unit = (e.attributes?.['unit_of_measurement'] || '').toString().toLowerCase();
+      if (unit.includes('°f') || unit.includes('fahrenheit') || unit === 'f') {
+        val = (val - 32) * 5/9;
+      } else if (unit === 'k' || unit.includes(' kelvin') || unit === 'kelvin') {
+        val = val - 273.15;
+      }
+      return Math.max(0, Math.min(110, val));
+    };
 
     const cpuVal = cpu ? toPercent(cpu) : 0;
     // CPU/GPU/RAM getrennt berechnen
     this.cpuPercent = cpuVal;
     this.gpuPercent = gpu ? toPercent(gpu) : 0;
     this.ramPercent = ram ? toPercent(ram) : 0;
+    this.gpuTempC = gpuTemp ? Math.round(toCelsius(gpuTemp)) : 0;
     this.metric2Label = this.gpuPercent ? 'GPU' : 'RAM';
 
     // Frequenzwert als Prozent berechnen (gegen Max MHz)
