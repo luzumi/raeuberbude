@@ -15,7 +15,7 @@ import { AuthService } from '../../../services/auth.service';
   styleUrls: ['./logout-button.scss']
 })
 export class LogoutButtonComponent {
-  @Input() size: string = 'r4em';
+  @Input() size: string = '2.5rem';
   constructor(private readonly auth: AuthService) {}
 
   /**

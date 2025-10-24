@@ -12,21 +12,34 @@
   z-index: 100;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  height: var(--header-h);           /* responsive Höhe über CSS-Variable */
+  height: var(--header-h);
+  min-height: var(--header-h, 56px);
   padding: 0 var(--page-padding);
-  background: #fff;
+  flex-wrap: nowrap;
+  /* chic look: dunkler Verlauf, dezenter Schatten; via CSS-Variablen überschreibbar */
+  background: var(--header-bg, linear-gradient(90deg, #0f172a 0%, #1f2937 100%));
+  color: var(--header-fg, #ffffff);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .back-button { margin-left: 0; }     /* margin jetzt über --page-padding geregelt */
 
 .user-info {
   margin-left: 0;
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
   align-items: center;
-  gap: 8px;
+  column-gap: 8px;
 
-  img { width: 36px; height: 36px; border-radius: 50%; }
+  img {
+    width: clamp(28px, 4.5vw, 36px);
+    height: clamp(28px, 4.5vw, 36px);
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+  }
 }
 
 .text-block {
@@ -37,14 +50,14 @@
 
 .greet-text {
   font-size: clamp(0.9rem, 1.2vw, 1.1rem);
-  color: #555;
+  color: color-mix(in srgb, var(--header-fg, #ffffff) 85%, transparent);
 }
 
 .user-name {
   font-family: t.$font-primary;
   font-size: clamp(1.1rem, 1.6vw, 1.5rem);
   font-weight: 600;
-  color: #333;
+  color: var(--header-fg, #ffffff);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -53,10 +66,16 @@
 .spacer { flex: 1 1 auto; }
 
 .options {
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
   align-items: center;
-  gap: 8px;
+  column-gap: 8px;
 }
+
+/* Verhindere, dass Inhalte sich gegenseitig überlappen */
+.app-header > * { min-width: 0; }
+.options > * { min-width: 2rem; }
 
 /* Tablet/Phone: weniger Textdominanz */
 @media (max-width: 960px) {
@@ -66,5 +85,41 @@
 /* Phone: Buttons kompakter wirken lassen – ohne ihre Funktion zu ändern */
 @media (max-width: 600px) {
   .app-header { gap: 8px; }
+  .user-info img { width: 32px; height: 32px; }
+  .user-name { font-size: 1.1rem; }
+}
+
+/* Header-spezifische Overrides: Buttons im Flow anzeigen (nicht absolut) */
+:host ::ng-deep app-button .app-button,
+:host ::ng-deep app-logout-button .app-button {
+  position: static;
+  transform: none;
+  top: auto;
+  left: auto;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:host ::ng-deep .logout-container {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+/* Label-Bogen im Header ausblenden – reduziert visuelles Rauschen */
+:host ::ng-deep app-button .label-svg {
+  display: none;
+}
+
+/* Glow-Effekte im Header deaktivieren */
+:host ::ng-deep app-button .app-button.glow-enabled::before,
+:host ::ng-deep app-button .app-button.glow-enabled::after {
+  display: none !important;
+}
+
+/* Icon-Farbe auf Header-Foreground setzen */
+:host ::ng-deep app-button .button-inner > mat-icon,
+:host ::ng-deep app-logout-button .button-inner > mat-icon {
+  color: var(--header-fg, #ffffff);
 }
 
