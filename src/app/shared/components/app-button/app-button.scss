@@ -1,6 +1,7 @@
 @use '../../../../styles/tokens' as t;
 
 .app-button {
+  transition: background-color 0.25s ease, box-shadow 0.3s ease;
   position: absolute;
   width: var(--btn-size, 150px);
   height: var(--btn-size, 150px);
@@ -8,10 +9,9 @@
   border-radius: 50%;
   background-color: var(--color);
   transform: translate(-50%, -50%);
-  transition: background-color 0.2s ease;
   z-index: 1;
   overflow: visible;
-  touch-action: manipulation;  /* schnellere Taps auf Mobile */
+  touch-action: manipulation;
 
   /* Glow size calculations */
   --base-glow-blur: calc(var(--btn-size, 150px) * 0.04);
@@ -56,26 +56,69 @@
     background-color: var(--color-active);
   }
 
+  /* Innerer Farbkreis getrennt vom Glow */
+  .app-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background-color: var(--background-color, var(--color));
+    z-index: 1; // unterhalb des Inhalts, oberhalb des Glows
+    transition: background-color 0.05s ease;
+  }
+
+  /* Innerer Farbkreis getrennt vom Glow */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background-color: var(--background-color, var(--color));
+    z-index: 1; // unterhalb des Inhalts, oberhalb des Glows
+    transition: background-color 0.25s ease;
+  }
+
+  /* Hover-Farbe nur für den inneren Kreis */
+  &:hover::before {
+    background-color: var(--hover-color);
+  }
+
+  /* Wenn aktiv, bleibt die Active-Farbe dominant */
+  &.active::before {
+    background-color: var(--color-active);
+  }
+
+
   .button-inner {
-    position: relative;
-    z-index: 2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); // exakt zentriert
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
+    z-index: 2;
 
     > img.svg-icon,
     > mat-icon {
       flex: none;
       z-index: 3;
+      width: 60%; // optional für gleichmäßige Größe
+      height: 60%;
+      object-fit: contain;
     }
   }
 
   .label-svg {
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    transform: translate(-50%, -58%);
     pointer-events: none;
     z-index: 2;
 
@@ -84,7 +127,7 @@
       font-family: t.$font-secondary;
       font-weight: bolder;
       fill: #333;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
     }
   }
 }

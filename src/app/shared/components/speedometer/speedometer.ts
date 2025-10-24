@@ -74,11 +74,11 @@ export class SpeedometerComponent implements OnChanges, OnInit {
     };
     // Segmentaufteilung über 240°: 240->280 (rot), 280->320 (orange), 320->360/0->20 (gelb), 20->60 (grün), 60->120 (türkis)
     const segs: Array<{from:number; to:number; color:string}> = [
-      { from: 160, to:200, color: '#e53935' },
-      { from: 200, to: 250, color: '#ffb300' },
+      { from: 160, to:200, color: '#4caf50' },
+      { from: 200, to: 250, color: '#80d556' },
       { from: 250, to: 300, color: '#cddc39' },
-      { from: 300, to: 350, color: '#80d556' },
-      { from: 350,   to: 380,  color: '#4caf50' },
+      { from: 300, to: 350, color: '#ffb300' },
+      { from: 350,   to: 380,  color: '#e53935' },
    ];
     this.segments = segs.map(s => ({ d: arc(s.from, s.to), color: s.color }));
   }
