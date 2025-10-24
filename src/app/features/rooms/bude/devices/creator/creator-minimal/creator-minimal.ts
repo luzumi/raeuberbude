@@ -45,6 +45,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   private lastScreenshotLoadAt?: number;
   private lastSpyTriggerAt?: number;
   private readonly spyRetryMs = 5000; // alle 5s Spy-Start erneut versuchen, wenn kein Bild lädt
+  // Boot-Guard (verhindert automatisches Spy-Starten kurz nach App-Start)
+  private readonly componentInitMs = Date.now();
+  private readonly defaultBootMs = 30000; // 30s
 
   // Gauge Backgrounds (conic-gradient)
   cpuGaugeBg = '';
@@ -222,7 +225,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     this.monitorOnAvailable = !!(this.monitorSwitchId || this.monitorOnAction || this.monitorOffAction);
 
     // Spy Start/Stop (z.B. Screenshot-Aufnahme)
-    const SPY_KEYS = ['spy','screenshot','screen','capture','snapshot','snap','bild','monitor'];
+    // Wichtig: Keine Überschneidung mit Monitor-/Display-Entitäten, um unbeabsichtigtes
+    // Monitor-An/Aus zu vermeiden. Deshalb KEIN 'monitor', KEIN 'screen' und KEIN 'bild' (matcht 'bildschirm').
+    const SPY_KEYS = ['spy','screenshot','capture','snapshot','snap'];
     const START_KEYS = ['start','enable','begin','on','record','aufnehmen','starten','aktivieren'];
     const STOP_KEYS = ['stop','disable','end','off','stopp','beenden','deaktivieren','anhalten'];
     const spyStart = entities.find(e => this.pcMatches(e.entity_id, e.attributes?.friendly_name)
@@ -366,7 +371,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       const maxAttr = e.attributes?.['max'] ?? e.attributes?.['max_mhz'] ?? e.attributes?.['boost_mhz'] ?? e.attributes?.['turbo'] ?? e.attributes?.['max_frequency'] ?? e.attributes?.['maxfreq'];
       let max = typeof maxAttr === 'number' ? maxAttr : Number.parseFloat(String(maxAttr || '').replace(',', '.'));
       if (!isFinite(max) || max <= 0) max = this.FREQ_MAX_DEFAULT_MHZ;
-      const percent = Math.max(0, Math.min(100, (mhz / max) * 100));
+      const percent = mhz;
       const display = unit.includes('ghz') ? `${val.toFixed(2)} GHz` : `${Math.round(mhz)} MHz`;
       return { percent, display };
     };
@@ -434,14 +439,16 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     if (!this.spyStartAction) {
       console.debug('[CreatorMinimal] no spy start action found (autodiscovery). You can set localStorage keys "creator.spyStart"/"creator.spyStop" with entity_id to override.');
     }
-    this.startSpyCapture();
+    if (this.spyAutoStartEnabled()) {
+      this.startSpyCapture();
+    }
     this.updateScreenshotUrl();
     this.screenshotRefreshInterval = window.setInterval(() => {
       // Wenn seit > spyRetryMs kein Bild geladen wurde → Spy erneut starten
       const now = Date.now();
       const lastOk = this.lastScreenshotLoadAt ?? 0;
       const lastSpy = this.lastSpyTriggerAt ?? 0;
-      if (now - lastOk > this.spyRetryMs && now - lastSpy > this.spyRetryMs) {
+      if (this.spyAutoStartEnabled() && now - lastOk > this.spyRetryMs && now - lastSpy > this.spyRetryMs) {
         console.debug('[CreatorMinimal] screenshot stale, retry spy-start');
         this.startSpyCapture();
       }
@@ -455,7 +462,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       this.screenshotRefreshInterval = undefined;
     }
     // versuche ggf. Spy-Aufnahme zu stoppen
-    this.stopSpyCapture();
+    if (this.spyAutoStartEnabled()) this.stopSpyCapture();
   }
 
   private updateScreenshotUrl(): void {
@@ -467,13 +474,24 @@ export class CreatorMinimal implements OnInit, OnDestroy {
 
   private startSpyCapture(): void {
     if (!this.spyStartAction) return;
+    const id = (this.spyStartAction.data?.entity_id || '').toLowerCase();
+    if (!this.isSpyEntityIdSafe(id)) {
+      console.warn('[CreatorMinimal] skip spy start (unsafe entity)', id);
+      return;
+    }
     this.lastSpyTriggerAt = Date.now();
     console.debug('[CreatorMinimal] call spy start', this.spyStartAction);
     this.hass.callService(this.spyStartAction.domain, this.spyStartAction.service, this.spyStartAction.data).subscribe();
   }
 
   private stopSpyCapture(): void {
-    if (!this.spyStopAction) return;
+    // Nur stoppen, wenn ein Start zuvor ausgelöst wurde (Schutz gegen Fehlklassifizierungen)
+    if (!this.spyStopAction || !this.lastSpyTriggerAt) return;
+    const id = (this.spyStopAction.data?.entity_id || '').toLowerCase();
+    if (!this.isSpyEntityIdSafe(id)) {
+      console.warn('[CreatorMinimal] skip spy stop (unsafe entity)', id);
+      return;
+    }
     console.debug('[CreatorMinimal] call spy stop', this.spyStopAction);
     this.hass.callService(this.spyStopAction.domain, this.spyStopAction.service, this.spyStopAction.data).subscribe();
   }
@@ -482,10 +500,43 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     try {
       const s = localStorage.getItem('creator.spyStart');
       const p = localStorage.getItem('creator.spyStop');
-      if (s) this.spyStartAction = this.toActionById(s);
-      if (p) this.spyStopAction = this.toActionById(p);
+      if (s && this.isSpyEntityIdSafe(s)) this.spyStartAction = this.toActionById(s);
+      if (p && this.isSpyEntityIdSafe(p)) this.spyStopAction = this.toActionById(p);
       if (s || p) console.debug('[CreatorMinimal] loaded spy overrides from localStorage', { s, p });
     } catch {}
+  }
+
+  private isSpyEntityIdSafe(entityId: string): boolean {
+    const id = (entityId || '').toLowerCase();
+    const deny = ['monitor','display','screen','bildschirm','shutdown','power_off','sleep','hibernate','monitor_off','display_off','screen_off'];
+    if (deny.some(k => id.includes(k))) return false;
+    const allow = ['spy','screenshot','snapshot','capture','snap'];
+    return allow.some(k => id.includes(k));
+  }
+
+  private spyAutoStartEnabled(): boolean {
+    try {
+      const auto = localStorage.getItem('creator.spyAutoStart') === 'true';
+      const allow = localStorage.getItem('ha.allowSpyAutoStart') === 'true';
+      return auto && allow && !this.isBootWindowActive();
+    } catch {
+      return false;
+    }
+  }
+
+  private isBootWindowActive(): boolean {
+    const now = Date.now();
+    let guardMs = this.defaultBootMs;
+    try {
+      const override = localStorage.getItem('ha.guardBootMs');
+      const n = override ? Number.parseInt(override, 10) : NaN;
+      if (Number.isFinite(n) && n >= 0) guardMs = n;
+    } catch {}
+    const active = (now - this.componentInitMs) < guardMs;
+    if (active) {
+      console.debug('[CreatorMinimal][GUARD] Boot-Fenster aktiv – Spy-Autostart unterdrückt');
+    }
+    return active;
   }
 
   onScreenshotLoad(): void {

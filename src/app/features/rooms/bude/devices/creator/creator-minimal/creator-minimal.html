@@ -19,7 +19,7 @@
       <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
       <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="metric2Label" [value]="gpuPercent || ramPercent"></app-speedometer>
       <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
-      <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'Takt'" [value]="freqPercent"></app-speedometer>
+      <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'Takt'" [value]="freqPercent" [max]="5300"></app-speedometer>
     </div>
 
     <div class="screenshot" style="height:40%; min-height:0;">
