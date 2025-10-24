@@ -36,12 +36,10 @@ class AutoTestRunner {
   async uploadFileToYouTrack(issueId, filePath) {
     try {
       const baseUrl = process.env.MCP_BASE_URL || 'http://localhost:5180';
-      const form = new FormData();
-      form.append('file', fs.createReadStream(filePath));
       const res = await axios.post(
-        `${baseUrl}/issues/${encodeURIComponent(issueId)}/attachments`,
-        form,
-        { headers: { ...form.getHeaders() }, maxBodyLength: Infinity }
+        `${baseUrl}/issues/${encodeURIComponent(issueId)}/attachments-from-path`,
+        { path: filePath },
+        { headers: { 'Content-Type': 'application/json' }, maxBodyLength: Infinity }
       );
       console.log(`  📎 Hochgeladen: ${path.basename(filePath)} → ${res.data?.attachment?.name || 'OK'}`);
       return res.data; // { success, attachment: { id,name,size,url,absoluteUrl? } }
@@ -126,10 +124,11 @@ class AutoTestRunner {
     try {
       if (stage === 'starting') {
         await this.applyYouTrackCommand(issueId, { query: 'Assignee me', silent: true });
-        await this.trySetState(issueId, ['In Progress','Testing','Open']);
+        await this.applyYouTrackCommand(issueId, { query: 'tag Automation tag Smoke', silent: true });
+        await this.trySetState(issueId, ['In Bearbeitung','To Do','Open','Submitted']);
         await this.postYouTrackComment(issueId, '[Automation] Tests werden gestartet.');
       } else if (stage === 'finished-success') {
-        await this.trySetState(issueId, ['Done','Verified','Fixed']);
+        await this.trySetState(issueId, ['Erledigt','Done']);
         const lines = [];
         lines.push('Automation abgeschlossen: SUCCESS');
         if (report) {
@@ -144,7 +143,7 @@ class AutoTestRunner {
         }
         await this.postYouTrackComment(issueId, lines.join('\n'));
       } else if (stage === 'finished-failure') {
-        await this.trySetState(issueId, ['Reopened','Open','In Progress']);
+        await this.trySetState(issueId, ['To Do','Open','In Bearbeitung','Submitted']);
         const lines = [];
         lines.push('Automation abgeschlossen: FAILED');
         if (report) {
@@ -180,7 +179,7 @@ class AutoTestRunner {
     }
       return false;
     }
-  
+
 
   async startDevServer() {
     console.log('🚀 Prüfe Dev-Server...');
@@ -459,7 +458,6 @@ class AutoTestRunner {
 
     // Merke Dateipfade für Upload
     this.lastReportPaths = { json: reportPath, md: 'test-results/auto-test-report.md' };
-
     return report;
   }
 
@@ -542,6 +540,10 @@ ${report.failed === 0 && report.logAnalysis.errors === 0
       if (!fs.existsSync('test-results')) {
         fs.mkdirSync('test-results', { recursive: true });
       }
+      const currentIssueId = this.config.issueId || process.env.ISSUE_ID || process.env.AUTO_TEST_ISSUE_ID || null;
+      if (currentIssueId) {
+        await this.setIssueStage(currentIssueId, 'starting');
+      }
 
       const currentIssueId = this.config.issueId && this.config.issueId !== 'UNKNOWN' ? this.config.issueId : null;
       if (currentIssueId) {
@@ -572,7 +574,6 @@ ${report.failed === 0 && report.logAnalysis.errors === 0
           await this.setIssueStage(currentIssueId, 'finished-failure', report, uploaded);
         }
       }
-
       console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('✅ Automatischer Test abgeschlossen!');
       console.log(`📊 ${report.passed}/${report.totalTests} Tests bestanden (${report.passRate}%)`);

@@ -89,3 +89,37 @@
   .user-name { font-size: 1.1rem; }
 }
 
+/* Header-spezifische Overrides: Buttons im Flow anzeigen (nicht absolut) */
+:host ::ng-deep app-button .app-button,
+:host ::ng-deep app-logout-button .app-button {
+  position: static;
+  transform: none;
+  top: auto;
+  left: auto;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:host ::ng-deep .logout-container {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+/* Label-Bogen im Header ausblenden – reduziert visuelles Rauschen */
+:host ::ng-deep app-button .label-svg {
+  display: none;
+}
+
+/* Glow-Effekte im Header deaktivieren */
+:host ::ng-deep app-button .app-button.glow-enabled::before,
+:host ::ng-deep app-button .app-button.glow-enabled::after {
+  display: none !important;
+}
+
+/* Icon-Farbe auf Header-Foreground setzen */
+:host ::ng-deep app-button .button-inner > mat-icon,
+:host ::ng-deep app-logout-button .button-inner > mat-icon {
+  color: var(--header-fg, #ffffff);
+}
+

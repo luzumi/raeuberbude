@@ -14,6 +14,8 @@ $ARGUMENTS
 
 Freitext-Beschreibung der Anforderung. Optional: Priorität, Akzeptanzkriterien.
 
+Format: `/planner <beschreibung> [--auto]`
+
 ## Ziel
 
 - **Anforderungen präzisieren** und offene Punkte klären
@@ -50,7 +52,7 @@ Bitte um Bestätigung: „Plan freigeben?“ (Ja/Nein; Änderungswünsche?)
 
 ### 3) YouTrack-Issue erstellen (nach Freigabe)
 
-Baue ein Issue mit Summary, Description (inkl. Plan/DoD), Type und Priority.
+Baue ein Issue mit Summary, Description (inkl. Plan/DoD/Teststrategien), Type und Priority.
 
 Option A – Direkte REST-API (PowerShell):
 ```powershell
@@ -85,12 +87,38 @@ Write-Output "✅ Issue erstellt: $issueId"
 
 Option B – Über lokalen Helper (`youtrack-mcp-server.js` auf 5180):
 ```powershell
+$tasks = @(
+  "Plan umsetzen (Frontend/Backend)",
+  "Tests schreiben (Unit/E2E)",
+  "Review & Handover an Testing"
+)
+$acceptance = @(
+  "Alle ACs erfüllt",
+  "Build/Tests grün",
+  "Artefakte/Docs aktualisiert"
+)
+
 Invoke-RestMethod -Uri "http://localhost:5180/issues" -Method POST -Body (@{
   summary = $env:SUMMARY
-  description = $env:DESCRIPTION
-  type = 'Feature'
-} | ConvertTo-Json) -ContentType 'application/json'
+  type    = 'Feature'
+  template = 'planner'
+  meta = @{
+    feature = $env:SUMMARY
+    intent  = 'Umsetzung laut Planner'
+    context = @{ source='planner'; env='local' }
+  }
+  tasks = $tasks
+  acceptanceCriteria = $acceptance
+  # Initialer Flow/Tags:
+  commands = @('State To Do','Assignee me','tag Planning','tag Automation')
+} | ConvertTo-Json -Depth 6) -ContentType 'application/json'
 ```
+
+Option C – Auto-Modus (keine Rückfragen, direktes Issue):
+```text
+/planner <kurze beschreibung> --auto
+```
+Im Auto-Modus werden Standard-Tasks/ACs verwendet und das Issue sofort erstellt (State „To Do“, Assignee „me“, Tags „Planning/Automation“).
 
 Füge optional einen Kommentar mit Links/Artefakten hinzu:
 ```powershell

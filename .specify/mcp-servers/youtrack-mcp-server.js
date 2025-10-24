@@ -3,63 +3,8 @@ const axios = require('axios');
 const https = require('node:https');
 const fs = require('node:fs');
 const path = require('node:path');
-const multer = require('multer');
 const FormData = require('form-data');
 require('dotenv').config();
-
-// Konfiguration für Datei-Uploads
-const uploadDir = path.resolve(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-function buildRichDescription(body = {}) {
-  // If explicit description provided and no template/meta, keep as-is
-  if (body.description && !body.template && !body.meta) return body.description;
-
-  const now = new Date().toISOString();
-  const feature = body?.meta?.feature || body.feature || body.summary || 'Ticket';
-  const intent = body?.meta?.intent || body.intent || '';
-  const tasks = Array.isArray(body?.tasks) ? body.tasks : (Array.isArray(body?.meta?.tasks) ? body.meta.tasks : []);
-  const acceptance = Array.isArray(body?.acceptanceCriteria) ? body.acceptanceCriteria : (Array.isArray(body?.meta?.acceptanceCriteria) ? body.meta.acceptanceCriteria : []);
-  const notes = body?.meta?.notes || body.notes || '';
-  const templateName = body.template || 'default';
-
-  const lines = [];
-  lines.push(`# Ziel`);
-  lines.push(`- ${feature}${intent ? ` – ${intent}` : ''}`);
-  lines.push('');
-  if (tasks.length) {
-    lines.push('## Aufgaben');
-    for (const t of tasks) lines.push(`- [ ] ${t}`);
-    lines.push('');
-  }
-  if (acceptance.length) {
-    lines.push('## Akzeptanzkriterien');
-    for (const c of acceptance) lines.push(`- ${c}`);
-    lines.push('');
-  }
-  if (body?.meta?.context) {
-    lines.push('## Kontext');
-    if (typeof body.meta.context === 'string') {
-      lines.push(body.meta.context);
-    } else {
-      for (const [k, v] of Object.entries(body.meta.context)) {
-        lines.push(`- ${k}: ${v}`);
-      }
-    }
-    lines.push('');
-  }
-  if (notes) {
-    lines.push('## Hinweise');
-    lines.push(notes);
-    lines.push('');
-  }
-  lines.push('---');
-  lines.push(`_Automatisch erstellt (${templateName}) • ${now}_`);
-  return lines.join('\n');
-}
-const upload = multer({ dest: uploadDir });
 
 const app = express();
 app.use(express.json());
@@ -78,8 +23,8 @@ const { YOU_TRACK_API_URL, TOKEN } = (() => {
         };
       }
     }
-  } catch (err) {
-    console.warn('Error reading youtrack.secrets.json' + err.message);
+  } catch (_) {
+    // ignore secrets parsing errors; fall back to env/defaults
   }
   return {
     YOU_TRACK_API_URL: envUrl || 'https://luzumi.youtrack.cloud',
@@ -97,7 +42,7 @@ async function resolveProjectId(inputProject, axiosOpts) {
   if (inputProject && typeof inputProject === 'object' && inputProject.id) {
     return inputProject.id;
   }
-  let shortName;
+  let shortName = undefined;
   if (inputProject && typeof inputProject === 'object' && inputProject.shortName) {
     shortName = inputProject.shortName;
   } else if (typeof inputProject === 'string' && inputProject.length > 0) {
@@ -126,6 +71,50 @@ async function resolveProjectId(inputProject, axiosOpts) {
   return found.id;
 }
 
+function buildRichDescription(body = {}) {
+  const template = body.template || 'generic';
+  const meta = body.meta || {};
+  const tasks = Array.isArray(body.tasks) ? body.tasks : [];
+  const ac = Array.isArray(body.acceptanceCriteria) ? body.acceptanceCriteria : [];
+  const notes = body.notes || '';
+  const lines = [];
+  // Ziel
+  if (meta.feature || meta.intent) {
+    lines.push('## Ziel');
+    const title = meta.feature ? `- ${meta.feature}` : '';
+    const intent = meta.intent ? ` – ${meta.intent}` : '';
+    lines.push(`${title}${intent}`.trim());
+    lines.push('');
+  }
+  // Aufgaben
+  if (tasks.length) {
+    lines.push('## Aufgaben');
+    for (const t of tasks) lines.push(`- [ ] ${t}`);
+    lines.push('');
+  }
+  // Akzeptanzkriterien
+  if (ac.length) {
+    lines.push('## Akzeptanzkriterien');
+    for (const a of ac) lines.push(`- ${a}`);
+    lines.push('');
+  }
+  // Kontext
+  const context = meta.context || {};
+  const ctxKeys = Object.keys(context);
+  if (ctxKeys.length) {
+    lines.push('## Kontext');
+    for (const k of ctxKeys) lines.push(`- ${k}: ${context[k]}`);
+    lines.push('');
+  }
+  if (notes) {
+    lines.push('---');
+    lines.push(String(notes));
+    lines.push('');
+  }
+  lines.push(`_Automatisch erstellt (${template}) – ${new Date().toISOString()}_`);
+  return lines.join('\n');
+}
+
 app.post('/issues', async (req, res) => {
   try {
     const { summary } = req.body;
@@ -140,7 +129,7 @@ app.post('/issues', async (req, res) => {
     const projectId = await resolveProjectId(req.body?.project, axiosOpts).catch(() => process.env.YOUTRACK_PROJECT_ID || undefined);
     if (!projectId) {
       // letztes Fallback: versuche via shortName aus ENV
-      const pid = await resolveProjectId(process.env.YOUTRACK_PROJECT_SHORTNAME || 'LUD28', axiosOpts);
+      const pid = await resolveProjectId(process.env.YOUTRACK_PROJECT_SHORTNAME || 'LUD', axiosOpts);
       if (!pid) throw new Error('Konnte keine Projekt-ID ermitteln');
 
     }
@@ -153,8 +142,8 @@ app.post('/issues', async (req, res) => {
       }
     ];
 
-    const resolvedProjectId = projectId || await resolveProjectId(process.env.YOUTRACK_PROJECT_SHORTNAME || 'LUD28', axiosOpts);
-    const description = buildRichDescription(req.body);
+    const resolvedProjectId = projectId || await resolveProjectId(process.env.YOUTRACK_PROJECT_SHORTNAME || 'LUD', axiosOpts);
+    const description = req.body.description || buildRichDescription(req.body);
     const payload = { project: { id: resolvedProjectId }, summary, description, customFields };
 
     if (process.env.LOG_REQUESTS === 'true') {
@@ -164,99 +153,33 @@ app.post('/issues', async (req, res) => {
       });
     }
 
-    const response = await axios.post(`${YOU_TRACK_API_URL}/api/issues?fields=id,idReadable,summary,project(id,shortName)`, payload, axiosOpts);
-    const idReadable = response.data?.idReadable;
-    const issueUrl = idReadable ? `${YOU_TRACK_API_URL}/issue/${idReadable}` : undefined;
+    const response = await axios.post(`${YOU_TRACK_API_URL}/api/issues?fields=id,idReadable,summary`, payload, axiosOpts);
     if (process.env.LOG_REQUESTS === 'true') {
-      console.log('[YouTrack] Response', { status: response.status, data: { id: response.data?.id, idReadable, summary: response.data?.summary, url: issueUrl } });
+      console.log('[YouTrack] Response', { status: response.status, data: { id: response.data?.id, summary: response.data?.summary } });
     }
-    if (issueUrl) {
-      res.set('Location', issueUrl);
-    }
-    // Apply initial commands if provided (e.g., State/Assignee/Tags)
-    if (Array.isArray(req.body?.commands) && idReadable) {
-      const commandQuery = req.body.commands.join(' ');
+    const created = { id: response.data.id, idReadable: response.data.idReadable, summary: response.data.summary };
+    // Initial commands
+    if (Array.isArray(req.body.commands) && req.body.commands.length) {
+      const cmd = req.body.commands.join(' ');
       try {
-        await axios.post(`${YOU_TRACK_API_URL}/api/commands?fields=issues(id,idReadable)`, {
-          query: commandQuery,
-          silent: true,
-          issues: [{ idReadable }]
-        }, axiosOpts);
+        await axios.post(`${YOU_TRACK_API_URL}/api/commands`, { query: cmd, issues: [{ idReadable: created.idReadable }], silent: true }, axiosOpts);
       } catch (e) {
-        console.warn('Initial commands failed:', e.message);
+        console.warn('Init commands failed:', e.response?.data || e.message);
       }
     }
-    res.json({ success: true, ...response.data, idReadable, url: issueUrl });
+    // Optional initial comment
+    if (req.body.initialComment) {
+      try {
+        await axios.post(`${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(created.idReadable)}/comments`, { text: req.body.initialComment }, axiosOpts);
+      } catch (e) {
+        console.warn('Init comment failed:', e.response?.data || e.message);
+      }
+    }
+    res.json(created);
   } catch (error) {
     const status = error.response?.status || 500;
     const data = error.response?.data || { message: error.message };
     console.error('Fehler beim Erstellen der Issue:', data);
-    res.status(status).json({ success: false, error: data, status });
-  }
-});
-
-// Commands: Status/Tags/Assignee etc. via YouTrack Command API
-app.post('/issues/:issueId/commands', async (req, res) => {
-  try {
-    const { issueId } = req.params;
-    const { query, silent, comment } = req.body || {};
-    if (!query && !comment) {
-      return res.status(400).json({ success: false, error: 'query oder comment ist erforderlich' });
-    }
-    const payload = {
-      query: query || null,
-      silent: !!silent,
-      comment: comment || null,
-      issues: [{ idReadable: issueId }]
-    };
-    const axiosOpts = {
-      headers: {
-        Authorization: `Bearer ${normalizedToken()}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
-    };
-    const yt = await axios.post(`${YOU_TRACK_API_URL}/api/commands?fields=issues(id,idReadable),query`, payload, axiosOpts);
-    res.json({ success: true, result: yt.data });
-  } catch (error) {
-    const status = error.response?.status || 500;
-    const data = error.response?.data || { message: error.message };
-    res.status(status).json({ success: false, error: data, status });
-  }
-});
-
-// Batch-Commands: mehrere Issues
-app.post('/commands', async (req, res) => {
-  try {
-    const { issues, query, silent, comment } = req.body || {};
-    if (!Array.isArray(issues) || issues.length === 0) {
-      return res.status(400).json({ success: false, error: 'issues[] ist erforderlich' });
-    }
-    if (!query && !comment) {
-      return res.status(400).json({ success: false, error: 'query oder comment ist erforderlich' });
-    }
-    const issuesList = issues.map(i => {
-      if (typeof i === 'string') {
-        // einfache Heuristik: wenn idReadable (z.B. LUD-123), sonst DB-ID
-        return /[A-Za-z]+-\d+/.test(i) ? { idReadable: i } : { id: i };
-      }
-      return i;
-    });
-    const payload = { query: query || null, silent: !!silent, comment: comment || null, issues: issuesList };
-    const axiosOpts = {
-      headers: {
-        Authorization: `Bearer ${normalizedToken()}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
-    };
-    const yt = await axios.post(`${YOU_TRACK_API_URL}/api/commands?fields=issues(id,idReadable),query`, payload, axiosOpts);
-    res.json({ success: true, result: yt.data });
-  } catch (error) {
-    const status = error.response?.status || 500;
-    const data = error.response?.data || { message: error.message };
     res.status(status).json({ success: false, error: data, status });
   }
 });
@@ -267,7 +190,7 @@ app.post('/createIssue', async (req, res) => {
     const { summary } = req.body;
     const axiosOpts = {
       headers: {
-        Authorization: `Bearer ${normalizedToken()}`,
+        Authorization: `Bearer ${TOKEN}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
@@ -283,37 +206,27 @@ app.post('/createIssue', async (req, res) => {
       }
     ];
 
-    const resolvedProjectId = projectId || await resolveProjectId(process.env.YOUTRACK_PROJECT_SHORTNAME || 'LUD28', axiosOpts);
-    const description = buildRichDescription(req.body);
+    const resolvedProjectId = projectId || await resolveProjectId(process.env.YOUTRACK_PROJECT_SHORTNAME || 'LUD', axiosOpts);
+    const description = req.body.description || buildRichDescription(req.body);
     const payload = { project: { id: resolvedProjectId }, summary, description, customFields };
 
     if (process.env.LOG_REQUESTS === 'true') {
-      const { Authorization, ...safeHeaders } = { Authorization: `Bearer ${normalizedToken()}` };
+      const { Authorization, ...safeHeaders } = { Authorization: `Bearer ${TOKEN}` };
       console.log('[YouTrack] Request', {
         method: 'POST', url: `${YOU_TRACK_API_URL}/api/issues`, headers: safeHeaders, payload
       });
     }
 
-    const response = await axios.post(`${YOU_TRACK_API_URL}/api/issues?fields=id,idReadable,summary,project(id,shortName)`, payload, axiosOpts);
-    const idReadable = response.data?.idReadable;
-    const issueUrl = idReadable ? `${YOU_TRACK_API_URL}/issue/${idReadable}` : undefined;
-    if (issueUrl) {
-      res.set('Location', issueUrl);
-    }
-    // Apply initial commands if provided
-    if (Array.isArray(req.body?.commands) && idReadable) {
-      const commandQuery = req.body.commands.join(' ');
-      try {
-        await axios.post(`${YOU_TRACK_API_URL}/api/commands?fields=issues(id,idReadable)`, {
-          query: commandQuery,
-          silent: true,
-          issues: [{ idReadable }]
-        }, axiosOpts);
-      } catch (e) {
-        console.warn('Initial commands failed:', e.message);
-      }
-    }
-    res.json({ success: true, ...response.data, idReadable, url: issueUrl });
+    const response = await axios.post(`${YOU_TRACK_API_URL}/api/issues?fields=id,idReadable,summary`, payload, {
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
+    });
+    const created = { id: response.data.id, idReadable: response.data.idReadable, summary: response.data.summary };
+    res.json(created);
   } catch (error) {
     const status = error.response?.status || 500;
     const data = error.response?.data || { message: error.message };
@@ -321,13 +234,11 @@ app.post('/createIssue', async (req, res) => {
   }
 });
 
-// Zusatz-Endpunkte
-
-// Kommentare hinzufügen
-app.post('/issues/:issueId/comments', async (req, res) => {
+// Apply a command to a single issue (e.g., "State In Bearbeitung", tags, assignee)
+app.post('/issues/:issueId/commands', async (req, res) => {
   try {
-    const { text } = req.body || {};
-    if (!text) return res.status(400).json({ success: false, error: 'text ist erforderlich' });
+    const issueId = req.params.issueId;
+    const { query, comment, silent = true } = req.body || {};
     const axiosOpts = {
       headers: {
         Authorization: `Bearer ${normalizedToken()}`,
@@ -336,8 +247,10 @@ app.post('/issues/:issueId/comments', async (req, res) => {
       },
       httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
     };
-    const response = await axios.post(`${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(req.params.issueId)}/comments`, { text }, axiosOpts);
-    res.json({ success: true, id: response.data?.id, ...response.data });
+    const payload = { issues: [{ idReadable: issueId }], query: query || '', silent: !!silent };
+    if (comment) payload.comment = { text: comment };
+    const response = await axios.post(`${YOU_TRACK_API_URL}/api/commands`, payload, axiosOpts);
+    res.json({ success: true, data: response.data });
   } catch (error) {
     const status = error.response?.status || 500;
     const data = error.response?.data || { message: error.message };
@@ -345,94 +258,61 @@ app.post('/issues/:issueId/comments', async (req, res) => {
   }
 });
 
-// Healthcheck
-app.get('/health', (_req, res) => {
-  res.status(200).json({ ok: true, url: YOU_TRACK_API_URL });
+// Post a comment to an issue
+app.post('/issues/:issueId/comments', async (req, res) => {
+  try {
+    const issueId = req.params.issueId;
+    const { text } = req.body || {};
+    if (!text || !String(text).trim()) {
+      return res.status(400).json({ success: false, error: 'Missing comment text' });
+    }
+    const axiosOpts = {
+      headers: {
+        Authorization: `Bearer ${normalizedToken()}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
+    };
+    const response = await axios.post(`${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(issueId)}/comments`, { text }, axiosOpts);
+    res.json({ success: true, comment: response.data });
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+    res.status(status).json({ success: false, error: data, status });
+  }
 });
 
-// Datei an Issue anhängen (z.B. Screenshots, Logs)
-app.post('/issues/:issueId/attachments', upload.single('file'), async (req, res) => {
+// Upload an attachment from a local path (simplified client)
+app.post('/issues/:issueId/attachments-from-path', async (req, res) => {
   try {
-    const { issueId } = req.params;
-    const token = normalizedToken();
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'No file uploaded. Use multipart/form-data with field "file".'
-      });
+    const issueId = req.params.issueId;
+    const filePath = req.body?.path || req.body?.filePath;
+    if (!filePath) {
+      return res.status(400).json({ success: false, error: 'Missing path/filePath in body' });
     }
-
-    const fileContent = fs.readFileSync(req.file.path);
-    const formData = new FormData();
-    formData.append('file', fileContent, {
-      filename: req.file.originalname || path.basename(req.file.path),
-      contentType: req.file.mimetype || 'application/octet-stream'
-    });
-
+    const abs = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+    if (!fs.existsSync(abs)) {
+      return res.status(404).json({ success: false, error: `File not found: ${abs}` });
+    }
+    const form = new FormData();
+    form.append('file', fs.createReadStream(abs), path.basename(abs));
     const response = await axios.post(
-      `${YOU_TRACK_API_URL}/api/issues/${issueId}/attachments?fields=id,name,size,url`,
-      formData,
+      `${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(issueId)}/attachments?fields=id,name,url,extension,size`,
+      form,
       {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          ...formData.getHeaders()
-        },
+        headers: { ...form.getHeaders(), Authorization: `Bearer ${normalizedToken()}` },
         httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined,
         maxBodyLength: Infinity
       }
     );
-
-    // Temporäre Datei löschen
-    fs.unlinkSync(req.file.path);
-
-    const attachment = response.data;
-    let absoluteUrl;
-    try {
-      if (attachment && attachment.url) {
-        absoluteUrl = new URL(attachment.url, YOU_TRACK_API_URL).toString();
-      }
-    } catch (e) { /* ignore */ }
-
-    res.json({
-      success: true,
-      attachment: {
-        ...attachment,
-        absoluteUrl
-      }
-    });
+    const a = response.data;
+    res.json({ success: true, attachment: { id: a.id, name: a.name, size: a.size, url: a.url, absoluteUrl: a.url } });
   } catch (error) {
-    console.error('Error uploading attachment:', error.message);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path); // Aufräumen
-    }
-    res.status(500).json({
-      success: false,
-      error: error.response?.data?.error || error.message
-    });
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+    res.status(status).json({ success: false, error: data, status });
   }
-});
-
-// MCP-spezifische Endpunkte
-app.post('/mcp/editor', (req, res) => {
-  res.status(200).json({
-    success: true,
-    capabilities: {
-      editor: false  // Editor-Funktionen deaktivieren
-    }
-  });
-});
-
-// Root-Endpunkt für MCP-Handshake (GET)
-app.get('/', (req, res) => {
-  res.status(200).json({
-    name: "YouTrack MCP Server",
-    version: "1.0",
-    capabilities: {
-      editor: false
-    }
-  });
 });
 
 const PORT = process.env.PORT || 5180;
@@ -440,4 +320,9 @@ app.listen(PORT, () => {
   console.log(`YouTrack MCP Server listening on port ${PORT}`);
   console.log(`POST /issues       -> ${YOU_TRACK_API_URL}/api/issues`);
   console.log(`POST /createIssue  -> ${YOU_TRACK_API_URL}/api/issues`);
+});
+
+// Simple health endpoint
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, youtrack: YOU_TRACK_API_URL });
 });
