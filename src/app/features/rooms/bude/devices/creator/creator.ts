@@ -84,18 +84,6 @@ export class Creator implements OnInit, OnDestroy {
         console.warn('[PC] ⚠️ Fehler beim Stoppen des Spy-Scripts während ngOnDestroy:', error);
       });
     }
-
-    // Sende Stoppe-Befehl im Hintergrund (Fire-and-Forget)
-    console.log('[PC] Komponente wird zerstört - stoppe Spy-Script...');
-    firstValueFrom(
-      this.hass.callService('button', 'press', {
-        entity_id: this.STOPPE_SPY_ENTITY
-      })
-    ).then(() => {
-      console.log('[PC] ✅ Spy-Script beim Zerstören gestoppt');
-    }).catch(error => {
-      console.warn('[PC] ⚠️ Konnte Spy-Script beim Zerstören nicht stoppen:', error);
-    });
   }
 
   /** Lädt alle verfügbaren PC-Befehle dynamisch von Home Assistant */

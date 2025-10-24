@@ -222,7 +222,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     this.monitorOnAvailable = !!(this.monitorSwitchId || this.monitorOnAction || this.monitorOffAction);
 
     // Spy Start/Stop (z.B. Screenshot-Aufnahme)
-    const SPY_KEYS = ['spy','screenshot','screen','capture','snapshot','snap','bild','monitor'];
+    // Wichtig: Keine Überschneidung mit Monitor-/Display-Entitäten, um unbeabsichtigtes
+    // Monitor-An/Aus zu vermeiden. Deshalb KEIN 'monitor', KEIN 'screen' und KEIN 'bild' (matcht 'bildschirm').
+    const SPY_KEYS = ['spy','screenshot','capture','snapshot','snap'];
     const START_KEYS = ['start','enable','begin','on','record','aufnehmen','starten','aktivieren'];
     const STOP_KEYS = ['stop','disable','end','off','stopp','beenden','deaktivieren','anhalten'];
     const spyStart = entities.find(e => this.pcMatches(e.entity_id, e.attributes?.friendly_name)
@@ -434,14 +436,16 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     if (!this.spyStartAction) {
       console.debug('[CreatorMinimal] no spy start action found (autodiscovery). You can set localStorage keys "creator.spyStart"/"creator.spyStop" with entity_id to override.');
     }
-    this.startSpyCapture();
+    if (this.spyAutoStartEnabled()) {
+      this.startSpyCapture();
+    }
     this.updateScreenshotUrl();
     this.screenshotRefreshInterval = window.setInterval(() => {
       // Wenn seit > spyRetryMs kein Bild geladen wurde → Spy erneut starten
       const now = Date.now();
       const lastOk = this.lastScreenshotLoadAt ?? 0;
       const lastSpy = this.lastSpyTriggerAt ?? 0;
-      if (now - lastOk > this.spyRetryMs && now - lastSpy > this.spyRetryMs) {
+      if (this.spyAutoStartEnabled() && now - lastOk > this.spyRetryMs && now - lastSpy > this.spyRetryMs) {
         console.debug('[CreatorMinimal] screenshot stale, retry spy-start');
         this.startSpyCapture();
       }
@@ -455,7 +459,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       this.screenshotRefreshInterval = undefined;
     }
     // versuche ggf. Spy-Aufnahme zu stoppen
-    this.stopSpyCapture();
+    if (this.spyAutoStartEnabled()) this.stopSpyCapture();
   }
 
   private updateScreenshotUrl(): void {
@@ -467,13 +471,24 @@ export class CreatorMinimal implements OnInit, OnDestroy {
 
   private startSpyCapture(): void {
     if (!this.spyStartAction) return;
+    const id = (this.spyStartAction.data?.entity_id || '').toLowerCase();
+    if (!this.isSpyEntityIdSafe(id)) {
+      console.warn('[CreatorMinimal] skip spy start (unsafe entity)', id);
+      return;
+    }
     this.lastSpyTriggerAt = Date.now();
     console.debug('[CreatorMinimal] call spy start', this.spyStartAction);
     this.hass.callService(this.spyStartAction.domain, this.spyStartAction.service, this.spyStartAction.data).subscribe();
   }
 
   private stopSpyCapture(): void {
-    if (!this.spyStopAction) return;
+    // Nur stoppen, wenn ein Start zuvor ausgelöst wurde (Schutz gegen Fehlklassifizierungen)
+    if (!this.spyStopAction || !this.lastSpyTriggerAt) return;
+    const id = (this.spyStopAction.data?.entity_id || '').toLowerCase();
+    if (!this.isSpyEntityIdSafe(id)) {
+      console.warn('[CreatorMinimal] skip spy stop (unsafe entity)', id);
+      return;
+    }
     console.debug('[CreatorMinimal] call spy stop', this.spyStopAction);
     this.hass.callService(this.spyStopAction.domain, this.spyStopAction.service, this.spyStopAction.data).subscribe();
   }
@@ -482,10 +497,26 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     try {
       const s = localStorage.getItem('creator.spyStart');
       const p = localStorage.getItem('creator.spyStop');
-      if (s) this.spyStartAction = this.toActionById(s);
-      if (p) this.spyStopAction = this.toActionById(p);
+      if (s && this.isSpyEntityIdSafe(s)) this.spyStartAction = this.toActionById(s);
+      if (p && this.isSpyEntityIdSafe(p)) this.spyStopAction = this.toActionById(p);
       if (s || p) console.debug('[CreatorMinimal] loaded spy overrides from localStorage', { s, p });
     } catch {}
+  }
+
+  private isSpyEntityIdSafe(entityId: string): boolean {
+    const id = (entityId || '').toLowerCase();
+    const deny = ['monitor','display','screen','bildschirm','shutdown','power_off','sleep','hibernate','monitor_off','display_off','screen_off'];
+    if (deny.some(k => id.includes(k))) return false;
+    const allow = ['spy','screenshot','snapshot','capture','snap'];
+    return allow.some(k => id.includes(k));
+  }
+
+  private spyAutoStartEnabled(): boolean {
+    try {
+      return localStorage.getItem('creator.spyAutoStart') === 'true';
+    } catch {
+      return false;
+    }
   }
 
   onScreenshotLoad(): void {

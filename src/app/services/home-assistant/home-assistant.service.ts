@@ -135,6 +135,19 @@ export class HomeAssistantService {
   public callService<T>(domain: string, service: string, data: any): Observable<HassServiceResponse> {
     const isConnected = this.bridge.isConnected();
     console.log(`[HA] Calling service: ${domain}.${service} (WS connected: ${isConnected})`, data);
+    // Sicherheits-Log: Warnen bei potentiell gefährlichen Monitor-/Display-Calls
+    try {
+      const tokens = ['monitor','display','screen','bildschirm'];
+      const svc = `${domain}.${service}`.toLowerCase();
+      const ids: string[] = Array.isArray(data?.entity_id)
+        ? (data.entity_id as any[]).map(v => String(v).toLowerCase())
+        : data?.entity_id ? [String(data.entity_id).toLowerCase()] : [];
+      const matchesEntity = ids.some(id => tokens.some(t => id.includes(t)));
+      const looksOff = service.toLowerCase().includes('turn_off') || ids.some(id => id.includes('off'));
+      if (matchesEntity && looksOff) {
+        console.warn('[HA][GUARD] Verdächtiger Monitor/Display Service-Call erkannt:', { service: svc, entity_id: ids });
+      }
+    } catch {}
     
     if (!isConnected) {
       console.warn('[HA] ⚠️ WebSocket NOT connected! Message will be queued.');
