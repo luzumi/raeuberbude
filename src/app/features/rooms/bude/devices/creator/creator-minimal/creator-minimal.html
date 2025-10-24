@@ -16,14 +16,17 @@
 
   <div class="content" *ngIf="pcOn; else offlineTpl">
     <div class="gauges gauges-row">
-      <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'CPU'" [value]="cpuPercent"></app-speedometer>
+      <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'CPU %'" [value]="cpuPercent" [min]="0" [max]="100" [unit]="'%'">
+      </app-speedometer>
       <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
       <div class="gauge-wrapper gpu-wrapper" style="flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3); position:relative;">
-        <app-speedometer class="main" style="--sm-height:90%; --sm-width:auto; height:100%; width:100%;" [title]="metric2Label" [value]="gpuPercent || ramPercent"></app-speedometer>
+        <app-speedometer class="main" style="--sm-height:90%; --sm-width:auto; height:100%; width:100%;" [title]="metric2Label" [value]="gpuPercent || ramPercent" [min]="0" [max]="100" [unit]="'%'">
+        </app-speedometer>
         <app-speedometer class="mini" [title]="'GPU °C'" [value]="gpuTempC" [min]="0" [max]="110"></app-speedometer>
       </div>
       <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
-      <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'Takt'" [value]="freqPercent" [max]="5300"></app-speedometer>
+      <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'CPU %'" [value]="cpuPercent" [min]="0" [max]="100" [unit]="'%'">
+      </app-speedometer>
     </div>
 
     <div class="screenshot">
@@ -44,9 +47,9 @@
       <app-button
         name="Monitor an"
         [svgIcon]="'/assets/icons/monitor.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
-        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [backgroundColor]="monitorOnAvailable ? '#b17a33' : '#424242'"
+        [activeColor]="monitorOnAvailable ? '#9a59b4' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
         [active]="false"
         [glowOn]="false"
         (click)="monitorOnAvailable ? monitorOn() : null"
@@ -56,9 +59,9 @@
       <app-button
         name="Play/Pause"
         [svgIcon]="'/assets/icons/playpause.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
-        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [backgroundColor]="monitorOnAvailable ? '#83b55a' : '#424242'"
+        [activeColor]="monitorOnAvailable ? '#9dbf25' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
         [active]="false"
         [glowOn]="false"
         (click)="mediaAvailable ? playPause() : null"
@@ -68,9 +71,9 @@
       <app-button
         name="Sleep"
         [svgIcon]="'/assets/icons/sleep.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
-        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [backgroundColor]="monitorOnAvailable ? '#caa3da' : '#424242'"
+        [activeColor]="monitorOnAvailable ? '#9a59b4' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
         [active]="false"
         [glowOn]="false"
         (click)="sleepAvailable ? sleep() : null"
@@ -80,9 +83,9 @@
       <app-button
         name="Restart"
         [svgIcon]="'/assets/icons/restart.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
-        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [backgroundColor]="monitorOnAvailable ? '#a77fea' : '#424242'"
+        [activeColor]="monitorOnAvailable ? '#9a59b4' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
         [active]="false"
         [glowOn]="false"
         (click)="restartAvailable ? restart() : null"
@@ -92,9 +95,9 @@
       <app-button
         name="Shutdown"
         [svgIcon]="'/assets/icons/shutdown.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#5aa3b5' : '#424242'"
-        [activeColor]="monitorOnAvailable ? '#246878' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#246878' : '#616161'"
+        [backgroundColor]="monitorOnAvailable ? '#b4597f' : '#616161'"
+        [activeColor]="monitorOnAvailable ? '#b4597f' : '#616161'"
+        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
         [active]="false"
         [glowOn]="false"
         (click)="shutdownAvailable ? shutdown() : null"
