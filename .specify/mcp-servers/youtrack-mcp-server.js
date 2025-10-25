@@ -248,7 +248,8 @@ app.post('/issues/:issueId/commands', async (req, res) => {
       httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
     };
     const payload = { issues: [{ idReadable: issueId }], query: query || '', silent: !!silent };
-    if (comment) payload.comment = { text: comment };
+    // YouTrack /api/commands erwartet `comment` als String, nicht als Objekt
+    if (comment) payload.comment = String(comment);
     const response = await axios.post(`${YOU_TRACK_API_URL}/api/commands`, payload, axiosOpts);
     res.json({ success: true, data: response.data });
   } catch (error) {
