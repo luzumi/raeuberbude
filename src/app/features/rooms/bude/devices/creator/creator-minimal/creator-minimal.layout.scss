@@ -11,6 +11,7 @@
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.25);
   color: #fff;
+  overflow: hidden; /* Kachel-Inhalt darf die Gesamthöhe nicht sprengen */
   /* Globale Button-Reihenhöhe (von .content Grid verwendet) */
   --btn-row-h: clamp(44px, 10.5vh, 64px);
 
@@ -39,18 +40,18 @@
     .actions-right { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
   }
 
-  /* Inhalt als Grid: Screenshot full-width, darunter Gauges und Buttons */
+  /* Inhalt als Grid: nutzt ausschließlich Container-Höhe (keine viewport-basierten Höhen) */
   .content {
-    /* Proportionale Höhen: können in MQ angepasst werden */
-    --ss-h: clamp(220px, 42vh, 520px);
-    --gauges-h: clamp(180px, 32vh, 400px);
-
     display: grid;
     grid-template-areas:
       'screenshot'
       'gauges'
       'buttons';
-    grid-template-rows: var(--ss-h) var(--gauges-h) var(--btn-row-h);
+    /* Reihenhöhen relativ zur Kachelhöhe; Gaps werden automatisch abgezogen */
+    grid-template-rows:
+      minmax(0, 1fr)    /* Screenshot */
+      minmax(0, 0.9fr)  /* Gauges */
+      minmax(44px, 0.6fr); /* Buttons mit sinnvollem Minimum */
     grid-template-columns: 1fr;
     gap: .75rem;
     flex: 1 1 auto;
@@ -71,20 +72,20 @@
     justify-content: center;
     position: relative; /* Overlay-Positionierung für Meta/Uhr */
   }
-
   /* Overlay-Meta unten rechts mit digitaler Uhr */
   .screenshot-card .meta {
     position: absolute;
-    right: 40%;
+    right: 8px;
     bottom: 8px;
     z-index: 2;
-    background: rgba(103, 89, 156, 0.35);
+    background: rgba(0, 0, 0, 0.35);
     padding: 6px 10px;
     border-radius: 6px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     backdrop-filter: blur(2px);
   }
 
+  /* Uhr-Styles */
   .screenshot-card .meta .clock {
     display: inline-flex;
     align-items: baseline;
@@ -96,7 +97,6 @@
     letter-spacing: 0.02em; /* leichte Spreizung für Lesbarkeit */
     font-variant-numeric: tabular-nums; /* stabile Ziffernbreiten */
   }
-
   .screenshot-card .meta .clock .sep {
     display: inline-block;
     width: 0.6em; /* reservierter Platz für ':' verhindert Jitter */
@@ -104,17 +104,10 @@
     animation: blink 1s steps(1, end) infinite;
     opacity: 0.9;
   }
-
-  /* Sekunden-Doppelpunkt minimal dezenter */
   .screenshot-card .meta .clock .sep.sec { opacity: 0.75; }
+  @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
 
-  @keyframes blink {
-    0% { opacity: 0; }
-    50% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-
-  /* 1) Gauges-Row füllt die zweite Grid-Zeile */
+  /* Gauges-Row füllt die zweite Grid-Zeile */
   .gauges {
     height: 100%;
     min-height: 0;
@@ -146,12 +139,7 @@
       overflow: hidden; /* Mini bleibt innerhalb des Gauges */
       border-radius: 6px; /* gleiche Rundung wie speedometer */
     }
-
-    .gauge-wrapper app-speedometer.main {
-      width: 100%;
-      height: 100%;
-    }
-
+    .gauge-wrapper app-speedometer.main { width: 100%; height: 100%; }
     .gauge-wrapper app-speedometer.mini {
       position: absolute;
       top: 3.5%;
@@ -162,50 +150,26 @@
       z-index: 3;
       pointer-events: none;
     }
-
-    @media (max-width: 1024px) {
-      .gauge-wrapper app-speedometer.mini {
-        width: 26%;
-        top: 10%;
-        right: 5%;
-      }
-    }
-    @media (max-width: 768px) {
-      .gauge-wrapper app-speedometer.mini {
-        width: 24%;
-        top: 10%;
-        right: 5%;
-      }
-    }
-    @media (max-width: 480px) {
-      .gauge-wrapper app-speedometer.mini {
-        width: 22%;
-        top: 10%;
-        right: 5%;
-      }
-    }
+    @media (max-width: 1024px) { .gauge-wrapper app-speedometer.mini { width: 26%; top: 10%; right: 5%; } }
+    @media (max-width: 768px)  { .gauge-wrapper app-speedometer.mini { width: 24%; top: 10%; right: 5%; } }
+    @media (max-width: 480px)  { .gauge-wrapper app-speedometer.mini { width: 22%; top: 10%; right: 5%; } }
 
     /* Hintergrund des Mini-Speedometers transparent – ohne Kachelrahmen */
-    :host ::ng-deep app-speedometer.mini .speedometer {
-      background: transparent !important;
-    }
+    :host ::ng-deep app-speedometer.mini .speedometer { background: transparent !important; }
   }
 
-  /* 3) Buttons: Resthöhe */
+  /* Buttons füllen die dritte Grid-Zeile */
   .buttons {
-    /* Fixe, responsive Höhe für die Button-Reihe */
     --btn-gap: 1rem;
-    flex: 0 0 var(--btn-row-h);
-    height: var(--btn-row-h);
-    min-height: var(--btn-row-h);
     width: 100%;
+    height: 100%;
+    min-height: 0;
     display: flex;
     align-items: stretch;
     justify-content: center;
     gap: var(--btn-gap);
     overflow: hidden;
-    align-self: center;
-    margin: 4rem -3rem auto 3rem;
+    margin: 0; /* verhindert Überlaufen der Kachel */
 
     /* Gleichmäßige Verteilung der app-button Komponenten */
     app-button {
@@ -215,7 +179,7 @@
       min-width: 0;
       display: block;
     }
-
+  }
     /* Label-Bogen im Button verbergen für klare Icon-Buttons */
     :host ::ng-deep app-button .label-svg { display: none !important; }
     /* Fallback: falls ViewEncapsulation Styles kapselt */
@@ -223,28 +187,11 @@
     .device.creator-minimal app-button .label-svg text { display: none !important; }
 
     /* Icons im Button etwas kleiner skalieren */
-    :host ::ng-deep app-button .button-inner > img.svg-icon {
-      width: 30%;
-      height: 30%;
-      object-fit: contain;
-      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));
-    }
-    /* Material-Icon-Fallback falls icon statt svgIcon genutzt würde */
-    :host ::ng-deep app-button .button-inner > mat-icon {
-      font-size: 1.8rem;
-      width: 1em; height: 1em; line-height: 1em;
-    }
+    :host ::ng-deep app-button .button-inner > img.svg-icon { width: 30%; height: 30%; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25)); }
+    :host ::ng-deep app-button .button-inner > mat-icon { font-size: 1.8rem; width: 1em; height: 1em; line-height: 1em; }
 
-    .btn { display: none; }
     .spacer { display: none; }
 
-    @media (max-width: 768px) {
-      gap: .35rem;
-      :host ::ng-deep app-button .button-inner > img.svg-icon { width: 34%; height: 34%; }
-    }
-    @media (max-width: 480px) {
-      gap: .25rem;
-      :host ::ng-deep app-button .button-inner > img.svg-icon { width: 30%; height: 30%; }
-    }
-  }
+    @media (max-width: 768px) { gap: .35rem; :host ::ng-deep app-button .button-inner > img.svg-icon { width: 34%; height: 34%; } }
+    @media (max-width: 480px) { gap: .25rem; :host ::ng-deep app-button .button-inner > img.svg-icon { width: 30%; height: 30%; } }
 }
