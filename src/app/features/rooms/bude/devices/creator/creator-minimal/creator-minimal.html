@@ -15,7 +15,7 @@
   </div>
 
   <div class="content" *ngIf="pcOn; else offlineTpl">
-    <div class="gauges gauges-row">
+    <div class="gauges gauges-row area-gauges">
       <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'CPU %'" [value]="cpuPercent" [min]="0" [max]="100" [unit]="'%'">
       </app-speedometer>
       <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
@@ -29,13 +29,13 @@
       </app-speedometer>
     </div>
 
-    <div class="screenshot">
+    <div class="screenshot area-screenshot">
       <div class="screenshot-card">
         <img [src]="screenshotUrl"
              (load)="onScreenshotLoad()"
              (error)="onScreenshotError()"
              alt="PC Screenshot"
-             style="width:100%; height:100%; object-fit:contain; object-position:center center;"
+             style="width:100%; height:auto; max-height:100%; object-fit:contain; object-position:center center; display:block;"
         />
         <div class="meta">
           <div class="clock" aria-label="Uhrzeit">
@@ -49,7 +49,7 @@
       </div>
     </div>
 
-    <div class="buttons">
+    <div class="buttons area-buttons">
       <app-button
         name="Monitor an"
         [svgIcon]="'/assets/icons/monitor.svg'"
