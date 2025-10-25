@@ -11,6 +11,8 @@
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.25);
   color: #fff;
+  /* Globale Button-Reihenhöhe (von .content Grid verwendet) */
+  --btn-row-h: clamp(44px, 10.5vh, 64px);
 
   /* Statuszeile oben (10%) */
   .top-row {
@@ -37,17 +39,31 @@
     .actions-right { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
   }
 
-  /* Inhalt */
+  /* Inhalt als Grid: Screenshot full-width, darunter Gauges und Buttons */
   .content {
-    display: flex;
-    flex-direction: column;
+    /* Proportionale Höhen: können in MQ angepasst werden */
+    --ss-h: clamp(220px, 42vh, 520px);
+    --gauges-h: clamp(180px, 32vh, 400px);
+
+    display: grid;
+    grid-template-areas:
+      'screenshot'
+      'gauges'
+      'buttons';
+    grid-template-rows: var(--ss-h) var(--gauges-h) var(--btn-row-h);
+    grid-template-columns: 1fr;
+    gap: .75rem;
     flex: 1 1 auto;
     min-height: 0;
-    gap: .75rem;
   }
 
-  /* 2) Screenshot-Viewer füllt den restlichen Platz zwischen Gauges und Buttons */
-  .screenshot { flex: 1 1 auto; min-height: 0; }
+  /* Areas zuweisen */
+  .area-screenshot { grid-area: screenshot; }
+  .area-gauges { grid-area: gauges; }
+  .area-buttons { grid-area: buttons; }
+
+  /* 2) Screenshot-Viewer füllt die gesamte Breite der ersten Grid-Zeile */
+  .screenshot { width: 100%; height: 100%; min-height: 0; }
   .screenshot-card {
     height: 100%;
     display: flex;
@@ -62,7 +78,7 @@
     right: 40%;
     bottom: 8px;
     z-index: 2;
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(103, 89, 156, 0.35);
     padding: 6px 10px;
     border-radius: 6px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.25);
@@ -98,9 +114,9 @@
     100% { opacity: 0; }
   }
 
-  /* 1) Gauges-Row: 40% der Kachelhöhe */
+  /* 1) Gauges-Row füllt die zweite Grid-Zeile */
   .gauges {
-    flex: 0 0 40%;
+    height: 100%;
     min-height: 0;
     display: flex;
     align-items: center;
@@ -178,7 +194,6 @@
   /* 3) Buttons: Resthöhe */
   .buttons {
     /* Fixe, responsive Höhe für die Button-Reihe */
-    --btn-row-h: clamp(44px, 10.5vh, 64px);
     --btn-gap: 1rem;
     flex: 0 0 var(--btn-row-h);
     height: var(--btn-row-h);
