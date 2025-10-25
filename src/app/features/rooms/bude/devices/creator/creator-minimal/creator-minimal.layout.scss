@@ -12,8 +12,9 @@
   border: 1px solid rgba(255,255,255,0.25);
   color: #fff;
   overflow: hidden; /* Kachel-Inhalt darf die Gesamthöhe nicht sprengen */
-  /* Globale Button-Reihenhöhe (von .content Grid verwendet) */
+  /* Globale Variablen */
   --btn-row-h: clamp(44px, 10.5vh, 64px);
+  --ss-outdent: clamp(2px, 0.4vw, 8px); /* Screenshot etwas breiter als die Reihe wirken lassen */
 
   /* Statuszeile oben (10%) */
   .top-row {
@@ -58,39 +59,46 @@
 
   @media (max-width: 768px) {
     .content {
-      grid-template-areas:
-        'screenshot'
-        'buttons'
-        'gauges';
-      /* Bei sehr wenig Platz: fr-Verteilung beibehalten, nutzt Kachelhöhe */
-      grid-template-rows:
-        minmax(0, 1fr)
-        minmax(72px, 0.75fr)
-        minmax(0, 0.9fr);
-      /* Buttons-Row vertikal zentrieren und ausreichend Mindesthöhe geben */
-      .buttons {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 64px;
+      /* Buttons-Row: kompaktere Abstände, weiterhin eine Reihe */
+      .buttons { --btn-gap: .5rem; gap: var(--btn-gap);}
+      app-button {
+        transform: scale(50%);
       }
     }
   }
 
-  /* Areas zuweisen */
+/* Areas zuweisen */
   .area-screenshot { grid-area: screenshot; }
   .area-gauges { grid-area: gauges; }
   .area-buttons { grid-area: buttons; }
 
   /* 2) Screenshot-Viewer füllt die gesamte Breite der ersten Grid-Zeile */
-  .screenshot { width: 100%; height: 100%; min-height: 0; }
+  .screenshot {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
   .screenshot-card {
+    width: calc(100% + (2 * var(--ss-outdent)));
+    margin-inline: calc(var(--ss-outdent) * -1);
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative; /* Overlay-Positionierung für Meta/Uhr */
+  }
+  .screenshot-card img {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    margin: 0; /* neutrale Außenabstände, um volle Breite auszunutzen */
+    padding: 0; /* evtl. globale Padding-Regeln neutralisieren */
+    box-sizing: border-box;
   }
   /* Overlay-Meta unten rechts mit digitaler Uhr */
   .screenshot-card .meta {
@@ -183,6 +191,7 @@
     --btn-gap: 1rem;
     width: 100%;
     height: 100%;
+    padding-left: 2rem;
     min-height: 0;
     display: flex;
     align-items: center; /* vertikal zentrieren */
@@ -190,14 +199,36 @@
     overflow: hidden;
     margin: 0; /* verhindert Überlaufen der Kachel */
     padding-block: .25rem; /* kleine Luft nach oben/unten gegen visuelles Abschneiden */
+    justify-content: flex-start; /* Gaps steuern die Abstände */
+    flex-wrap: nowrap; /* immer eine Reihe */
+
+    /* Dynamische Buttonbreite/-größe (eine Reihe, passt auf 100%) */
+    --btn-count: 5;
+    --btn-base: 110px; /* Basisgröße bewusst höher, damit Skalierung sichtbar wird */
+    --btn-avail: calc(100% - ((var(--btn-count) - 1) * var(--btn-gap)));
+    --btn-target: calc(var(--btn-avail) / var(--btn-count));
+    --btn-scale: min(1, calc(var(--btn-target) / var(--btn-base)));
+
+    /* Host-Zelle: exakte Zielbreite, Inhalt zentriert */
+    app-button {
+      flex: 0 0 var(--btn-target);
+      max-width: var(--btn-target);
+      height: var(--btn-target);
+      display: grid;
+      place-items: center;
+    }
 
     /* Lokaler Fix für AppButton: nicht absolut zentrieren, sondern normal im Flex platzieren */
     :host ::ng-deep app-button .app-button {
       position: relative !important;
       left: auto !important;
       top: auto !important;
-      transform: none !important;
       display: block;
+      /* Direkte Zielgröße setzen – keine Längen-Division nötig */
+      width: var(--btn-target) !important;
+      height: var(--btn-target) !important;
+      --btn-size: var(--btn-target) !important; /* treibt interne Ringe/Glow */
+      transform: none !important;
     }
   }
     /* Label-Bogen im Button verbergen für klare Icon-Buttons */
