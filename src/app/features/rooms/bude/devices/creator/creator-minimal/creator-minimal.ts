@@ -49,6 +49,15 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   // Nach einem Ladefehler aktivieren wir für eine Haltezeit das Fallback-Bild, um Flapping zu vermeiden.
   private fallbackUntil?: number;
   private readonly fallbackHoldMs = 15000; // 15s Haltezeit, bevor wir erneut den Remote-Screenshot versuchen
+  
+  // ---- Digitale Uhr (UI) ----
+  // Aktuelle Zeit wird 1x pro Sekunde aktualisiert und in der UI als digitale Uhr angezeigt.
+  now: Date = new Date();
+  private clockInterval?: number;
+  // String-Getter mit führenden Nullen, damit jedes Digit stabil bleibt (kein Layout-Shift)
+  get hhStr(): string { return String(this.now.getHours()).padStart(2, '0'); }
+  get mmStr(): string { return String(this.now.getMinutes()).padStart(2, '0'); }
+  get ssStr(): string { return String(this.now.getSeconds()).padStart(2, '0'); }
   // Boot-Guard (verhindert automatisches Spy-Starten kurz nach App-Start)
   private readonly componentInitMs = Date.now();
   private readonly defaultBootMs = 30000; // 30s
@@ -107,6 +116,10 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     // Sicherheitsnetz: auch ohne Statuswechsel direkt versuchen zu starten
     this.loadSpyOverrideFromLocalStorage();
     this.startScreenshotRefresh();
+    // Starte sekündlichen Ticker für die Uhr
+    this.clockInterval = window.setInterval(() => {
+      this.now = new Date();
+    }, 1000);
   }
 
   private makeGaugeBg(percent: number, color: string): string {
@@ -140,6 +153,11 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
     this.stopScreenshotRefresh();
+    // Uhr-Interval aufräumen
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+      this.clockInterval = undefined;
+    }
   }
 
   // ---- UI Actions ----
