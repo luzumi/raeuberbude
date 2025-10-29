@@ -151,7 +151,6 @@ WebSocket-Server bereit, der eingehende Nachrichten automatisch protokolliert.
 
 ---
 
-*Letzte Aktualisierung: 2025-06-05*
 
 ## Logging-Server
 
@@ -160,43 +159,65 @@ und Benutzeraktionen in einer MongoDB-Datenbank. Es werden lediglich
 pseudonyme Benutzerkennungen gespeichert.
 
 ### Starten
-
 ```bash
 cd backend
 npm install
 npm start
 ```
-
-Konfiguriere den Datenbankzugang über die Umgebungsvariable
-`MONGODB_URI` (siehe `backend/.env.example`).
-
-
 ### Docker
 
 Der Logging-Server und eine passende MongoDB lassen sich auch per Docker starten:
-
 ```bash
 # Container bauen und starten
 docker-compose up --build
-```
-
 Die Anwendung ist anschließend unter http://localhost:3000 erreichbar;
 MongoDB lauscht auf Port 27017. Beende beide Container mit
 `docker-compose down`.
 
-=======
-### Datenbankeinrichtung
+## Web MCP Server (Chrome DevTools)
 
-Eine beispielhafte Konfiguration für den MongoDB-Server liegt unter `backend/mongodb.conf`. Sie schreibt die Log-Ausgaben nach `./data/mongo.log` und verwendet `./data/db` als Datenverzeichnis.
+Ein generischer MCP-Server zur Browser-Steuerung via Chrome DevTools (Puppeteer) liegt unter
+`/.specify/mcp-servers/web-mcp-server.js`. Er ermöglicht Agenten Zugriff auf das reale Frontend,
+inkl. Navigieren, Interaktionen, Evaluate, Screenshots sowie Console-/Netzwerk-Logs.
 
-Mit dem Skript `backend/init-db.js` lassen sich die notwendigen Collections (`logs`, `users`) samt Index auf `logs.timestamp` anlegen:
+### Starten (Windows)
 
 ```bash
-cd backend
-node init-db.js
+npm run mcp:web:local             # startet headless (new) auf Port 4200
+npm run mcp:web:headed:win        # mit sichtbarem Browser (MCP_HEADLESS=false)
 ```
+Hinweis: Falls dein Angular Dev-Server auf 4200 läuft, nutze für den MCP z. B. `MCP_PORT=4210`.
 
+### API Quickstart
 
+- `GET  /health` – Status, offene Sessions, Headless-Modus
+- `GET  /tools` – Tool-Discovery für Agenten (Operationen + Schemas)
+- `POST /sessions` – neue Browser-Session (Body: `{ url?, headless?, viewport?, userAgent? }`)
+- `POST /sessions/:id/navigate` – Seite laden (`{ url, waitUntil?, timeout? }`)
+- `POST /sessions/:id/waitForSelector` – auf Element warten (`{ selector, timeout? }`)
+- `POST /sessions/:id/click` – klicken (`{ selector, button?, clickCount? }`)
+- `POST /sessions/:id/type` – tippen (`{ selector, text, delay? }`)
+- `POST /sessions/:id/pressKey` – Taste senden (`{ key, selector? }`)
+- `POST /sessions/:id/evaluate` – JS im Page-Context ausführen (`{ expression, arg? }`)
+- `GET  /sessions/:id/content` – aktuelle HTML-Inhalte
+- `POST /sessions/:id/screenshot` – Screenshot (Base64 + optional speichernder Pfad)
+- `GET  /sessions/:id/logs/console` – Console-Logs
+- `GET  /sessions/:id/logs/network` – Netzwerk-Logs
+
+### Beispiel (cURL)
+
+```bash
+# 1) Session erstellen und navigieren (Angular läuft hier beispielhaft auf 4300)
+curl -s -X POST http://localhost:4200/sessions -H "Content-Type: application/json" -d '{"url":"http://localhost:4300"}'
+# => { "success": true, "sessionId": "sess_xxx" }
+
+# 2) Auf ein Element warten
+curl -s -X POST http://localhost:4200/sessions/sess_xxx/waitForSelector -H "Content-Type: application/json" -d '{"selector":"app-root"}'
+
+# 3) Screenshot erstellen und lokal ablegen
+curl -s -X POST http://localhost:4200/sessions/sess_xxx/screenshot -H "Content-Type: application/json" -d '{"path":"./screenshots/home.png"}'
+```
+Agenten können `/tools` abfragen und die bereitgestellten Operationen als Werkzeuge nutzen.
 
 ## Tests
 
@@ -204,7 +225,5 @@ Um die Unit-Tests auszuführen, wird ein Chrome- bzw. Chromium-Browser benötigt
 
 ```bash
 CHROME_BIN=/pfad/zu/chromium npm test
-```
 
 ## Animation
-![Kreis Animation](kreis_animation.png)
