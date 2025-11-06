@@ -21,9 +21,9 @@ async function bootstrap() {
         },
         credentials: true,
     });
-    const port = parseInt(config.get('NEST_PORT') || '3001', 10);
+    const port = Number.parseInt(config.get('NEST_PORT') || '3001', 10);
     await app.listen(port);
     console.log(`NestJS API listening on http://localhost:${port}`);
 }
-bootstrap();
+bootstrap().then();
 //# sourceMappingURL=main.js.map

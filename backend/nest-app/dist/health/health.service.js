@@ -24,12 +24,13 @@ let HealthService = class HealthService {
         const now = new Date();
         let db = 'down';
         try {
-            if (this.connection && this.connection.readyState === 1 && this.connection.db) {
+            if (this.connection?.readyState === 1 && this.connection.db) {
                 await this.connection.db.admin().ping();
                 db = 'up';
             }
         }
-        catch {
+        catch (error) {
+            console.error('Database health check failed:', error);
             db = 'down';
         }
         return {
