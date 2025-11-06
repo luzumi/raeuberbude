@@ -1,0 +1,50 @@
+// src/styles/animations/_hover-shader.scss
+// Zentrale Hover-Shader-Animation als SCSS-Mixin und Utility-Klasse
+
+// Keyframes: animiert die Background-Position mehrerer Radial-Gradients
+@keyframes rbShaderFlow {
+  0%, 100% { background-position: 0% 0%, 50% 50%, 100% 100%; }
+  50% { background-position: 100% 0%, 50% 100%, 0% 100%; }
+}
+
+// Mixin: wendet die Animation auf das ::before des Elements bei :hover an
+// Erwartet, dass das Ziel-Element ein ::before als inneren Kreis nutzt (wie app-button)
+@mixin hover-shader-bg-on-before() {
+  &:hover::before {
+    // Fallback-Hintergrundfarbe beibehalten, darüber animierte Shader-Spots
+    background:
+      radial-gradient(closest-side at 20% 30%, rgb(var(--rb-anim-color-rgb, 255 255 255) / .25), transparent 60%),
+      radial-gradient(closest-side at 80% 20%, rgb(var(--rb-anim-color-rgb, 255 255 255) / .20), transparent 60%),
+      radial-gradient(closest-side at 50% 80%, rgb(var(--rb-anim-color-rgb, 255 255 255) / .18), transparent 60%),
+      var(--hover-color);
+    background-size: 200% 200%, 200% 200%, 200% 200%, auto;
+    background-position: 0% 0%, 50% 50%, 100% 100%;
+    animation: rbShaderFlow var(--rb-anim-dur, 3s) ease-in-out infinite;
+    will-change: background-position;
+  }
+}
+
+// Utility: Klasse, die das Mixin direkt nutzt
+.rb-hover-shader {
+  @include hover-shader-bg-on-before();
+}
+
+// Zweite Variante: direkt auf dem Elementhintergrund animieren (ohne ::before)
+@mixin hover-shader-bg() {
+  &:hover {
+    background:
+      radial-gradient(closest-side at 20% 30%, rgb(var(--rb-anim-color-rgb, 255 255 255) / .25), transparent 60%),
+      radial-gradient(closest-side at 80% 20%, rgb(var(--rb-anim-color-rgb, 255 255 255) / .20), transparent 60%),
+      radial-gradient(closest-side at 50% 80%, rgb(var(--rb-anim-color-rgb, 255 255 255) / .18), transparent 60%),
+      var(--hover-color, transparent);
+    background-size: 200% 200%, 200% 200%, 200% 200%, auto;
+    background-position: 0% 0%, 50% 50%, 100% 100%;
+    animation: rbShaderFlow var(--rb-anim-dur, 3s) ease-in-out infinite;
+    will-change: background-position;
+  }
+}
+
+// Utility-Klasse für generische Elemente
+.rb-hover-shader-bg {
+  @include hover-shader-bg();
+}

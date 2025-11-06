@@ -1,4 +1,3 @@
-
 <app-header [userName]="userName"></app-header>
 <!--<button (click)="copyMediaPlayerServicesJson()">copy</button>-->
 <div class="dashboard-container" [class.detail-view]="menuOpen || activeIndex !== null">
@@ -7,7 +6,9 @@
     class="grid-item menu-button"
     (click)="onMenuButtonClick()"
     [ngClass]="{ active: menuOpen || activeIndex !== null }"
-    [style.background]="getMenuGradient()">
+    [style.background]="getMenuGradient()"
+    [appHoverShader]="true"
+    [hsTarget]="'.grid-item'">
     <app-menu-minimal></app-menu-minimal>
   </div>
 
@@ -34,37 +35,54 @@
         @switch (device.type) {
           @case ('pixel') {
             @if (activeIndex === $index) {
-              <app-pixel (back)="onBack()"></app-pixel>
+              <app-pixel (back)="onBack()"
+                         [appHoverShader]="true"
+                         [hsTarget]="'.device'"
+              ></app-pixel>
             } @else {
-              <app-pixel-minimal></app-pixel-minimal>
+              <app-pixel-minimal
+                [appHoverShader]="true"
+                [hsTarget]="'.device'"></app-pixel-minimal>
             }
           }
           @case ('orange-light') {
             @if (activeIndex === $index) {
-              <app-orange-light (back)="onBack()"></app-orange-light>
+              <app-orange-light (back)="onBack()"
+                                [appHoverShader]="true"
+                                [hsTarget]="'.device'"></app-orange-light>
             } @else {
-              <app-orange-light-minimal></app-orange-light-minimal>
+              <app-orange-light-minimal
+              [appHoverShader]="true"
+              [hsTarget]="'.device'"></app-orange-light-minimal>
             }
           }
           @case ('laptop') {
             @if (activeIndex === $index) {
-              <app-laptop (back)="onBack()"></app-laptop>
+              <app-laptop (back)="onBack()"
+                          [appHoverShader]="true"
+                          [hsTarget]="'.device'"></app-laptop>
             } @else {
-              <app-laptop-minimal></app-laptop-minimal>
+              <app-laptop-minimal
+                [appHoverShader]="true"
+                [hsTarget]="'.device'"></app-laptop-minimal>
             }
           }
           @case ('creator') {
             @if (activeIndex === $index) {
               <app-creator (back)="onBack()"></app-creator>
             } @else {
-              <app-creator-minimal></app-creator-minimal>
+              <app-creator-minimal>
+              </app-creator-minimal>
             }
           }
-          @case('samsung-tv'){
+          @case ('samsung-tv') {
             @if (activeIndex === $index) {
-              <app-samsung-tv (back)="onBack()"></app-samsung-tv>
+              <app-samsung-tv (back)="onBack()"
+                              [appHoverShader]="true"
+                              [hsTarget]="'.device'"></app-samsung-tv>
             } @else {
-              <app-samsung-tv-minimal></app-samsung-tv-minimal>
+              <app-samsung-tv-minimal>
+              </app-samsung-tv-minimal>
             }
           }
         }

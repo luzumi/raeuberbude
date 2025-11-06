@@ -2,7 +2,15 @@
 
 <div class="rooms-grid">
   @for (room of rooms; track room.name) {
-    <button class="room-button" [routerLink]="room.route" [disabled]="!room.route">
+    <button class="room-button" [routerLink]="room.route" [disabled]="!room.route"
+            [appHoverShader]="true"
+            [hsTarget]="'.device'"
+            [hsVariant]="'flow-lines'"
+            [hsColor]="'154 89 180'"
+            [hsIntensity]="0.6"
+            [hsSpeed]="1.8"
+            [hsAlpha]="1.25"
+            [hsBlendMode]="'plus-lighter'">
       <mat-icon>{{ room.icon }}</mat-icon>
       <span>{{ room.name }}</span>
     </button>
