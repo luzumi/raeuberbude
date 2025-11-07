@@ -22,6 +22,11 @@ export class AppButtonComponent {
   @Input() fontSize = '10px';
   @Input() glowOn= true;
 
+  // Optional Hover-Shader Inputs (für NG8002-Fix und animierten Hover)
+  @Input() hoverAnim: boolean = false;
+  @Input() hoverAnimColorRgb: string = '255, 87, 34';
+  @Input() hoverAnimDuration: string = '600ms';
+
   @Output() click = new EventEmitter<MouseEvent>();  // Changed to emit MouseEvent
   @Output() hold = new EventEmitter<void>();
 

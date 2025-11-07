@@ -1,4 +1,5 @@
 <div class="app-button"
+     [class.rb-hover-shader]="hoverAnim"
      [class.active]="active"
      [class.glow-enabled]="glowOn"
      [ngStyle]="{
@@ -9,7 +10,10 @@
       '--active-glow-color': activeColor,
       '--btn-size': size,
       '--btn-font-size': fontSize
-    }" (click)="onClick($event)">
+    }"
+     [style.--rb-hover-color]="hoverAnimColorRgb"
+     [style.--rb-hover-duration]="hoverAnimDuration"
+     (click)="onClick($event)">
   <div class="button-inner">
     @if (svgIcon) {
       <img [src]="svgIcon" class="svg-icon" [alt]="name"/>
