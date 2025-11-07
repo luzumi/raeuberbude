@@ -11,7 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatChipModule } from '@angular/material/chips';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { environment } from '../../../../environments/environment';
 
@@ -58,7 +58,7 @@ interface Terminal {
     MatCardModule,
     MatTabsModule,
     MatCheckboxModule,
-    MatChipModule,
+    MatChipsModule,
     MatSnackBarModule
   ],
   templateUrl: './rights-management.component.html',
@@ -68,17 +68,17 @@ export class RightsManagementComponent implements OnInit {
   userRights: UserRights[] = [];
   terminals: Terminal[] = [];
   users: any[] = [];
-  
+
   rightsForm: FormGroup;
   terminalForm: FormGroup;
-  
+
   selectedUserRights: UserRights | null = null;
   selectedTerminal: Terminal | null = null;
-  
+
   roles = ['admin', 'manager', 'regular', 'guest', 'terminal'];
   terminalTypes = ['browser', 'mobile', 'tablet', 'kiosk', 'smart-tv', 'other'];
   terminalStatuses = ['active', 'inactive', 'maintenance'];
-  
+
   availablePermissions = [
     { key: 'speech.use', label: 'Spracheingabe verwenden' },
     { key: 'speech.view.own', label: 'Eigene Eingaben anzeigen' },
@@ -138,7 +138,7 @@ export class RightsManagementComponent implements OnInit {
     });
   }
 
-  private async loadData(): Promise<void> {
+  async loadData(): Promise<void> {
     try {
       // Load user rights
       const rightsResponse = await this.http.get<any>(`${this.apiUrl}/speech/rights`).toPromise();
@@ -182,7 +182,7 @@ export class RightsManagementComponent implements OnInit {
     }
 
     const formData = this.rightsForm.value;
-    
+
     try {
       if (this.selectedUserRights) {
         // Update existing rights
@@ -194,7 +194,7 @@ export class RightsManagementComponent implements OnInit {
         await this.http.post(`${this.apiUrl}/speech/rights`, formData).toPromise();
         this.showMessage('Benutzerrechte erstellt', 'success');
       }
-      
+
       this.resetRightsForm();
       this.loadData();
     } catch (error) {
@@ -233,7 +233,7 @@ export class RightsManagementComponent implements OnInit {
   async toggleUserStatus(rights: UserRights): Promise<void> {
     const userId = rights.userId?._id || rights.userId;
     const newStatus = rights.status === 'active' ? 'suspended' : 'active';
-    
+
     try {
       if (newStatus === 'suspended') {
         await this.http.put(`${this.apiUrl}/speech/rights/user/${userId}/suspend`, {
@@ -280,7 +280,7 @@ export class RightsManagementComponent implements OnInit {
     }
 
     const formData = this.terminalForm.value;
-    
+
     try {
       if (this.selectedTerminal) {
         // Update existing terminal
@@ -292,7 +292,7 @@ export class RightsManagementComponent implements OnInit {
         await this.http.post(`${this.apiUrl}/speech/terminals`, formData).toPromise();
         this.showMessage('Terminal erstellt', 'success');
       }
-      
+
       this.resetTerminalForm();
       this.loadData();
     } catch (error) {
@@ -319,7 +319,7 @@ export class RightsManagementComponent implements OnInit {
 
   async toggleTerminalStatus(terminal: Terminal): Promise<void> {
     const newStatus = terminal.status === 'active' ? 'inactive' : 'active';
-    
+
     try {
       await this.http.put(`${this.apiUrl}/speech/terminals/${terminal.terminalId}/status`, {
         status: newStatus
@@ -371,14 +371,14 @@ export class RightsManagementComponent implements OnInit {
   isTerminalActive(terminal: Terminal): boolean {
     if (terminal.status !== 'active') return false;
     if (!terminal.lastActiveAt) return false;
-    
+
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     return new Date(terminal.lastActiveAt) > oneHourAgo;
   }
 
   onRoleChange(): void {
     const role = this.rightsForm.get('role')?.value;
-    
+
     // Set default permissions based on role
     const rolePermissions: any = {
       admin: this.availablePermissions.map(p => p.key),
@@ -390,7 +390,7 @@ export class RightsManagementComponent implements OnInit {
       guest: ['speech.use', 'speech.view.own'],
       terminal: ['speech.use']
     };
-    
+
     this.rightsForm.patchValue({
       permissions: rolePermissions[role] || [],
       canManageTerminals: role === 'admin' || role === 'manager',
@@ -398,6 +398,22 @@ export class RightsManagementComponent implements OnInit {
       canViewAllInputs: role === 'admin' || role === 'manager',
       canDeleteInputs: role === 'admin'
     });
+  }
+
+  // Update permissions when a checkbox is toggled in the template
+  onPermissionToggle(checked: boolean, key: string): void {
+    const current: string[] = this.rightsForm.value.permissions || [];
+    let next: string[] = current;
+
+    if (checked) {
+      if (!current.includes(key)) {
+        next = [...current, key];
+      }
+    } else {
+      next = current.filter((p: string) => p !== key);
+    }
+
+    this.rightsForm.patchValue({ permissions: next });
   }
 
   private showMessage(message: string, type: 'success' | 'error' = 'success'): void {

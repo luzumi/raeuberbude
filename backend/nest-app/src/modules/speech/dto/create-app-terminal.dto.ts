@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsObject, IsMongoId, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsObject, IsMongoId, IsArray } from 'class-validator';
 
 export class CreateAppTerminalDto {
   @IsString()
@@ -12,7 +12,7 @@ export class CreateAppTerminalDto {
   description?: string;
 
   @IsOptional()
-  @IsEnum(['browser', 'mobile', 'tablet', 'kiosk', 'smart-tv', 'other'])
+  @IsIn(['browser', 'mobile', 'tablet', 'kiosk', 'smart-tv', 'other'])
   type?: string = 'browser';
 
   @IsOptional()
@@ -30,7 +30,7 @@ export class CreateAppTerminalDto {
   };
 
   @IsOptional()
-  @IsEnum(['active', 'inactive', 'maintenance'])
+  @IsIn(['active', 'inactive', 'maintenance'])
   status?: string = 'active';
 
   @IsOptional()

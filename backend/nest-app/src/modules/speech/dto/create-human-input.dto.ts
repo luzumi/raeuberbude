@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsObject, IsMongoId } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsObject, IsMongoId } from 'class-validator';
 
 export class CreateHumanInputDto {
   @IsMongoId()
@@ -12,7 +12,7 @@ export class CreateHumanInputDto {
   inputText: string;
 
   @IsOptional()
-  @IsEnum(['speech', 'text', 'gesture'])
+  @IsIn(['speech', 'text', 'gesture'])
   inputType?: string = 'speech';
 
   @IsOptional()

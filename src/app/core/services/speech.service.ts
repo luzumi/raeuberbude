@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { BehaviorSubject, Observable, Subject, lastValueFrom } from 'rxjs';
 
 // Web Speech API interfaces
 declare global {
@@ -39,7 +38,7 @@ export class SpeechService {
   private isRecordingSubject = new BehaviorSubject<boolean>(false);
   private lastInputSubject = new BehaviorSubject<string>('');
   private transcriptSubject = new Subject<SpeechRecognitionResult>();
-  private apiUrl = `${environment.apiUrl || 'http://localhost:3001'}/api/speech`;
+  private apiUrl = `/api/speech`;
   private sessionId: string;
   private terminalId: string;
 
@@ -168,7 +167,7 @@ export class SpeechService {
     };
 
     try {
-      await this.http.post(`${this.apiUrl}/input`, inputData).toPromise();
+      await lastValueFrom(this.http.post(`${this.apiUrl}/input`, inputData));
       console.log('Speech input saved successfully');
     } catch (error) {
       console.error('Failed to save speech input:', error);
@@ -196,7 +195,7 @@ export class SpeechService {
     };
 
     try {
-      await this.http.post(`${this.apiUrl}/terminals/register`, terminalData).toPromise();
+      await lastValueFrom(this.http.post(`${this.apiUrl}/terminals/register`, terminalData));
       console.log('Terminal registered successfully');
     } catch (error) {
       console.error('Failed to register terminal:', error);
@@ -292,7 +291,7 @@ export class SpeechService {
     };
 
     try {
-      await this.http.post(`${this.apiUrl}/input`, inputData).toPromise();
+      await lastValueFrom(this.http.post(`${this.apiUrl}/input`, inputData));
       this.lastInputSubject.next(text);
     } catch (error) {
       console.error('Failed to save text input:', error);

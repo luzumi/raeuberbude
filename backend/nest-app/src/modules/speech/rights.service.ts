@@ -62,7 +62,7 @@ export class RightsService {
       .exec();
   }
 
-  async findByUserId(userId: string): Promise<UserRights> {
+  async findByUserId(userId: string): Promise<UserRightsDocument> {
     if (!Types.ObjectId.isValid(userId)) {
       throw new BadRequestException('Invalid user ID format');
     }
@@ -205,7 +205,7 @@ export class RightsService {
     };
   }
 
-  private createDefaultRights(userId: string): UserRights {
+  private createDefaultRights(userId: string): UserRightsDocument {
     // Return a default guest rights object (not saved to DB)
     const defaultRights = new this.userRightsModel({
       userId: new Types.ObjectId(userId),
@@ -236,7 +236,7 @@ export class RightsService {
     });
   }
 
-  async grantPermission(userId: string, permission: string): Promise<UserRights> {
+  async grantPermission(userId: string, permission: string): Promise<UserRightsDocument> {
     const userRights = await this.findByUserId(userId);
     
     if (!userRights.permissions.includes(permission)) {
@@ -247,7 +247,7 @@ export class RightsService {
     return userRights;
   }
 
-  async revokePermission(userId: string, permission: string): Promise<UserRights> {
+  async revokePermission(userId: string, permission: string): Promise<UserRightsDocument> {
     const userRights = await this.findByUserId(userId);
     
     userRights.permissions = userRights.permissions.filter(p => p !== permission);

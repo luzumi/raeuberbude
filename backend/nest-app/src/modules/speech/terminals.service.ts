@@ -14,7 +14,7 @@ export class TerminalsService {
     private appTerminalModel: Model<AppTerminalDocument>,
   ) {}
 
-  async create(createDto: CreateAppTerminalDto): Promise<AppTerminal> {
+  async create(createDto: CreateAppTerminalDto): Promise<AppTerminalDocument> {
     try {
       // Check if terminal ID already exists
       const existing = await this.appTerminalModel.findOne({
@@ -42,7 +42,7 @@ export class TerminalsService {
     }
   }
 
-  async findAll(filters: any = {}): Promise<AppTerminal[]> {
+  async findAll(filters: any = {}): Promise<AppTerminalDocument[]> {
     const { type, status, location } = filters;
     const query: any = {};
 
@@ -57,8 +57,8 @@ export class TerminalsService {
       .exec();
   }
 
-  async findOne(id: string): Promise<AppTerminal> {
-    let terminal: AppTerminal;
+  async findOne(id: string): Promise<AppTerminalDocument> {
+    let terminal: AppTerminalDocument | null;
 
     // Try to find by MongoDB _id first
     if (Types.ObjectId.isValid(id)) {
@@ -83,7 +83,7 @@ export class TerminalsService {
     return terminal;
   }
 
-  async findByTerminalId(terminalId: string): Promise<AppTerminal> {
+  async findByTerminalId(terminalId: string): Promise<AppTerminalDocument> {
     const terminal = await this.appTerminalModel
       .findOne({ terminalId })
       .populate('assignedUserId', 'name email')
@@ -96,7 +96,7 @@ export class TerminalsService {
     return terminal;
   }
 
-  async update(id: string, updateDto: UpdateAppTerminalDto): Promise<AppTerminal> {
+  async update(id: string, updateDto: UpdateAppTerminalDto): Promise<AppTerminalDocument> {
     const updateData: any = { ...updateDto };
 
     if (updateDto.assignedUserId !== undefined) {
@@ -105,7 +105,7 @@ export class TerminalsService {
         : null;
     }
 
-    let updated: AppTerminal;
+    let updated: AppTerminalDocument | null;
 
     // Try to update by MongoDB _id first
     if (Types.ObjectId.isValid(id)) {
@@ -159,7 +159,7 @@ export class TerminalsService {
     this.logger.log(`Deleted terminal: ${id}`);
   }
 
-  async updateActivity(terminalId: string): Promise<AppTerminal> {
+  async updateActivity(terminalId: string): Promise<AppTerminalDocument> {
     const terminal = await this.appTerminalModel
       .findOneAndUpdate(
         { terminalId },
@@ -175,7 +175,7 @@ export class TerminalsService {
     return terminal;
   }
 
-  async assignUser(terminalId: string, userId: string | null): Promise<AppTerminal> {
+  async assignUser(terminalId: string, userId: string | null): Promise<AppTerminalDocument> {
     const updateData: any = {
       assignedUserId: userId ? new Types.ObjectId(userId) : null,
     };
@@ -197,7 +197,7 @@ export class TerminalsService {
     return terminal;
   }
 
-  async setStatus(terminalId: string, status: 'active' | 'inactive' | 'maintenance'): Promise<AppTerminal> {
+  async setStatus(terminalId: string, status: 'active' | 'inactive' | 'maintenance'): Promise<AppTerminalDocument> {
     const terminal = await this.appTerminalModel
       .findOneAndUpdate(
         { terminalId },
@@ -303,7 +303,7 @@ export class TerminalsService {
     };
   }
 
-  async getActiveTerminals(): Promise<AppTerminal[]> {
+  async getActiveTerminals(): Promise<AppTerminalDocument[]> {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
     return this.appTerminalModel
@@ -322,11 +322,11 @@ export class TerminalsService {
     type: string;
     capabilities?: any;
     metadata?: any;
-  }): Promise<AppTerminal> {
+  }): Promise<AppTerminalDocument> {
     // Check if terminal exists
-    let terminal = await this.appTerminalModel.findOne({
+    let terminal: AppTerminalDocument | null = await this.appTerminalModel.findOne({
       terminalId: terminalData.terminalId,
-    });
+    }) as unknown as AppTerminalDocument | null;
 
     if (terminal) {
       // Update existing terminal
@@ -340,7 +340,7 @@ export class TerminalsService {
           },
           { new: true }
         )
-        .exec();
+        .exec() as unknown as AppTerminalDocument;
     } else {
       // Create new terminal
       terminal = await this.create({

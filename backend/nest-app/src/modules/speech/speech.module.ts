@@ -7,7 +7,7 @@ import { TerminalsService } from './terminals.service';
 import { HumanInput, HumanInputSchema } from './schemas/human-input.schema';
 import { AppTerminal, AppTerminalSchema } from './schemas/app-terminal.schema';
 import { UserRights, UserRightsSchema } from './schemas/user-rights.schema';
-import { UsersModule } from '../users/users.module';
+import { UsersModule } from '../../users/users.module';
 
 @Module({
   imports: [

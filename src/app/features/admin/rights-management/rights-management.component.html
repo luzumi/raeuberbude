@@ -96,9 +96,7 @@
                   <div class="permissions-grid">
                     <mat-checkbox *ngFor="let perm of availablePermissions"
                                   [checked]="rightsForm.value.permissions?.includes(perm.key)"
-                                  (change)="$event.checked ? 
-                                    rightsForm.patchValue({permissions: [...(rightsForm.value.permissions || []), perm.key]}) :
-                                    rightsForm.patchValue({permissions: rightsForm.value.permissions?.filter((p: string) => p !== perm.key)})">
+                                  (change)="onPermissionToggle($event.checked, perm.key)">
                       {{ perm.label }}
                     </mat-checkbox>
                   </div>

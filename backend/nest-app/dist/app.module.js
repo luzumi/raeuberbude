@@ -13,6 +13,7 @@ const mongoose_1 = require("@nestjs/mongoose");
 const users_module_1 = require("./users/users.module");
 const health_module_1 = require("./health/health.module");
 const homeassistant_module_1 = require("./modules/homeassistant/homeassistant.module");
+const speech_module_1 = require("./modules/speech/speech.module");
 function buildMongoUri(config) {
     const direct = config.get('MONGO_URI');
     if (direct)
@@ -50,6 +51,7 @@ exports.AppModule = AppModule = __decorate([
             users_module_1.UsersModule,
             health_module_1.HealthModule,
             homeassistant_module_1.HomeAssistantModule,
+            speech_module_1.SpeechModule,
         ],
     })
 ], AppModule);

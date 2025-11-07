@@ -1,10 +1,14 @@
 {
   "name": "Smart Home Dashboard Feature",
-  "description": "Entwicklung eines interaktiven Dashboards für die Räuberbude Smart Home Anwendung",
+  "description": "Entwicklung eines interaktiven Spracheingabe auf dem Dashboards für die Räuberbude Smart Home Anwendung",
   "requirements": [
-    "Das Dashboard muss eine Übersicht aller Räume anzeigen",
-    "Benutzer müssen Geräte in Echtzeit steuern können",
-    "Die Oberfläche soll responsive und modern sein",
+    "Das Dashboard soll im header zentral einen app-button bekommen",
+    "der Button löst aktiv das zuhören aus",
+    "Die empfangenen Eingaben sollen in in der DB als human_input gespeichert werden",
+    "Neben der Eingabe soll auch der Benutzer, die Zeit und das Gerät, von dem es gesendet wurde gespeichert werden",
+    "Erweiterung des Datenbankmodells. Neben Userinformationen wird auch app_terminal gebraucht (jedes Terminal ist ein eigenes Gerät, auf dem die app läuft)",
+    "Rechtesystem entwerfen. User und auch app-terminals haben unterschiedliche Rollen und Rechte (Anpassung der Rechte per GUI, eigene GUI für die Rechte, über menu erreichbar)",
+    "Als visuelle Überprüfung, soll die Eingabe als horizontale laufschrift in der Header, neben dem app-button angezeigt werden",
     "Performance: Ladezeit unter 2 Sekunden",
     "Security: Authentifizierung erforderlich",
     "Das System muss mit HomeAssistant integriert werden",
