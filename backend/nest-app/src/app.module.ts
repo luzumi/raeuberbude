@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from './users/users.module';
 import { HealthModule } from './health/health.module';
 import { HomeAssistantModule } from './modules/homeassistant/homeassistant.module';
+import { SpeechModule } from './modules/speech/speech.module';
 
 function buildMongoUri(config: ConfigService): string {
   const direct = config.get<string>('MONGO_URI');
@@ -42,6 +43,7 @@ function buildMongoUri(config: ConfigService): string {
     UsersModule,
     HealthModule,
     HomeAssistantModule,
+    SpeechModule,
   ],
 })
 export class AppModule {}

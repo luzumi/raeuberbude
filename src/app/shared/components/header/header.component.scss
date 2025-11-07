@@ -123,3 +123,71 @@
   color: var(--header-fg, #ffffff);
 }
 
+/* Speech Button Styling */
+.speech-button {
+  display: flex;
+  align-items: center;
+}
+
+.speech-button app-button.recording {
+  ::ng-deep .app-button {
+    animation: pulse 1s infinite;
+    background: rgba(255, 87, 34, 0.2) !important;
+  }
+  
+  ::ng-deep mat-icon {
+    color: #ff5722 !important;
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Speech Marquee Styling */
+.speech-marquee {
+  position: fixed;
+  top: var(--header-h, 56px);
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #ff5722 0%, #ff7043 100%);
+  color: white;
+  padding: 8px 0;
+  overflow: hidden;
+  z-index: 99;
+  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.3);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.marquee-content {
+  display: inline-block;
+  animation: scroll-left 15s linear infinite;
+  padding-left: 100%;
+}
+
+.marquee-text {
+  padding-right: 50px;
+  display: inline-block;
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .speech-marquee {
+    font-size: 12px;
+    padding: 6px 0;
+  }
+}
+

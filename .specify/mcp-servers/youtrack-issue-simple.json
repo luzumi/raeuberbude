@@ -1,0 +1,7 @@
+{
+  "project": {
+    "shortName": "LUD28"
+  },
+  "summary": "Speech Input Dashboard Integration - Spracheingabe mit Rechteverwaltung",
+  "description": "Speech Input Dashboard Integration mit folgenden Features: 1) Speech Input Button im Header 2) Automatische Speicherung als human_input in MongoDB 3) User- und Terminal-basierte Rechteverwaltung 4) Visuelles Feedback im Header mit Lauftext 5) Management-GUI für Rechteverwaltung. Performance: unter 2 Sekunden Ladezeit. Security: Authentifizierung erforderlich. HomeAssistant-Integration bleibt erhalten."
+}

@@ -1,11 +1,14 @@
 // src/app/shared/components/header/header.component.ts
 
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { AppButtonComponent } from '../app-button/app-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
+import { SpeechService } from '../../../core/services/speech.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-header',
@@ -19,11 +22,52 @@ import { LogoutButtonComponent } from '../logout-button/logout-button';
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit, OnDestroy {
   /** Name des aktuellen Nutzers */
   @Input() userName: string = 'Gast';
 
-  constructor(private readonly router: Router, private readonly location: Location) {}
+  /** Status der Sprachaufnahme */
+  isRecording = false;
+
+  /** Letzte Spracheingabe für Marquee-Anzeige */
+  lastSpeechInput = '';
+
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private readonly router: Router, 
+    private readonly location: Location,
+    private readonly speechService: SpeechService
+  ) {}
+
+  ngOnInit(): void {
+    // Subscribe to last speech input updates
+    this.speechService.lastInput$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(input => {
+        this.lastSpeechInput = input;
+        // Auto-clear after 10 seconds
+        if (input) {
+          setTimeout(() => {
+            if (this.lastSpeechInput === input) {
+              this.lastSpeechInput = '';
+            }
+          }, 10000);
+        }
+      });
+
+    // Subscribe to recording status
+    this.speechService.isRecording$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(status => {
+        this.isRecording = status;
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   /**
    * Navigiert zur Profilseite des Nutzers.
@@ -58,5 +102,22 @@ export class HeaderComponent {
     if (h < 12) return 'Guten Morgen';
     if (h < 18) return 'Guten Tag';
     return 'Guten Abend';
+  }
+
+  /**
+   * Toggle speech input recording
+   */
+  async toggleSpeechInput(): Promise<void> {
+    try {
+      if (this.isRecording) {
+        await this.speechService.stopRecording();
+      } else {
+        await this.speechService.startRecording();
+      }
+    } catch (error) {
+      console.error('Speech input error:', error);
+      // Show user-friendly error message
+      this.lastSpeechInput = 'Fehler bei der Spracheingabe. Bitte erneut versuchen.';
+    }
   }
 }

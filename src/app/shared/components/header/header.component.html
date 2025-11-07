@@ -27,6 +27,19 @@
 
   <div class="spacer"></div>
 
+  <!-- Speech Input Button -->
+  <div class="speech-button">
+    <app-button
+      name="Sprache"
+      icon="mic"
+      size="2.5rem"
+      [class.recording]="isRecording"
+      (click)="toggleSpeechInput()"
+      [hoverAnim]="true"
+      hoverAnimColorRgb="255, 87, 34"
+    ></app-button>
+  </div>
+
   <div class="options">
     <app-button
       name="Menu"
@@ -38,3 +51,11 @@
   </div>
 
 </header>
+
+<!-- Speech Input Feedback Marquee -->
+<div class="speech-marquee" *ngIf="lastSpeechInput">
+  <div class="marquee-content">
+    <span class="marquee-text">{{ lastSpeechInput }}</span>
+    <span class="marquee-text">{{ lastSpeechInput }}</span>
+  </div>
+</div>
