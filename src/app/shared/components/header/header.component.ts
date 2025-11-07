@@ -3,7 +3,6 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, NgOptimizedImage, Location } from '@angular/common';
 import { Router } from '@angular/router';
-import {PixelMinimal} from '@bude/devices/pixel/pixel-minimal/pixel-minimal';
 import {HoverShaderDirective} from '@shared/directives/hover-shader.directive';
 import { AppButtonComponent } from '../app-button/app-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
@@ -19,7 +18,6 @@ import { takeUntil } from 'rxjs/operators';
     AppButtonComponent,
     LogoutButtonComponent,
     NgOptimizedImage,
-    PixelMinimal,
     HoverShaderDirective
   ],
   templateUrl: './header.component.html',

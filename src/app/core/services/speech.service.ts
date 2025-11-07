@@ -112,12 +112,40 @@ export class SpeechService {
     }
 
     try {
-      // Request microphone permission
+      // Secure context check (HTTPS or localhost required for getUserMedia)
+      const isSecure = (window.isSecureContext === true) || ['localhost', '127.0.0.1'].includes(location.hostname);
+      if (!isSecure) {
+        const msg = 'Mikrofon erfordert HTTPS oder localhost. Bitte die App über HTTPS öffnen (z. B. ng serve --ssl) oder localhost verwenden.';
+        this.lastInputSubject.next(msg);
+        throw new Error('INSECURE_CONTEXT');
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        const msg = 'Mikrofon-API nicht verfügbar (mediaDevices.getUserMedia fehlt).';
+        this.lastInputSubject.next(msg);
+        throw new Error('UNSUPPORTED_MEDIA_DEVICES');
+      }
+
+      // Try to preflight permission (not supported in all browsers)
+      try {
+        const permissions: any = (navigator as any).permissions;
+        if (permissions?.query) {
+          const status = await permissions.query({ name: 'microphone' as any });
+          if (status.state === 'denied') {
+            this.lastInputSubject.next('Mikrofon-Zugriff durch Browser blockiert. Bitte in den Website-Berechtigungen erlauben.');
+            throw new Error('MIC_DENIED');
+          }
+        }
+      } catch {
+        // ignore permission query errors; continue with getUserMedia prompt
+      }
+
+      // Request microphone permission (will trigger browser prompt in secure contexts)
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+
       this.isRecordingSubject.next(true);
       this.recognition.start();
-      
+
       // Auto-stop after 30 seconds
       setTimeout(() => {
         if (this.isRecordingSubject.value) {
@@ -126,7 +154,11 @@ export class SpeechService {
       }, 30000);
     } catch (error) {
       console.error('Failed to start recording:', error);
-      throw new Error('Mikrofon-Zugriff verweigert oder nicht verfügbar');
+      const message = (error as any)?.message === 'INSECURE_CONTEXT'
+        ? 'Unsicherer Kontext: Bitte die App über HTTPS oder localhost öffnen, damit der Browser das Mikrofon freigibt.'
+        : 'Mikrofon-Zugriff verweigert oder nicht verfügbar';
+      this.lastInputSubject.next(message);
+      throw new Error(message);
     }
   }
 

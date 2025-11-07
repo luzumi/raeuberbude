@@ -54,11 +54,13 @@
 .spacer { flex: 1 1 auto; }
 
 .options {
-  display: grid;
+  display: flex;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
   align-items: center;
   column-gap: 8px;
+  margin-left: auto;
+  gap: 8px;
 }
 
 /* Mitte absolut zentrieren: Mic Button wird optisch in die Header-Mitte gesetzt */
@@ -104,9 +106,9 @@
 }
 
 :host ::ng-deep .logout-container {
-  position: static;
-  top: auto;
-  right: auto;
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
 }
 
 /* Label-Bogen im Header ausblenden – reduziert visuelles Rauschen */

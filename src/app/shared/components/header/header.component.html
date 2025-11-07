@@ -17,7 +17,7 @@
     <div class="speech-button">
       <app-button
         [appHoverShader]="true"
-        [hsTarget]="'.app-button'"
+        [hsTarget]="'.button-inner'"
         name="Sprache"
         icon="mic"
         size="3rem"
@@ -37,7 +37,7 @@
       size="2.5rem"
       (click)="goToMenu()"
     ></app-button>
-    <app-logout-button size="2.5rem"></app-logout-button>
+    <app-logout-button size="2.5rem" [inline]="true"></app-logout-button>
   </div>
 
 

@@ -16,6 +16,7 @@ import { AuthService } from '../../../services/auth.service';
 })
 export class LogoutButtonComponent {
   @Input() size: string = '2.5rem';
+  @Input() inline: boolean = false;
   constructor(private readonly auth: AuthService) {}
 
   /**
