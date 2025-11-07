@@ -1,9 +1,10 @@
 // src/app/shared/components/header/header.component.ts
 
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule, NgOptimizedImage, Location } from '@angular/common';
 import { Router } from '@angular/router';
-import { Location } from '@angular/common';
+import {PixelMinimal} from '@bude/devices/pixel/pixel-minimal/pixel-minimal';
+import {HoverShaderDirective} from '@shared/directives/hover-shader.directive';
 import { AppButtonComponent } from '../app-button/app-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
 import { SpeechService } from '../../../core/services/speech.service';
@@ -17,7 +18,9 @@ import { takeUntil } from 'rxjs/operators';
     CommonModule,
     AppButtonComponent,
     LogoutButtonComponent,
-    NgOptimizedImage
+    NgOptimizedImage,
+    PixelMinimal,
+    HoverShaderDirective
   ],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
@@ -35,7 +38,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   constructor(
-    private readonly router: Router, 
+    private readonly router: Router,
     private readonly location: Location,
     private readonly speechService: SpeechService
   ) {}

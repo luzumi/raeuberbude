@@ -28,11 +28,10 @@
 
 .user-info {
   margin-left: 0;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
+  display: flex;
   align-items: center;
-  column-gap: 8px;
+  column-gap: 10px;
+  cursor: pointer;
 
   img {
     width: clamp(28px, 4.5vw, 36px);
@@ -42,20 +41,9 @@
   }
 }
 
-.text-block {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
-}
-
-.greet-text {
-  font-size: clamp(0.9rem, 1.2vw, 1.1rem);
-  color: color-mix(in srgb, var(--header-fg, #ffffff) 85%, transparent);
-}
-
-.user-name {
+.greeting-line {
   font-family: t.$font-primary;
-  font-size: clamp(1.1rem, 1.6vw, 1.5rem);
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
   font-weight: 600;
   color: var(--header-fg, #ffffff);
   white-space: nowrap;
@@ -71,6 +59,16 @@
   grid-auto-columns: max-content;
   align-items: center;
   column-gap: 8px;
+}
+
+/* Mitte absolut zentrieren: Mic Button wird optisch in die Header-Mitte gesetzt */
+.center {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--header-h, 56px) / 2);
+  transform: translate(-50%, -50%);
+  z-index: 101; /* über dem Verlauf, aber unter globalen Overlays */
+  pointer-events: auto;
 }
 
 /* Verhindere, dass Inhalte sich gegenseitig überlappen */
@@ -96,7 +94,12 @@
   transform: none;
   top: auto;
   left: auto;
-  background: transparent !important;
+}
+
+/* Nur die rechten Options-Buttons optisch neutralisieren */
+:host ::ng-deep .options app-button .app-button,
+:host ::ng-deep .options app-logout-button .app-button {
+  background: transparent !important; /* Icons wirken leichter im Header */
   box-shadow: none !important;
 }
 
@@ -128,13 +131,12 @@
   display: flex;
   align-items: center;
 }
-
 .speech-button app-button.recording {
   ::ng-deep .app-button {
     animation: pulse 1s infinite;
     background: rgba(255, 87, 34, 0.2) !important;
   }
-  
+
   ::ng-deep mat-icon {
     color: #ff5722 !important;
   }
@@ -190,4 +192,3 @@
     padding: 6px 0;
   }
 }
-
