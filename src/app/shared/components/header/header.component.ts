@@ -3,7 +3,6 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, NgOptimizedImage, Location } from '@angular/common';
 import { Router } from '@angular/router';
-import {HoverShaderDirective} from '@shared/directives/hover-shader.directive';
 import { AppButtonComponent } from '../app-button/app-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
 import { SpeechService } from '../../../core/services/speech.service';
@@ -18,7 +17,6 @@ import { takeUntil } from 'rxjs/operators';
     AppButtonComponent,
     LogoutButtonComponent,
     NgOptimizedImage,
-    HoverShaderDirective
   ],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
@@ -118,7 +116,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Speech input error:', error);
       // Show user-friendly error message
-      this.lastSpeechInput = 'Fehler bei der Spracheingabe. Bitte erneut versuchen.';
+      this.lastSpeechInput = 'Fehler bei der Spracheingabe. Bitte erneut versuchen.' + error;
     }
   }
 }

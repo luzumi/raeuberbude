@@ -27,6 +27,9 @@ export class AppButtonComponent {
   @Input() hoverAnimColorRgb: string = '255, 87, 34';
   @Input() hoverAnimDuration: string = '600ms';
 
+  // Layout: Standard ist absolut (runde Buttons). Für Header/Listen inline schalten.
+  @Input() inline: boolean = false;
+
   @Output() click = new EventEmitter<MouseEvent>();  // Changed to emit MouseEvent
   @Output() hold = new EventEmitter<void>();
 

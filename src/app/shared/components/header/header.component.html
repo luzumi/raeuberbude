@@ -16,11 +16,10 @@
   <div class="center">
     <div class="speech-button">
       <app-button
-        [appHoverShader]="true"
-        [hsTarget]="'.button-inner'"
         name="Sprache"
         icon="mic"
         size="3rem"
+        [inline]="true"
         [class.recording]="isRecording"
         (click)="toggleSpeechInput()"
         [hoverAnim]="true"
@@ -35,6 +34,7 @@
       name="Menu"
       icon="settings"
       size="2.5rem"
+      [inline]="true"
       (click)="goToMenu()"
     ></app-button>
     <app-logout-button size="2.5rem" [inline]="true"></app-logout-button>

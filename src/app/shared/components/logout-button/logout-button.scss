@@ -2,3 +2,8 @@
   position: absolute;
   z-index: 1000;
 }
+
+.logout-container.inline {
+  position: static;
+  z-index: auto;
+}
