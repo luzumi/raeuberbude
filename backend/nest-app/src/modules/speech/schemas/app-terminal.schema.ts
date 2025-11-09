@@ -51,7 +51,6 @@ export class AppTerminal {
 export const AppTerminalSchema = SchemaFactory.createForClass(AppTerminal);
 
 // Indexes
-AppTerminalSchema.index({ terminalId: 1 });
 AppTerminalSchema.index({ status: 1 });
 AppTerminalSchema.index({ type: 1 });
 AppTerminalSchema.index({ assignedUserId: 1 });
