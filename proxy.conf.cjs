@@ -15,8 +15,37 @@ const urlFromEnv = () => {
 
 const target = urlFromEnv();
 
+// NestJS API target (Speech module)
+const nestUrlFromEnv = () => {
+  const base = process.env.NEST_BASE_URL;
+  if (base) return base;
+  const host = process.env.NEST_HOST || 'localhost';
+  const port = process.env.NEST_PORT || '3001';
+  return `http://${host}:${port}`;
+};
+const nestTarget = nestUrlFromEnv();
+
 /** @type {import('@angular-devkit/build-angular').ProxyConfig} */
 module.exports = {
+  '/api/speech': {
+    target: nestTarget,
+    secure: false,
+    changeOrigin: true,
+    ws: false,
+    logLevel: 'warn',
+    onError(err, req, res) {
+      const code = err && (err.code || err.name) || 'UNKNOWN';
+      const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${nestTarget}`;
+      // eslint-disable-next-line no-console
+      console.warn(msg);
+      try {
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Bad gateway', code, target: nestTarget }));
+      } catch (_) {}
+    },
+  },
   '/api': {
     target,
     secure: false,
@@ -24,7 +53,6 @@ module.exports = {
     ws: true,
     logLevel: 'warn',
     onError(err, req, res) {
-      // Swallow frequent noisy errors like ECONNRESET/EAI_AGAIN with a concise log.
       const code = err && (err.code || err.name) || 'UNKNOWN';
       const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${target}`;
       // eslint-disable-next-line no-console
@@ -34,9 +62,7 @@ module.exports = {
           res.writeHead(502, { 'Content-Type': 'application/json' });
         }
         res.end(JSON.stringify({ error: 'Bad gateway', code, target }));
-      } catch (_) {
-        // ignore
-      }
+      } catch (_) {}
     },
   },
 };
