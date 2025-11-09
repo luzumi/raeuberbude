@@ -5,6 +5,7 @@
       '--color': color,
       '--background-color': backgroundColor,
       '--color-active': activeColor,
+      '--hover-color': hoverColor,
       '--active-glow-color': activeColor,
       '--btn-size': size,
       '--btn-font-size': fontSize
@@ -18,10 +19,7 @@
 
     <svg class="label-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <path
-          id="{{ textPathId }}"
-          d="M50,50 m-35,0 a35,35 0 1,1 70,0 a35,35 0 1,1 -70,0"
-        />
+        <path id="{{ textPathId }}" d="M50,50 m-28,0 a28,28 0 1,1 56,0 a28,28 0 1,1 -56,0" />
       </defs>
       <text text-anchor="middle" transform="rotate(-90 50 50)">
         <textPath [attr.xlink:href]="'#' + textPathId" startOffset="50%">

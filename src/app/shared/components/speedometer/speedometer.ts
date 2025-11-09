@@ -13,6 +13,7 @@ export class SpeedometerComponent implements OnChanges, OnInit {
   @Input() value: number = 0;
   @Input() min: number = 0;
   @Input() max: number = 100;
+  @Input() unit: string = '';
   // 240°-Bogen im Uhrzeigersinn: 240° → 0° → 120°
   @Input() startAngle: number = 150; // Grad
   @Input() endAngle: number = 30;   // Grad

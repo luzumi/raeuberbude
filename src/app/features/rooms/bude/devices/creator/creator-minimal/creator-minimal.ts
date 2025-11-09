@@ -3,6 +3,7 @@ import { SpeedometerComponent } from '@shared/components/speedometer/speedometer
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {Subscription} from 'rxjs';
 import { Entity, HomeAssistantService } from '@services/home-assistant/home-assistant.service';
+import { AppButtonComponent } from '@shared/components/app-button/app-button';
 
 /**
  * Minimale Platzhalteransicht für den PC (Creator).
@@ -10,7 +11,7 @@ import { Entity, HomeAssistantService } from '@services/home-assistant/home-assi
 @Component({
   selector: 'app-creator-minimal',
   standalone: true,
-  imports: [CommonModule, SpeedometerComponent],
+  imports: [CommonModule, SpeedometerComponent, AppButtonComponent],
   templateUrl: './creator-minimal.html',
   styleUrls: ['./creator-minimal.layout.scss'],
   host: { 'style': 'display:block;width:100%;height:100%;' }
@@ -25,17 +26,14 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   gpuPercent = 0;
   gpuTempC = 0;
   metric2Label: string = 'RAM';
-  freqPercent = 0;
-  freqValueDisplay = '';
   cpuAngle = 0;
   memAngle = 0;
-  freqAngle = 0;
   private cpuHistory: number[] = [];
   private ramHistory: number[] = [];
   cpuPath = '';
   ramPath = '';
   private readonly MAX_POINTS = 40;
-  private readonly FREQ_MAX_DEFAULT_MHZ = 5000; // 5 GHz Fallback
+  // Frequenz-Logik entfernt
 
   // Screenshot (Spy)
   private readonly SCREENSHOT_URL = 'http://192.168.178.24:8123/local/creator_screenshots/PC-screenshot.png';
@@ -46,6 +44,20 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   private lastScreenshotLoadAt?: number;
   private lastSpyTriggerAt?: number;
   private readonly spyRetryMs = 5000; // alle 5s Spy-Start erneut versuchen, wenn kein Bild lädt
+  // Fallback-Bild (liegt im Angular assets/ Ordner). Wichtig: kein "public/" Präfix im Angular-Build verwenden.
+  private readonly FALLBACK_PATH = '/assets/PC-screenshot.PNG';
+  // Nach einem Ladefehler aktivieren wir für eine Haltezeit das Fallback-Bild, um Flapping zu vermeiden.
+  private fallbackUntil?: number;
+  private readonly fallbackHoldMs = 15000; // 15s Haltezeit, bevor wir erneut den Remote-Screenshot versuchen
+  
+  // ---- Digitale Uhr (UI) ----
+  // Aktuelle Zeit wird 1x pro Sekunde aktualisiert und in der UI als digitale Uhr angezeigt.
+  now: Date = new Date();
+  private clockInterval?: number;
+  // String-Getter mit führenden Nullen, damit jedes Digit stabil bleibt (kein Layout-Shift)
+  get hhStr(): string { return String(this.now.getHours()).padStart(2, '0'); }
+  get mmStr(): string { return String(this.now.getMinutes()).padStart(2, '0'); }
+  get ssStr(): string { return String(this.now.getSeconds()).padStart(2, '0'); }
   // Boot-Guard (verhindert automatisches Spy-Starten kurz nach App-Start)
   private readonly componentInitMs = Date.now();
   private readonly defaultBootMs = 30000; // 30s
@@ -53,7 +65,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   // Gauge Backgrounds (conic-gradient)
   cpuGaugeBg = '';
   memGaugeBg = '';
-  freqGaugeBg = '';
+  // Frequenz-Gauge entfernt
   arcBg = `conic-gradient(from -120deg,
     #e53935 0deg,      /* rot (links) */
     #ffb300 60deg,     /* orange */
@@ -104,6 +116,10 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     // Sicherheitsnetz: auch ohne Statuswechsel direkt versuchen zu starten
     this.loadSpyOverrideFromLocalStorage();
     this.startScreenshotRefresh();
+    // Starte sekündlichen Ticker für die Uhr
+    this.clockInterval = window.setInterval(() => {
+      this.now = new Date();
+    }, 1000);
   }
 
   private makeGaugeBg(percent: number, color: string): string {
@@ -137,6 +153,11 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
     this.stopScreenshotRefresh();
+    // Uhr-Interval aufräumen
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+      this.clockInterval = undefined;
+    }
   }
 
   // ---- UI Actions ----
@@ -324,6 +345,12 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     ) && (
       this.hasAny(e.entity_id, ['usage','load','percent','last','auslast','auslastung','util']) || this.hasAny(e.attributes?.friendly_name || '', ['usage','load','percent','last','auslastung','util'])
     ));
+    // GPU-Temperatur (optional)
+    const gpuTempSensor = by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && (
+      this.hasAny(e.entity_id, ['gpu','graphics']) || this.hasAny(e.attributes?.friendly_name || '', ['gpu','graphics'])
+    ) && (
+      this.hasAny(e.entity_id, ['temp','temperature','temperatur','°c','celsius']) || this.hasAny(e.attributes?.friendly_name || '', ['temp','temperature','temperatur','°c','celsius'])
+    ));
     // GPU-Temperatur-Sensor robust ermitteln
     const gpuTempExact = by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && this.norm(e.entity_id).endsWith('_gputemperatur'));
     const looksLikeTempUnit = (e: Entity) => {
@@ -335,15 +362,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       (this.hasAny(e.entity_id + ' ' + (e.attributes?.friendly_name || ''), ['gpu','grafik']) && this.hasAny(e.entity_id + ' ' + (e.attributes?.friendly_name || ''), ['temp','temperatur','temperature']))
       || (this.hasAny(e.entity_id + ' ' + (e.attributes?.friendly_name || ''), ['gpu','grafik']) && (isTempClass(e) || looksLikeTempUnit(e)))
     ));
-    // CPU-Frequenzsensor (z.B. "*_aktuelletaktfrequenz", oder Keywords ohne CPU-Pflicht)
-    const freqExact = by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && this.norm(e.entity_id).includes('aktuelletaktfrequenz'));
-    const freq = freqExact ?? by(e => e.entity_id.startsWith('sensor.') && isCreator(e) && (
-      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('freq') ||
-      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('frequency') ||
-      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('clock') ||
-      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('takt') ||
-      (e.entity_id + ' ' + (e.attributes?.friendly_name || '')).toLowerCase().includes('taktfrequenz')
-    ));
+    // Frequenz-Sensor-Ermittlung entfernt
 
     // Werte extrahieren als Prozent (0..100)
     const toPercent = (e?: Entity): number => {
@@ -359,6 +378,13 @@ export class CreatorMinimal implements OnInit, OnDestroy {
         if (val <= 1) val *= 100;
       }
       return Math.max(0, Math.min(100, val));
+    };
+    // Zahl ohne Prozent-Transformation
+    const toNumber = (e?: Entity): number => {
+      if (!e) return 0;
+      const rawStr = typeof e.state === 'number' ? String(e.state) : String(e.state || '');
+      const val = typeof e.state === 'number' ? e.state : Number.parseFloat(rawStr.replace(',', '.'));
+      return isFinite(val) ? val : 0;
     };
     // Temperatur auf °C normalisieren
     const toCelsius = (e?: Entity): number => {
@@ -381,31 +407,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     this.gpuPercent = gpu ? toPercent(gpu) : 0;
     this.ramPercent = ram ? toPercent(ram) : 0;
     this.gpuTempC = gpuTemp ? Math.round(toCelsius(gpuTemp)) : 0;
-    this.metric2Label = this.gpuPercent ? 'GPU' : 'RAM';
+    this.metric2Label = this.gpuPercent ? 'GPU %' : 'RAM %';
 
-    // Frequenzwert als Prozent berechnen (gegen Max MHz)
-    const toFreqPercent = (e?: Entity): { percent: number; display: string } => {
-      if (!e) return { percent: 0, display: '' };
-      const rawStr = String(e.state || '').replace(',', '.');
-      let val = Number.parseFloat(rawStr);
-      if (!isFinite(val)) return { percent: 0, display: '' };
-      const unit = (e.attributes?.['unit_of_measurement'] || '').toString().toLowerCase();
-      // In MHz normalisieren
-      let mhz = val;
-      if (unit.includes('ghz')) mhz = val * 1000;
-      if (unit.includes('mhz')) mhz = val;
-      // Max aus Attributen erraten
-      const maxAttr = e.attributes?.['max'] ?? e.attributes?.['max_mhz'] ?? e.attributes?.['boost_mhz'] ?? e.attributes?.['turbo'] ?? e.attributes?.['max_frequency'] ?? e.attributes?.['maxfreq'];
-      let max = typeof maxAttr === 'number' ? maxAttr : Number.parseFloat(String(maxAttr || '').replace(',', '.'));
-      if (!isFinite(max) || max <= 0) max = this.FREQ_MAX_DEFAULT_MHZ;
-      const percent = mhz;
-      const display = unit.includes('ghz') ? `${val.toFixed(2)} GHz` : `${Math.round(mhz)} MHz`;
-      return { percent, display };
-    };
-
-    const fp = toFreqPercent(freq);
-    this.freqPercent = fp.percent;
-    this.freqValueDisplay = fp.display;
+    // Frequenzwert-Logik entfernt; rechter Gauge zeigt CPU-Last
 
     // History fortschreiben
     this.pushHistory(this.cpuHistory, cpuVal);
@@ -416,12 +420,12 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     // Gauge-Hintergründe aktualisieren
     this.cpuGaugeBg = this.makeGaugeBg(this.cpuPercent, '#90caf9');
     this.memGaugeBg = this.makeGaugeBg(this.ramPercent, '#80e27e');
-    this.freqGaugeBg = this.makeGaugeBg(this.freqPercent, '#fdd835');
+    // Frequenz-Gauge entfernt
 
     // Needle-Winkel aktualisieren
     this.cpuAngle = this.angleFromPercent(this.cpuPercent);
     this.memAngle = this.angleFromPercent(this.ramPercent);
-    this.freqAngle = this.angleFromPercent(this.freqPercent);
+    // Frequenz-Gauge entfernt
 
     // PC-On Heuristik
     const mp = this.mediaEntityId ? entities.find(e => e.entity_id === this.mediaEntityId) : undefined;
@@ -431,9 +435,6 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       : entities.find(e => e.entity_id.startsWith('binary_sensor.') && isCreator(e) && (e.entity_id.toLowerCase().includes('online') || e.entity_id.toLowerCase().includes('power')));
     const online = onlineBinary ? onlineBinary.state === 'on' : false;
     // Frequenzsensor: online, wenn vorhanden und numerisch > 0
-    const parseNum = (v: any) => typeof v === 'number' ? v : Number.parseFloat(v);
-    const freqNum = freq ? parseNum(freq.state) : NaN;
-    const freqOnline = !!freq && freq.state !== 'unavailable' && freq.state !== 'unknown' && isFinite(freqNum) && freqNum > 0;
     const cpuOnline = !!cpu && cpu.state !== 'unavailable' && cpu.state !== 'unknown';
     const ramOnline = !!ram && ram.state !== 'unavailable' && ram.state !== 'unknown';
     // Verfügbarkeiten werden in autodiscover gesetzt
@@ -455,7 +456,7 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     }
 
     // Fallback: Frequenz-/Media-/CPU-/RAM-Heuristik
-    this.pcOn = freqOnline || mpOn || online || cpuOnline || ramOnline || cpuVal > 0 || this.gpuPercent > 0 || this.ramPercent > 0;
+    this.pcOn = mpOn || online || cpuOnline || ramOnline || cpuVal > 0 || this.gpuPercent > 0 || this.ramPercent > 0;
   }
 
   // --- Screenshot Refresh ---
@@ -493,6 +494,12 @@ export class CreatorMinimal implements OnInit, OnDestroy {
   }
 
   private updateScreenshotUrl(): void {
+    // Wenn ein vorheriger Fehler auftrat, halten wir das Fallback-Bild für eine kurze Zeit aktiv,
+    // um sichtbares Flackern (Layout-Shift) und permanente Fehlversuche zu vermeiden.
+    if (this.fallbackUntil && Date.now() < this.fallbackUntil) {
+      // Während der Haltezeit belassen wir die URL unverändert (Fallback aktiv).
+      return;
+    }
     const t = Date.now();
     this.screenshotUrl = `${this.SCREENSHOT_URL}?t=${t}`;
     // Log zur Diagnose (kann später entfernt werden)
@@ -570,11 +577,24 @@ export class CreatorMinimal implements OnInit, OnDestroy {
     this.screenshotStatus = 'Bild aktualisiert';
     this.lastScreenshotLoadAt = Date.now();
     console.debug('[CreatorMinimal] screenshot loaded ok');
+    // Sobald der Remote-Screenshot wieder erfolgreich lädt, heben wir die Fallback-Haltezeit auf.
+    if (this.screenshotUrl !== this.FALLBACK_PATH) {
+      this.fallbackUntil = undefined;
+    }
   }
 
   onScreenshotError(): void {
-    this.screenshotStatus = 'Fehler beim Laden';
-    console.warn('[CreatorMinimal] screenshot error');
+    // Fehler beim Laden: aktiviere Fallback-Bild (einmalig) und halte es für eine definierte Zeitspanne.
+    // So verhindern wir ein schnelles Hin- und Herspringen zwischen Remote-URL und Fallback.
+    this.screenshotStatus = 'Fehler beim Laden – Fallback aktiviert';
+    // Falls das Fallback bereits aktiv ist, keine erneute Aktion (verhindert Endlos-Loops bei Fallback-Fehlern).
+    if (this.screenshotUrl === this.FALLBACK_PATH) {
+      console.warn('[CreatorMinimal] screenshot error (fallback already active)');
+      return;
+    }
+    this.fallbackUntil = Date.now() + this.fallbackHoldMs;
+    this.screenshotUrl = this.FALLBACK_PATH;
+    console.warn('[CreatorMinimal] screenshot error → switching to fallback for', this.fallbackHoldMs, 'ms');
   }
 
   getCurrentTimestamp(): string {
