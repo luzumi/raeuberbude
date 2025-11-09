@@ -1,0 +1,39 @@
+{
+  "name": "multi-agent-orchestrator",
+  "version": "1.0.0",
+  "description": "Hierarchisches Multi-Agenten-System für professionelle Softwareentwicklung",
+  "main": "multi-agent-orchestrator.js",
+  "scripts": {
+    "start": "node multi-agent-orchestrator.js",
+    "start:dev": "nodemon multi-agent-orchestrator.js",
+    "orchestrator": "node multi-agent-orchestrator.js",
+    "youtrack": "node youtrack-mcp-server.js",
+    "web": "node web-mcp-server.js",
+    "all": "concurrently \"npm run orchestrator\" \"npm run youtrack\" \"npm run web\"",
+    "test": "jest",
+    "test:agents": "jest agents/*.spec.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "puppeteer": "^21.0.0",
+    "dotenv": "^16.3.1",
+    "form-data": "^4.0.0",
+    "js-yaml": "^4.1.0",
+    "mongoose": "^7.5.0",
+    "@nestjs/mongoose": "^10.0.0",
+    "typeorm": "^0.3.17",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.0",
+    "jest": "^29.6.0",
+    "@types/node": "^20.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "AI Development Team",
+  "license": "MIT"
+}

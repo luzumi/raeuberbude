@@ -1,7 +1,7 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
 # Compiled output
-/dist
+dist/**
 /tmp
 /out-tsc
 /bazel-out
@@ -46,11 +46,14 @@ testem.log
 .DS_Store
 Thumbs.db
 
-
 # Playwright auth state
 playwright/.auth/
-/test-results/
+test-results/
 
 # YouTrack MCP secrets & uploads
 /.specify/mcp-servers/youtrack.secrets.json
-/uploads/
+uploads/
+
+# Backend build artifacts and models
+backend/nest-app/dist/**
+backend/vosk-model/**

@@ -8,6 +8,7 @@ import { HomeAssistantService, Entity } from '@services/home-assistant/home-assi
 import { SamsungTvService } from '@services/samsung-tv.service';
 
 import { AppButtonComponent } from '@shared/components/app-button/app-button';
+import {HoverShaderDirective} from '@shared/directives/hover-shader.directive';
 import { interval, map, Subscription } from 'rxjs';
 
 
@@ -18,7 +19,7 @@ import { interval, map, Subscription } from 'rxjs';
 @Component({
   selector: 'app-samsung-tv-minimal',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MatIconButton, AppButtonComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, MatIconButton, AppButtonComponent, HoverShaderDirective],
   templateUrl: './samsung-tv-minimal.html',
   styleUrls: ['./samsung-tv-minimal.scss']
 })

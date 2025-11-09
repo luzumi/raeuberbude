@@ -1,0 +1,6 @@
+// src/styles/animations/_index.scss
+// Forward & Use aller zentralen Animationen
+// @forward stellt Mixins/Variablen bereit
+// @use sorgt dafür, dass die CSS-Regeln/Keyframes auch emittiert werden
+@forward 'hover-shader';
+@use 'hover-shader';

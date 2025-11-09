@@ -1,0 +1,292 @@
+<div class="rights-management-container">
+  <mat-card class="header-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>security</mat-icon>
+        Rechteverwaltung
+      </mat-card-title>
+      <mat-card-subtitle>Benutzerrechte und Terminal-Verwaltung</mat-card-subtitle>
+    </mat-card-header>
+  </mat-card>
+
+  <mat-tab-group>
+    <!-- User Rights Tab -->
+    <mat-tab label="Benutzerrechte">
+      <div class="tab-content">
+        <div class="actions-row">
+          <button mat-raised-button color="primary" (click)="resetRightsForm()">
+            <mat-icon>add</mat-icon>
+            Neue Rechte
+          </button>
+          <button mat-raised-button (click)="loadData()">
+            <mat-icon>refresh</mat-icon>
+            Aktualisieren
+          </button>
+        </div>
+
+        <div class="content-grid">
+          <!-- Rights List -->
+          <mat-card class="list-card">
+            <mat-card-header>
+              <mat-card-title>Benutzerrechte-Liste</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="rights-list">
+                <div *ngFor="let rights of userRights" 
+                     class="rights-item" 
+                     [class.selected]="selectedUserRights === rights"
+                     (click)="selectUserRights(rights)">
+                  <div class="user-info">
+                    <mat-icon>person</mat-icon>
+                    <span class="user-name">{{ getUserName(rights.userId) }}</span>
+                  </div>
+                  <div class="badges">
+                    <span class="badge" [ngClass]="getRoleBadgeClass(rights.role)">
+                      {{ rights.role }}
+                    </span>
+                    <span class="badge" [ngClass]="getStatusBadgeClass(rights.status)">
+                      {{ rights.status }}
+                    </span>
+                  </div>
+                  <div class="actions">
+                    <button mat-icon-button (click)="toggleUserStatus(rights); $event.stopPropagation()">
+                      <mat-icon>{{ rights.status === 'active' ? 'lock' : 'lock_open' }}</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="deleteUserRights(rights); $event.stopPropagation()">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Rights Form -->
+          <mat-card class="form-card">
+            <mat-card-header>
+              <mat-card-title>
+                {{ selectedUserRights ? 'Rechte bearbeiten' : 'Neue Rechte erstellen' }}
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <form [formGroup]="rightsForm" class="rights-form">
+                <!-- User Selection -->
+                <mat-form-field *ngIf="!selectedUserRights">
+                  <mat-label>Benutzer</mat-label>
+                  <mat-select formControlName="userId" required>
+                    <mat-option *ngFor="let user of users" [value]="user._id">
+                      {{ user.name || user.email }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Role Selection -->
+                <mat-form-field>
+                  <mat-label>Rolle</mat-label>
+                  <mat-select formControlName="role" (selectionChange)="onRoleChange()">
+                    <mat-option *ngFor="let role of roles" [value]="role">
+                      {{ role }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Permissions -->
+                <div class="permissions-section">
+                  <h4>Berechtigungen</h4>
+                  <div class="permissions-grid">
+                    <mat-checkbox *ngFor="let perm of availablePermissions"
+                                  [checked]="rightsForm.value.permissions?.includes(perm.key)"
+                                  (change)="onPermissionToggle($event.checked, perm.key)">
+                      {{ perm.label }}
+                    </mat-checkbox>
+                  </div>
+                </div>
+
+                <!-- Quick Settings -->
+                <div class="quick-settings">
+                  <h4>Schnelleinstellungen</h4>
+                  <mat-checkbox formControlName="canUseSpeechInput">Spracheingabe erlauben</mat-checkbox>
+                  <mat-checkbox formControlName="canViewOwnInputs">Eigene Eingaben anzeigen</mat-checkbox>
+                  <mat-checkbox formControlName="canViewAllInputs">Alle Eingaben anzeigen</mat-checkbox>
+                  <mat-checkbox formControlName="canDeleteInputs">Eingaben löschen</mat-checkbox>
+                  <mat-checkbox formControlName="canManageTerminals">Terminals verwalten</mat-checkbox>
+                  <mat-checkbox formControlName="canManageUsers">Benutzer verwalten</mat-checkbox>
+                </div>
+
+                <!-- Allowed Terminals -->
+                <mat-form-field>
+                  <mat-label>Erlaubte Terminals</mat-label>
+                  <mat-select formControlName="allowedTerminals" multiple>
+                    <mat-option *ngFor="let terminal of terminals" [value]="terminal._id">
+                      {{ terminal.name }} ({{ terminal.terminalId }})
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Status -->
+                <mat-form-field>
+                  <mat-label>Status</mat-label>
+                  <mat-select formControlName="status">
+                    <mat-option value="active">Aktiv</mat-option>
+                    <mat-option value="suspended">Gesperrt</mat-option>
+                    <mat-option value="revoked">Widerrufen</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                  <button mat-raised-button color="primary" (click)="saveUserRights()" [disabled]="!rightsForm.valid">
+                    <mat-icon>save</mat-icon>
+                    Speichern
+                  </button>
+                  <button mat-button (click)="resetRightsForm()">
+                    <mat-icon>clear</mat-icon>
+                    Abbrechen
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Terminals Tab -->
+    <mat-tab label="Terminals">
+      <div class="tab-content">
+        <div class="actions-row">
+          <button mat-raised-button color="primary" (click)="resetTerminalForm()">
+            <mat-icon>add</mat-icon>
+            Neues Terminal
+          </button>
+          <button mat-raised-button (click)="loadData()">
+            <mat-icon>refresh</mat-icon>
+            Aktualisieren
+          </button>
+        </div>
+
+        <div class="content-grid">
+          <!-- Terminal List -->
+          <mat-card class="list-card">
+            <mat-card-header>
+              <mat-card-title>Terminal-Liste</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="terminal-list">
+                <div *ngFor="let terminal of terminals" 
+                     class="terminal-item"
+                     [class.selected]="selectedTerminal === terminal"
+                     [class.active]="isTerminalActive(terminal)"
+                     (click)="selectTerminal(terminal)">
+                  <div class="terminal-info">
+                    <mat-icon>{{ terminal.type === 'mobile' ? 'smartphone' : 
+                                terminal.type === 'tablet' ? 'tablet' : 
+                                terminal.type === 'kiosk' ? 'tv' : 'computer' }}</mat-icon>
+                    <div class="terminal-details">
+                      <span class="terminal-name">{{ terminal.name }}</span>
+                      <span class="terminal-id">{{ terminal.terminalId }}</span>
+                    </div>
+                  </div>
+                  <div class="badges">
+                    <span class="badge badge-type">{{ terminal.type }}</span>
+                    <span class="badge" [ngClass]="getStatusBadgeClass(terminal.status)">
+                      {{ terminal.status }}
+                    </span>
+                    <mat-icon *ngIf="isTerminalActive(terminal)" class="active-indicator">
+                      fiber_manual_record
+                    </mat-icon>
+                  </div>
+                  <div class="actions">
+                    <button mat-icon-button (click)="toggleTerminalStatus(terminal); $event.stopPropagation()">
+                      <mat-icon>{{ terminal.status === 'active' ? 'pause' : 'play_arrow' }}</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="deleteTerminal(terminal); $event.stopPropagation()">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Terminal Form -->
+          <mat-card class="form-card">
+            <mat-card-header>
+              <mat-card-title>
+                {{ selectedTerminal ? 'Terminal bearbeiten' : 'Neues Terminal erstellen' }}
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <form [formGroup]="terminalForm" class="terminal-form">
+                <!-- Terminal ID -->
+                <mat-form-field>
+                  <mat-label>Terminal ID</mat-label>
+                  <input matInput formControlName="terminalId" 
+                         [readonly]="!!selectedTerminal"
+                         placeholder="z.B. terminal-001" required>
+                </mat-form-field>
+
+                <!-- Name -->
+                <mat-form-field>
+                  <mat-label>Name</mat-label>
+                  <input matInput formControlName="name" 
+                         placeholder="z.B. Wohnzimmer Tablet" required>
+                </mat-form-field>
+
+                <!-- Type -->
+                <mat-form-field>
+                  <mat-label>Typ</mat-label>
+                  <mat-select formControlName="type">
+                    <mat-option *ngFor="let type of terminalTypes" [value]="type">
+                      {{ type }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Status -->
+                <mat-form-field>
+                  <mat-label>Status</mat-label>
+                  <mat-select formControlName="status">
+                    <mat-option *ngFor="let status of terminalStatuses" [value]="status">
+                      {{ status }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Location -->
+                <mat-form-field>
+                  <mat-label>Standort</mat-label>
+                  <input matInput formControlName="location" 
+                         placeholder="z.B. Wohnzimmer">
+                </mat-form-field>
+
+                <!-- Assigned User -->
+                <mat-form-field>
+                  <mat-label>Zugewiesener Benutzer</mat-label>
+                  <mat-select formControlName="assignedUserId">
+                    <mat-option [value]="">Nicht zugewiesen</mat-option>
+                    <mat-option *ngFor="let user of users" [value]="user._id">
+                      {{ user.name || user.email }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                  <button mat-raised-button color="primary" (click)="saveTerminal()" [disabled]="!terminalForm.valid">
+                    <mat-icon>save</mat-icon>
+                    Speichern
+                  </button>
+                  <button mat-button (click)="resetTerminalForm()">
+                    <mat-icon>clear</mat-icon>
+                    Abbrechen
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

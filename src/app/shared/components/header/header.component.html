@@ -1,40 +1,51 @@
 <!-- src/app/shared/components/header/header.component.html -->
 
 <header class="app-header">
-  <div class="back-button">
-    <app-button
-      name="Zurück"
-      icon="arrow_back"
-      size="2.5rem"
-      (click)="goBack()"
-    ></app-button>
-  </div>
-
-  <div class="user-info">
+  <!-- Links: Avatar + Begrüßung in EINER Zeile -->
+  <div class="user-info" (click)="goToProfile()">
     <img
       ngSrc="/assets/avatar.png"
       alt="Avatar"
       class="avatar"
       height="1024" width="1024"
-      (click)="goToProfile()"
     />
+    <span class="greeting-line">{{ userName }} -> {{ greeting }}!</span>
+  </div>
 
-    <div class="text-block">
-      <div class="greet-text">{{ greeting }},</div>
-      <div class="user-name">{{ userName }}!</div>
+  <!-- Mitte: absolut zentrierter Mikrofon-Button -->
+  <div class="center">
+    <div class="speech-button">
+      <app-button
+        name="Sprache"
+        icon="mic"
+        size="3rem"
+        [inline]="true"
+        [class.recording]="isRecording"
+        (click)="toggleSpeechInput()"
+        [hoverAnim]="true"
+        hoverAnimColorRgb="255, 87, 34"
+      ></app-button>
     </div>
   </div>
 
-  <div class="spacer"></div>
-
+  <!-- Rechts: Settings + Logout nebeneinander -->
   <div class="options">
     <app-button
       name="Menu"
       icon="settings"
       size="2.5rem"
+      [inline]="true"
       (click)="goToMenu()"
     ></app-button>
-    <app-logout-button size="2.5rem"></app-logout-button>
+    <app-logout-button size="2.5rem" [inline]="true"></app-logout-button>
   </div>
 
+
+<!-- Speech Input Feedback Marquee -->
+<div class="speech-marquee" *ngIf="lastSpeechInput">
+  <div class="marquee-content">
+    <span class="marquee-text">{{ lastSpeechInput }}</span>
+    <span class="marquee-text">{{ lastSpeechInput }}</span>
+  </div>
+</div>
 </header>

@@ -56,6 +56,14 @@
     background-color: var(--color-active);
   }
 
+  /* Inline-Variante: Kein absolutes Positionieren, im Layoutfluss anzeigen */
+  &.inline {
+    position: relative;
+    transform: none;
+    display: inline-flex;
+    place-items: center;
+  }
+
   /* Innerer Farbkreis getrennt vom Glow */
   .app-button::before {
     content: '';
@@ -87,6 +95,8 @@
   &.active::before {
     background-color: var(--color-active);
   }
+
+  
 
 
   .button-inner {

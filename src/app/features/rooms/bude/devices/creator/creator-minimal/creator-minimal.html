@@ -6,118 +6,148 @@
       <div class="state">{{ pcOn ? 'Online' : 'Offline' }}</div>
     </div>
 
-    <div class="actions-right" *ngIf="!pcOn">
-      <button class="btn primary" (click)="$event.stopPropagation(); wakePc()" [class.inactive]="!wolAvailable" [title]="wolAvailable ? 'Wake on LAN' : 'Aktion nicht verfügbar'">
-        ⚡ WOL
-      </button>
-    </div>
+    @if (!pcOn) {
+      <div class="actions-right">
+        <button class="btn primary" appHoverShader (click)="$event.stopPropagation(); wakePc()"
+                [class.inactive]="!wolAvailable" [title]="wolAvailable ? 'Wake on LAN' : 'Aktion nicht verfügbar'">
+          ⚡ WOL
+        </button>
+      </div>
+    }
 
   </div>
 
-  <div class="content" *ngIf="pcOn; else offlineTpl">
-    <div class="gauges gauges-row area-gauges">
-      <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'CPU %'" [value]="cpuPercent" [min]="0" [max]="100" [unit]="'%'">
-      </app-speedometer>
-      <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
-      <div class="gauge-wrapper gpu-wrapper" style="flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3); position:relative;">
-        <app-speedometer class="main" style="--sm-height:90%; --sm-width:auto; height:100%; width:100%;" [title]="metric2Label" [value]="gpuPercent || ramPercent" [min]="0" [max]="100" [unit]="'%'">
+  @if (pcOn) {
+    <div class="content">
+      <div class="gauges gauges-row area-gauges">
+        <app-speedometer
+          [appHoverShader]="true"
+          [hsTarget]="'.speedometer'"
+          style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);"
+          [title]="'CPU %'" [value]="cpuPercent" [min]="0" [max]="100" [unit]="'%'">
         </app-speedometer>
-        <app-speedometer class="mini" [title]="'GPU °C'" [value]="gpuTempC" [min]="0" [max]="110"></app-speedometer>
+        <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
+        <div class="gauge-wrapper gpu-wrapper"
+             style="flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3); position:relative;">
+          <app-speedometer
+            [appHoverShader]="true"
+            [hsTarget]="'.speedometer'"
+            class="main" style="--sm-height:90%; --sm-width:auto; height:100%; width:100%;"
+                           [title]="metric2Label" [value]="gpuPercent || ramPercent" [min]="0" [max]="100" [unit]="'%'">
+          </app-speedometer>
+          <app-speedometer class="mini" [title]="'GPU °C'" [value]="gpuTempC" [min]="0" [max]="110"></app-speedometer>
+        </div>
+        <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
+        <app-speedometer
+          [appHoverShader]="true"
+          [hsTarget]="'.speedometer'"
+          style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);"
+          [title]="'CPU %'" [value]="cpuPercent" [min]="0" [max]="100" [unit]="'%'">
+        </app-speedometer>
       </div>
-      <span class="g-spacer" style="flex:0 0 var(--g-gap);"></span>
-      <app-speedometer style="--sm-height:90%; --sm-width:auto; flex:1 1 0; height:100%; max-width: calc((100% - (2 * var(--g-gap))) / 3);" [title]="'CPU %'" [value]="cpuPercent" [min]="0" [max]="100" [unit]="'%'">
-      </app-speedometer>
-    </div>
 
-    <div class="screenshot area-screenshot">
-      <div class="screenshot-card">
-        <img [src]="screenshotUrl"
-             (load)="onScreenshotLoad()"
-             (error)="onScreenshotError()"
-             alt="PC Screenshot"
-             style="width:100%; height:auto; max-height:100%; object-fit:contain; object-position:center center; display:block;"
-        />
-        <div class="meta">
-          <div class="clock" aria-label="Uhrzeit">
-            <span class="hh">{{ hhStr }}</span>
-            <span class="sep">:</span>
-            <span class="mm">{{ mmStr }}</span>
-            <span class="sep sec">:</span>
-            <span class="ss">{{ ssStr }}</span>
+      <div class="screenshot area-screenshot">
+        <div class="img"
+             [appHoverShader]="true"
+             [hsTarget]="'.device'">
+          <img [src]="screenshotUrl"
+               (load)="onScreenshotLoad()"
+               (error)="onScreenshotError()"
+               alt="PC Screenshot"
+               style="width:100%; height:auto; max-height:100%; object-fit:contain; object-position:center center; display:block;"
+          />
+          <div class="meta">
+            <div class="clock" aria-label="Uhrzeit">
+              <span class="hh">{{ hhStr }}</span>
+              <span class="sep">:</span>
+              <span class="mm">{{ mmStr }}</span>
+              <span class="sep sec">:</span>
+              <span class="ss">{{ ssStr }}</span>
+            </div>
           </div>
         </div>
       </div>
+
+      <div class="buttons area-buttons">
+        <app-button
+          [appHoverShader]="true"
+          [hsTarget]="'.app-button'"
+          name="Monitor an"
+          [svgIcon]="'/assets/icons/monitor.svg'"
+          [backgroundColor]="monitorOnAvailable ? '#b17a33' : '#424242'"
+          [activeColor]="monitorOnAvailable ? '#9a59b4' : '#616161'"
+          [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
+          [active]="false"
+          [glowOn]="false"
+          (click)="monitorOnAvailable ? monitorOn() : null"
+          [attr.title]="monitorOnAvailable ? 'Monitor aufwecken' : 'Monitor aus'"
+        ></app-button>
+
+        <app-button
+          [appHoverShader]="true"
+          [hsTarget]="'.app-button'"
+          name="Play/Pause"
+          [svgIcon]="'/assets/icons/playpause.svg'"
+          [backgroundColor]="monitorOnAvailable ? '#83b55a' : '#424242'"
+          [activeColor]="monitorOnAvailable ? '#9dbf25' : '#616161'"
+          [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
+          [active]="false"
+          [glowOn]="false"
+          (click)="mediaAvailable ? playPause() : null"
+          [attr.title]="mediaAvailable ? 'Media Play/Pause' : 'Aktion nicht verfügbar'"
+        ></app-button>
+
+        <app-button
+          [appHoverShader]="true"
+          [hsTarget]="'.app-button'"
+          name="Sleep"
+          [svgIcon]="'/assets/icons/sleep.svg'"
+          [backgroundColor]="monitorOnAvailable ? '#caa3da' : '#424242'"
+          [activeColor]="monitorOnAvailable ? '#9a59b4' : '#616161'"
+          [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
+          [active]="false"
+          [glowOn]="false"
+          (click)="sleepAvailable ? sleep() : null"
+          [attr.title]="sleepAvailable ? 'Ruhezustand' : 'Aktion nicht verfügbar'"
+        ></app-button>
+
+        <app-button
+          [appHoverShader]="true"
+          [hsTarget]="'.app-button'"
+          name="Restart"
+          [svgIcon]="'/assets/icons/restart.svg'"
+          [backgroundColor]="monitorOnAvailable ? '#a77fea' : '#424242'"
+          [activeColor]="monitorOnAvailable ? '#9a59b4' : '#616161'"
+          [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
+          [active]="false"
+          [glowOn]="false"
+          (click)="restartAvailable ? restart() : null"
+          [attr.title]="restartAvailable ? 'Neu starten' : 'Aktion nicht verfügbar'"
+        ></app-button>
+
+        <app-button
+          [appHoverShader]="true"
+          [hsTarget]="'.app-button'"
+          name="Shutdown"
+          [svgIcon]="'/assets/icons/shutdown.svg'"
+          [backgroundColor]="monitorOnAvailable ? '#b4597f' : '#616161'"
+          [activeColor]="monitorOnAvailable ? '#b4597f' : '#616161'"
+          [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
+          [active]="false"
+          [glowOn]="false"
+          (click)="shutdownAvailable ? shutdown() : null"
+          [attr.title]="shutdownAvailable ? 'Herunterfahren' : 'Aktion nicht verfügbar'"
+        ></app-button>
+      </div>
     </div>
-
-    <div class="buttons area-buttons">
-      <app-button
-        name="Monitor an"
-        [svgIcon]="'/assets/icons/monitor.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#b17a33' : '#424242'"
-        [activeColor]="monitorOnAvailable ? '#9a59b4' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
-        [active]="false"
-        [glowOn]="false"
-        (click)="monitorOnAvailable ? monitorOn() : null"
-        [attr.title]="monitorOnAvailable ? 'Monitor aufwecken' : 'Monitor aus'"
-      ></app-button>
-
-      <app-button
-        name="Play/Pause"
-        [svgIcon]="'/assets/icons/playpause.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#83b55a' : '#424242'"
-        [activeColor]="monitorOnAvailable ? '#9dbf25' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
-        [active]="false"
-        [glowOn]="false"
-        (click)="mediaAvailable ? playPause() : null"
-        [attr.title]="mediaAvailable ? 'Media Play/Pause' : 'Aktion nicht verfügbar'"
-      ></app-button>
-
-      <app-button
-        name="Sleep"
-        [svgIcon]="'/assets/icons/sleep.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#caa3da' : '#424242'"
-        [activeColor]="monitorOnAvailable ? '#9a59b4' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
-        [active]="false"
-        [glowOn]="false"
-        (click)="sleepAvailable ? sleep() : null"
-        [attr.title]="sleepAvailable ? 'Ruhezustand' : 'Aktion nicht verfügbar'"
-      ></app-button>
-
-      <app-button
-        name="Restart"
-        [svgIcon]="'/assets/icons/restart.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#a77fea' : '#424242'"
-        [activeColor]="monitorOnAvailable ? '#9a59b4' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
-        [active]="false"
-        [glowOn]="false"
-        (click)="restartAvailable ? restart() : null"
-        [attr.title]="restartAvailable ? 'Neu starten' : 'Aktion nicht verfügbar'"
-      ></app-button>
-
-      <app-button
-        name="Shutdown"
-        [svgIcon]="'/assets/icons/shutdown.svg'"
-        [backgroundColor]="monitorOnAvailable ? '#b4597f' : '#616161'"
-        [activeColor]="monitorOnAvailable ? '#b4597f' : '#616161'"
-        [hoverColor]="monitorOnAvailable ? '#782d97' : '#616161'"
-        [active]="false"
-        [glowOn]="false"
-        (click)="shutdownAvailable ? shutdown() : null"
-        [attr.title]="shutdownAvailable ? 'Herunterfahren' : 'Aktion nicht verfügbar'"
-      ></app-button>
-    </div>
-  </div>
-
-  <ng-template #offlineTpl>
+  } @else {
     <div class="offline-box">
       <div>PC ist offline.</div>
-      <button class="btn primary" (click)="$event.stopPropagation(); wakePc()" [class.inactive]="!wolAvailable" [title]="wolAvailable ? 'Wake on LAN' : 'Aktion nicht verfügbar'">
+      <button class="btn primary" appHoverShader (click)="$event.stopPropagation(); wakePc()"
+              [class.inactive]="!wolAvailable" [title]="wolAvailable ? 'Wake on LAN' : 'Aktion nicht verfügbar'">
         ⚡ Aufwecken
       </button>
     </div>
-  </ng-template>
+  }
+
 </div>

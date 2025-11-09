@@ -17,6 +17,7 @@ import { Creator } from '@rooms/bude/devices/creator/creator';
 import { Laptop } from '@rooms/bude/devices/laptop/laptop';
 import { OrangeLight } from '@rooms/bude/devices/orange-light/orange-light';
 import { Pixel } from '@rooms/bude/devices/pixel/pixel';
+import {HoverShaderDirective} from '@shared/directives/hover-shader.directive';
 
 interface Device {
   /** Eindeutige ID der Gerätekachel. */
@@ -44,6 +45,7 @@ interface Device {
     Laptop,
     Creator,
     SamsungTv,
+    HoverShaderDirective,
   ],
   templateUrl: './bude.component.html',
   styleUrls: ['./bude.component.scss']
@@ -153,23 +155,23 @@ export class BudeComponent implements OnInit {
    */
   private toggleOrangeLight(): void {
     const entityId = 'light.wiz_tunable_white_640190';
-    
+
     // WICHTIG: Hole frischen State aus dem Observable, nicht aus Cache!
     const allEntities = this.ha.getEntitiesSnapshot();
     const entity = allEntities.find(e => e.entity_id === entityId);
-    
+
     if (!entity) {
       console.error('❌ Orange Light Entity nicht gefunden');
       console.error('📋 Verfügbare Entities:', allEntities.map(e => e.entity_id));
       return;
     }
-    
+
     const isCurrentlyOn = entity.state === 'on';
     const targetService = isCurrentlyOn ? 'turn_off' : 'turn_on';
     const optimisticState = isCurrentlyOn ? 'off' : 'on';
-    
+
     console.log(`🔄 Orange Light Toggle: "${entity.state}" → ${targetService}`);
-    
+
     // OPTIMISTIC UPDATE: Sofort lokalen State ändern
     const optimisticEntity = { ...entity, state: optimisticState };
     const currentIndex = allEntities.findIndex(e => e.entity_id === entityId);
@@ -179,7 +181,7 @@ export class BudeComponent implements OnInit {
       (this.ha as any).entitiesSubject?.next([...allEntities]);
       console.log(`⚡ Optimistic Update: State lokal auf "${optimisticState}" gesetzt`);
     }
-    
+
     // Service-Call an Home Assistant
     this.ha.callService('light', targetService, { entity_id: entityId }).subscribe({
       next: (response) => {

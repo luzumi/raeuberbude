@@ -18,6 +18,7 @@
     "mcp:web:local": "node .specify/mcp-servers/web-mcp-server.js",
     "mcp:web:headed:win": "set MCP_HEADLESS=false&& node .specify/mcp-servers/web-mcp-server.js",
     "mcp:docker:local": "node .specify/mcp-servers/docker-mcp-server.js",
+    "ha:dump": "node .specify/scripts/ha_dump.js",
     "prepare": "husky install",
     "serve:logs": "node server/index.js"
   },
