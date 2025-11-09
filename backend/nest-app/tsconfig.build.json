@@ -9,6 +9,7 @@
     "test",
     "dist",
     "**/*spec.ts",
+    "**/*test.ts",
     "src/config/database.config.ts",
     "src/modules/homeassistant/entities/**"
   ]

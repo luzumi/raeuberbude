@@ -3,12 +3,18 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
 
   const config = app.get(ConfigService);
+  // Apply body size limits for audio uploads
+  const bodyLimitMb = parseInt(config.get<string>('NEST_BODY_LIMIT_MB') || '25', 10);
+  const limit = `${isNaN(bodyLimitMb) ? 25 : bodyLimitMb}mb`;
+  app.use(json({ limit }));
+  app.use(urlencoded({ extended: true, limit }));
   // Configure CORS for Angular frontend; supports comma-separated origins
   const origins = (config.get<string>('CORS_ORIGINS') || 'http://localhost:4200,http://127.0.0.1:4200')
     .split(',')

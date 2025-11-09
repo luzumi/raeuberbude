@@ -12,6 +12,10 @@ import {
   HttpStatus,
   HttpCode,
   Logger,
+  InternalServerErrorException,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -30,6 +34,10 @@ import { CreateAppTerminalDto } from './dto/create-app-terminal.dto';
 import { UpdateAppTerminalDto } from './dto/update-app-terminal.dto';
 import { CreateUserRightsDto } from './dto/create-user-rights.dto';
 import { UpdateUserRightsDto } from './dto/update-user-rights.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { STTProviderService } from './stt/stt.provider';
+import { AudioConverterService } from './stt/audio-converter.service';
+import { memoryStorage } from 'multer';
 
 @ApiTags('speech')
 @Controller('api/speech')
@@ -40,6 +48,8 @@ export class SpeechController {
     private readonly speechService: SpeechService,
     private readonly rightsService: RightsService,
     private readonly terminalsService: TerminalsService,
+    private readonly sttProvider: STTProviderService,
+    private readonly audioConverter: AudioConverterService,
   ) {}
 
   // ============ Human Input Endpoints ============
@@ -51,8 +61,10 @@ export class SpeechController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient rights' })
   async createInput(@Body() createDto: CreateHumanInputDto, @Req() req: any) {
-    // Check if user has permission to use speech input
-    await this.rightsService.checkPermission(createDto.userId, 'speech.use');
+    // Rechteprüfung optional: über ENV steuerbar (Default: AUS)
+    if (process.env.SPEECH_RIGHTS_ENABLED === 'true') {
+      await this.rightsService.checkPermission(createDto.userId, 'speech.use');
+    }
 
     // Update terminal activity if provided
     if (createDto.terminalId) {
@@ -143,6 +155,124 @@ export class SpeechController {
     };
   }
 
+  // ============ Speech-to-Text (STT) Endpoints ============
+
+  @Post('transcribe')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('audio', {
+    limits: {
+      fileSize: 25 * 1024 * 1024, // 25MB max
+    },
+    storage: memoryStorage(),
+    fileFilter: (req, file, callback) => {
+      const allowedMimes = [
+        'audio/webm',
+        'audio/wav',
+        'audio/wave',
+        'audio/ogg',
+        'audio/mpeg',
+        'audio/mp3',
+        'audio/x-wav',
+        'audio/x-m4a',
+      ];
+      
+      if (allowedMimes.includes(file.mimetype)) {
+        callback(null, true);
+      } else {
+        callback(new BadRequestException(`Invalid file type: ${file.mimetype}. Allowed types: ${allowedMimes.join(', ')}`), false);
+      }
+    },
+  }))
+  @ApiOperation({ summary: 'Transcribe audio to text using STT providers' })
+  @ApiResponse({ status: 200, description: 'Audio transcribed successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid audio file or parameters' })
+  @ApiResponse({ status: 413, description: 'File too large' })
+  @ApiResponse({ status: 503, description: 'STT service unavailable' })
+  async transcribeAudio(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('language') language?: string,
+    @Body('maxDurationMs') maxDurationMs?: string,
+  ) {
+    try {
+      if (!file) {
+        throw new BadRequestException('No audio file provided');
+      }
+
+      this.logger.log(`Received audio for transcription: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
+
+      // Validate audio duration
+      const maxDuration = maxDurationMs ? parseInt(maxDurationMs, 10) : 30000;
+      const validation = await this.audioConverter.validateAudio(
+        file.buffer,
+        file.mimetype,
+        maxDuration,
+      );
+
+      if (!validation.valid) {
+        throw new BadRequestException(validation.error || 'Invalid audio file');
+      }
+
+      // Transcribe audio
+      const result = await this.sttProvider.transcribe(
+        file.buffer,
+        file.mimetype,
+        language,
+        maxDuration,
+      );
+
+      return {
+        success: true,
+        data: {
+          provider: result.provider,
+          transcript: result.transcript,
+          confidence: result.confidence,
+          durationMs: result.durationMs,
+          language: result.language || language || 'de-DE',
+          audioDurationMs: validation.duration,
+        },
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      this.logger.error(`Transcription failed: ${error.message}`, error.stack);
+      
+      if (error.message.includes('timeout') || error.message.includes('unavailable')) {
+        throw new InternalServerErrorException({
+          success: false,
+          error: 'STT service temporarily unavailable',
+          message: error.message,
+        });
+      }
+
+      throw new InternalServerErrorException({
+        success: false,
+        error: 'Transcription failed',
+        message: error.message,
+      });
+    }
+  }
+
+  @Get('transcribe/status')
+  @ApiOperation({ summary: 'Get STT providers status' })
+  @ApiResponse({ status: 200, description: 'Provider status retrieved' })
+  async getTranscribeStatus() {
+    const status = await this.sttProvider.getProvidersStatus();
+    
+    return {
+      success: true,
+      data: {
+        providers: status,
+        config: {
+          primary: process.env.STT_PRIMARY || 'vosk',
+          secondary: process.env.STT_SECONDARY || 'whisper',
+          language: process.env.STT_LANG || 'de-DE',
+        },
+      },
+    };
+  }
+
   @Put('inputs/:id')
   @ApiOperation({ summary: 'Update a human input' })
   @ApiParam({ name: 'id', description: 'Input ID' })
@@ -197,13 +327,19 @@ export class SpeechController {
   @Post('terminals/register')
   @ApiOperation({ summary: 'Register or update a terminal' })
   async registerTerminal(@Body() terminalData: any) {
-    const terminal = await this.terminalsService.registerTerminal(terminalData);
-    
-    return {
-      success: true,
-      data: terminal,
-      message: 'Terminal registered successfully',
-    };
+    try {
+      const terminal = await this.terminalsService.registerTerminal(terminalData);
+      return {
+        success: true,
+        data: terminal,
+        message: 'Terminal registered successfully',
+      };
+    } catch (err: any) {
+      this.logger.error('registerTerminal failed', err?.stack || err);
+      // Bekannte Nest-HTTP-Exceptions durchreichen, Unbekannte als 500 melden
+      if (err && typeof err.getStatus === 'function') throw err;
+      throw new InternalServerErrorException(err?.message || 'Failed to register terminal');
+    }
   }
 
   @Get('terminals')
