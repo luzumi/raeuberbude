@@ -4,6 +4,7 @@ import {Component, OnDestroy, OnInit} from '@angular/core';
 import {Subscription} from 'rxjs';
 import { Entity, HomeAssistantService } from '@services/home-assistant/home-assistant.service';
 import { AppButtonComponent } from '@shared/components/app-button/app-button';
+import { HoverShaderDirective } from '@shared/directives/hover-shader.directive';
 
 /**
  * Minimale Platzhalteransicht für den PC (Creator).
@@ -11,7 +12,7 @@ import { AppButtonComponent } from '@shared/components/app-button/app-button';
 @Component({
   selector: 'app-creator-minimal',
   standalone: true,
-  imports: [CommonModule, SpeedometerComponent, AppButtonComponent],
+  imports: [CommonModule, SpeedometerComponent, AppButtonComponent, HoverShaderDirective],
   templateUrl: './creator-minimal.html',
   styleUrls: ['./creator-minimal.layout.scss'],
   host: { 'style': 'display:block;width:100%;height:100%;' }

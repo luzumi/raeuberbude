@@ -1,12 +1,13 @@
 <!-- Globaler Logout-Button -->
-<div class="logout-container">
+<div class="logout-container" [class.inline]="inline">
   <app-button
     name="Logout"
     icon="logout"
     [size]="size"
     [color]="'red'"
+    [inline]="inline"
     (click)="logout()"
-    [style.top]="size + size"
-    [style.right]="size + size"
+    [style.top]="inline ? null : size + size"
+    [style.right]="inline ? null : size + size"
   ></app-button>
 </div>

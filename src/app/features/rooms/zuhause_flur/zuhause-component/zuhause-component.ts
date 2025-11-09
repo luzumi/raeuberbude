@@ -4,6 +4,7 @@ import {MatIcon} from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '@services/auth.service';
 import {HeaderComponent} from '@shared/components/header/header.component';
+import {HoverShaderDirective} from '@shared/directives/hover-shader.directive';
 
 /**
  * Landing page after login showing available rooms as a grid.
@@ -11,7 +12,7 @@ import {HeaderComponent} from '@shared/components/header/header.component';
 @Component({
   selector: 'app-zuhause',
   standalone: true,
-  imports: [CommonModule, RouterModule,  MatIcon, HeaderComponent],
+  imports: [CommonModule, RouterModule, MatIcon, HeaderComponent, HoverShaderDirective],
   templateUrl: './zuhause-component.html',
   styleUrl: './zuhause-component.scss'
 })

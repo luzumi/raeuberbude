@@ -14,20 +14,30 @@
         (click)="$event.stopPropagation(); togglePower();"
       ></app-button>
 
-      <button mat-icon-button (click)="$event.stopPropagation(); volumeDown()">
+      <button
+        [appHoverShader]="true"
+        [hsTarget]="'.device'"mat-icon-button (click)="$event.stopPropagation(); volumeDown()">
         <mat-icon>volume_down</mat-icon>
       </button>
-      <button mat-icon-button (click)="$event.stopPropagation(); volumeUp()">
+      <button
+        [appHoverShader]="true"
+        [hsTarget]="'.device'"mat-icon-button (click)="$event.stopPropagation(); volumeUp()">
         <mat-icon>volume_up</mat-icon>
       </button>
-      <button mat-icon-button (click)="$event.stopPropagation(); channelDown()">
+      <button
+        [appHoverShader]="true"
+        [hsTarget]="'.device'"mat-icon-button (click)="$event.stopPropagation(); channelDown()">
         <mat-icon>arrow_downward</mat-icon>
       </button>
-      <button mat-icon-button (click)="$event.stopPropagation(); channelUp()">
+      <button
+        [appHoverShader]="true"
+        [hsTarget]="'.device'"mat-icon-button (click)="$event.stopPropagation(); channelUp()">
         <mat-icon>arrow_upward</mat-icon>
       </button>
 
-      <select [(ngModel)]="selectedSource"
+      <select
+        [appHoverShader]="true"
+        [hsTarget]="'.device'"[(ngModel)]="selectedSource"
               (click)="$event.stopPropagation()"
               (change)="$event.stopPropagation(); changeSource(selectedSource)">
         @for (src of sources; track src) {

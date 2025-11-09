@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-11-06T23:45:17.891Z",
+  "results": {
+    "Orchestrator Server": true,
+    "YouTrack MCP": true,
+    "Web MCP": true,
+    "Orchestrator API": true,
+    "Agent Capabilities": true,
+    "Integration": true
+  },
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "successRate": 100
+  }
+}

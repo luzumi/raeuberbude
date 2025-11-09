@@ -1,0 +1,34 @@
+{
+  "type": "COLLECT_REQUIREMENTS",
+  "payload": {
+    "source": "user_input",
+    "projectName": "Speech Input Dashboard Integration",
+    "description": "Implementierung einer Spracheingabe-Funktion im Räuberbude Smart Home Dashboard mit persistenter Speicherung, Rechteverwaltung und visueller Rückmeldung im Header",
+    "requirements": [
+      "Zentraler App-Button im Header, der die Spracheingabe startet",
+      "Aufnahme stoppt automatisch nach definierter Zeit oder Sprachende",
+      "Erkannte Eingabe wird als human_input in der Datenbank gespeichert",
+      "Zu jeder Eingabe werden User, Zeitstempel und App-Terminal-ID erfasst",
+      "Datenbankmodell erweitert: User, App-Terminals und Rechte-Beziehungen",
+      "Rechtesystem-Architektur definieren (Rollen, Berechtigungen, Sichtbarkeiten)",
+      "Management-GUI zur Rechteverwaltung (Zugriff via Dashboard-Menü)",
+      "Visuelles Feedback: Lauftext der letzten Eingabe im Header anzeigen",
+      "Performance: Ladezeit unter 2 Sekunden",
+      "Security: Authentifizierung erforderlich",
+      "HomeAssistant-Integration beibehalten",
+      "Monitoring und Logging implementieren"
+    ],
+    "acceptanceCriteria": [
+      "Spracherkennung funktioniert zuverlässig",
+      "Daten werden korrekt in MongoDB gespeichert",
+      "Rechteverwaltung ist funktionsfähig",
+      "UI reagiert responsiv und performant"
+    ],
+    "goals": [
+      "Funktionsfähige Spracheingabe mit Echtzeiterkennung",
+      "Erweitertes Datenmodell mit Terminal- und Rechteunterstützung",
+      "Rechteverwaltung per GUI konfigurierbar",
+      "Stabiles Deployment mit Logging & Monitoring"
+    ]
+  }
+}
