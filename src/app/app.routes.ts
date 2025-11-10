@@ -5,6 +5,7 @@ import { authGuard } from '@services/auth.guard';
 import { LoginComponent } from './features/auth/login-component/login-component';
 import { MenuComponent } from '@shared/components/menu/menu';
 import { UserProfileComponent } from '@components/user-profile/user-profile.component';
+import { TerminalSetupComponent } from './features/terminal/terminal-setup.component';
 
 export const routes: Routes = [
   {
@@ -20,6 +21,11 @@ export const routes: Routes = [
   {
     path: 'menu',
     component: MenuComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'terminal-setup',
+    component: TerminalSetupComponent,
     canActivate: [authGuard],
   },
   {

@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { json, urlencoded } from 'express';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,19 +16,27 @@ async function bootstrap() {
   const limit = `${isNaN(bodyLimitMb) ? 25 : bodyLimitMb}mb`;
   app.use(json({ limit }));
   app.use(urlencoded({ extended: true, limit }));
+  // Parse cookies for terminal identification
+  app.use(cookieParser());
   // Configure CORS for Angular frontend; supports comma-separated origins
-  const origins = (config.get<string>('CORS_ORIGINS') || 'http://localhost:4200,http://127.0.0.1:4200')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  app.enableCors({
-    origin: (origin, callback) => {
-      // allow non-browser clients (no origin) and configured origins
-      if (!origin || origins.includes(origin)) return callback(null, true);
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-  });
+  const isProd = (config.get<string>('NODE_ENV') || process.env.NODE_ENV) === 'production';
+  if (isProd) {
+    const origins = (config.get<string>('CORS_ORIGINS') || 'http://localhost:4200,http://127.0.0.1:4200')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    app.enableCors({
+      origin: (origin, callback) => {
+        // allow non-browser clients (no origin) and configured origins
+        if (!origin || origins.includes(origin)) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
+      },
+      credentials: true,
+    });
+  } else {
+    // In development allow all origins (required for testing from mobile devices)
+    app.enableCors({ origin: true, credentials: true });
+  }
   const port = Number.parseInt(config.get<string>('NEST_PORT') || '3001', 10);
   await app.listen(port);
   // eslint-disable-next-line no-console

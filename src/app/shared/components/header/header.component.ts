@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { AppButtonComponent } from '../app-button/app-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
 import { SpeechService } from '../../../core/services/speech.service';
+import { TerminalService } from '../../../core/services/terminal.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -31,12 +32,16 @@ export class HeaderComponent implements OnInit, OnDestroy {
   /** Letzte Spracheingabe für Marquee-Anzeige */
   lastSpeechInput = '';
 
+  /** Anzeigename des aktuellen Terminals */
+  terminalName = '';
+
   private destroy$ = new Subject<void>();
 
   constructor(
     private readonly router: Router,
     private readonly location: Location,
-    private readonly speechService: SpeechService
+    private readonly speechService: SpeechService,
+    private readonly terminalService: TerminalService,
   ) {}
 
   ngOnInit(): void {
@@ -60,6 +65,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(status => {
         this.isRecording = status;
+      });
+
+    // Terminal-Name laden (falls Gerät bereits zugewiesen ist)
+    this.terminalService.getMyTerminal()
+      .then(res => {
+        this.terminalName = res?.data?.name || '';
+      })
+      .catch(() => {
+        this.terminalName = '';
       });
   }
 

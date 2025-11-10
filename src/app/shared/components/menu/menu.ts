@@ -1,15 +1,20 @@
 // Verschoben aus den Control-Features in den Shared-Bereich
 import {Component, Input} from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import {Location} from '@angular/common';
+import { TerminalService } from '../../../core/services/terminal.service';
 
 @Component({
   selector: 'app-menu',
   standalone: true,
+  imports: [RouterLink],
   template: `
     <div class="menu-container">
       <h2>Menü</h2>
       <!-- Platzhalter‐Inhalt -->
       <p>Hier stehen später die Menü‐Einträge.</p>
+      <a routerLink="/terminal-setup">Terminal einrichten</a>
+      <button (click)="switchTerminal()">Terminal wechseln</button>
       <button (click)="close()">Schließen</button>
     </div>
   `,
@@ -34,7 +39,11 @@ export class MenuComponent {
    */
   @Input() closeCallback?: OmitThisParameter<() => void>;
 
-  constructor(private readonly location: Location) {}
+  constructor(
+    private readonly location: Location,
+    private readonly terminal: TerminalService,
+    private readonly router: Router,
+  ) {}
 
   /**
    * Führt das optionale Schließen-Callback aus oder navigiert zurück.
@@ -45,5 +54,14 @@ export class MenuComponent {
     } else {
       this.location.back();
     }
+  }
+
+  async switchTerminal() {
+    try {
+      await this.terminal.unclaimTerminal();
+    } catch {
+      // Ignorieren – wir navigieren trotzdem zur Setup-Seite
+    }
+    this.router.navigate(['/terminal-setup']);
   }
 }

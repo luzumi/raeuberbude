@@ -34,6 +34,7 @@ export class AppButtonComponent {
   @Output() hold = new EventEmitter<void>();
 
   private holdTimeout: any;
+  @Input() disabled!: boolean;
 
   onClick(event: MouseEvent): void {  // Accept event parameter
     event.stopPropagation();  // Stop propagation at source

@@ -12,8 +12,9 @@
     <span class="greeting-line">{{ userName }} -> {{ greeting }}!</span>
   </div>
 
-  <!-- Mitte: absolut zentrierter Mikrofon-Button -->
+  <!-- Mitte: Terminalname + Mikrofon-Button -->
   <div class="center">
+    <div class="terminal-name" *ngIf="terminalName as tname">{{ tname }}</div>
     <div class="speech-button">
       <app-button
         name="Sprache"

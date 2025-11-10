@@ -12,7 +12,7 @@ function buildMongoUri(config: ConfigService): string {
 
   const host = config.get<string>('MONGO_HOST', 'localhost');
   const port = config.get<string>('MONGO_PORT', '27017');
-  const db = config.get<string>('MONGO_DB', 'raueberbude');
+  const db = config.get<string>('MONGO_DB', 'raeuberbude');
   const user = config.get<string>('MONGO_USER');
   const pass = config.get<string>('MONGO_PASSWORD');
   const authSource = config.get<string>('MONGO_AUTH_SOURCE', 'admin');

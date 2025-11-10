@@ -90,7 +90,7 @@ export class TerminalsService {
       .exec();
 
     if (!terminal) {
-      throw new NotFoundException(`Terminal with ID ${terminalId} not found`);
+      throw new NotFoundException(`Terminal with ID '${terminalId}' not found`);
     }
 
     return terminal;
