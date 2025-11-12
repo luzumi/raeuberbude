@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
+import { ObjectId } from 'mongodb';
 import { HumanInput, HumanInputDocument } from './schemas/human-input.schema';
 import { CreateHumanInputDto } from './dto/create-human-input.dto';
 import { UpdateHumanInputDto } from './dto/update-human-input.dto';
@@ -11,20 +12,20 @@ export class SpeechService {
 
   constructor(
     @InjectModel(HumanInput.name)
-    private humanInputModel: Model<HumanInputDocument>,
+    private readonly humanInputModel: Model<HumanInputDocument>,
   ) {}
 
   async create(createDto: CreateHumanInputDto): Promise<HumanInput> {
     try {
       const humanInput = new this.humanInputModel({
         ...createDto,
-        userId: new Types.ObjectId(createDto.userId),
-        terminalId: createDto.terminalId ? new Types.ObjectId(createDto.terminalId) : undefined,
+        userId: new ObjectId(createDto.userId),
+        terminalId: createDto.terminalId ? new ObjectId(createDto.terminalId) : undefined,
         status: 'pending',
       });
 
       const saved = await humanInput.save();
-      this.logger.log(`Created human input: ${saved._id}`);
+      this.logger.log(`Created human input: ${String(saved._id)}`);
 
       // Process the input asynchronously
       this.processInput(saved._id.toString()).catch(err => {
@@ -44,8 +45,8 @@ export class SpeechService {
 
     const query: any = {};
 
-    if (userId) query.userId = new Types.ObjectId(userId);
-    if (terminalId) query.terminalId = new Types.ObjectId(terminalId);
+    if (userId) query.userId = new ObjectId(userId);
+    if (terminalId) query.terminalId = new ObjectId(terminalId);
     if (status) query.status = status;
     if (inputType) query.inputType = inputType;
 
@@ -66,7 +67,7 @@ export class SpeechService {
   }
 
   async findOne(id: string): Promise<HumanInput> {
-    if (!Types.ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid ID format');
     }
 
@@ -84,14 +85,14 @@ export class SpeechService {
   }
 
   async findByUser(userId: string, options: any = {}): Promise<HumanInput[]> {
-    if (!Types.ObjectId.isValid(userId)) {
+    if (!ObjectId.isValid(userId)) {
       throw new BadRequestException('Invalid user ID format');
     }
 
     const { limit = 50, skip = 0 } = options;
 
     return this.humanInputModel
-      .find({ userId: new Types.ObjectId(userId) })
+      .find({ userId: new ObjectId(userId) })
       .populate('terminalId', 'name type')
       .sort({ createdAt: -1 })
       .limit(limit)
@@ -110,7 +111,7 @@ export class SpeechService {
   }
 
   async update(id: string, updateDto: UpdateHumanInputDto): Promise<HumanInput> {
-    if (!Types.ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid ID format');
     }
 
@@ -133,7 +134,7 @@ export class SpeechService {
   }
 
   async delete(id: string): Promise<void> {
-    if (!Types.ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid ID format');
     }
 
@@ -150,7 +151,7 @@ export class SpeechService {
     const pipeline: any[] = [];
 
     if (userId) {
-      pipeline.push({ $match: { userId: new Types.ObjectId(userId) } });
+      pipeline.push({ $match: { userId: new ObjectId(userId) } });
     }
 
     pipeline.push(
@@ -215,7 +216,7 @@ export class SpeechService {
     );
 
     const result = await this.humanInputModel.aggregate(pipeline).exec();
-    
+
     if (result.length === 0) {
       return {
         total: 0,
@@ -246,7 +247,7 @@ export class SpeechService {
       this.logger.log(`Processed human input: ${inputId}`);
     } catch (error) {
       this.logger.error(`Failed to process input ${inputId}:`, error);
-      
+
       await this.humanInputModel.findByIdAndUpdate(
         inputId,
         {

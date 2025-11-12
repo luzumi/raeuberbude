@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { UserRights, UserRightsDocument, PERMISSIONS, ROLE_PERMISSIONS } from './schemas/user-rights.schema';
+import { UserRights, UserRightsDocument, ROLE_PERMISSIONS } from './schemas/user-rights.schema';
 import { CreateUserRightsDto } from './dto/create-user-rights.dto';
 import { UpdateUserRightsDto } from './dto/update-user-rights.dto';
 
@@ -11,7 +11,7 @@ export class RightsService {
 
   constructor(
     @InjectModel(UserRights.name)
-    private userRightsModel: Model<UserRightsDocument>,
+    private readonly userRightsModel: Model<UserRightsDocument>,
   ) {}
 
   async create(createDto: CreateUserRightsDto): Promise<UserRights> {
@@ -56,7 +56,7 @@ export class RightsService {
 
     return this.userRightsModel
       .find(query)
-      .populate('userId', 'name email')
+      .populate('userId', 'username email')
       .populate('allowedTerminals', 'name type')
       .sort({ createdAt: -1 })
       .exec();
@@ -108,7 +108,7 @@ export class RightsService {
         updateData,
         { new: true, runValidators: true, upsert: true }
       )
-      .populate('userId', 'name email')
+      .populate('userId', 'username email')
       .populate('allowedTerminals', 'name type')
       .exec();
 

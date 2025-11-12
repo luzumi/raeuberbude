@@ -10,7 +10,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-type TerminalOption = { terminalId: string; name: string } & any;
+type TerminalOption = { terminalId: string; name: string } & Record<string, unknown>;
 
 @Component({
   selector: 'app-terminal-setup',
@@ -44,11 +44,11 @@ type TerminalOption = { terminalId: string; name: string } & any;
           </div>
 
           <div class="row" *ngIf="state === 'current'">
-            <button mat-button color="primary" (click)="goHome()">Weiter zum Dashboard</button>
+            <button mat-raised-button color="primary" (click)="goHome()">Weiter zum Dashboard</button>
           </div>
 
           <h3 *ngIf="!creatingMode">Terminal-ID auswählen</h3>
-          <mat-form-field *ngIf="!creatingMode" style="width: 100%">
+          <mat-form-field *ngIf="!creatingMode" appearance="fill" style="width: 100%">
             <input type="text"
                    placeholder="Terminal-ID auswählen"
                    matInput
@@ -69,23 +69,23 @@ type TerminalOption = { terminalId: string; name: string } & any;
           </mat-form-field>
 
           <div class="row" *ngIf="!creatingMode">
-            <button mat-button color="primary" (click)="onClaimSelected()" [disabled]="!selectedTerminal || claiming">Zuweisen</button>
+            <button mat-raised-button color="primary" (click)="onClaimSelected()" [disabled]="!selectedTerminal || claiming">Zuweisen</button>
             <span *ngIf="claiming">…</span>
           </div>
 
           <ng-container *ngIf="creatingMode">
             <h3>Neues Terminal anlegen</h3>
-            <mat-form-field style="width: 100%">
+            <mat-form-field appearance="fill" style="width: 100%">
               <input matInput placeholder="Terminal-ID (z.B. Badezimmer)" [(ngModel)]="form.terminalId"/>
             </mat-form-field>
-            <mat-form-field style="width: 100%">
+            <mat-form-field appearance="fill" style="width: 100%">
               <input matInput placeholder="Standort (optional)" [(ngModel)]="form.location"/>
             </mat-form-field>
-            <mat-form-field style="width: 100%">
+            <mat-form-field appearance="fill" style="width: 100%">
               <input matInput placeholder="Typ (z.B. browser/mobile/tablet)" [(ngModel)]="form.type"/>
             </mat-form-field>
             <div class="row">
-              <button mat-raised-button color="accent" (click)="onCreate()" [disabled]="creating">Anlegen</button>
+              <button mat-raised-button color="secondary" (click)="onCreate()" [disabled]="creating">Anlegen</button>
               <span *ngIf="creating">…</span>
             </div>
           </ng-container>
@@ -114,26 +114,27 @@ export class TerminalSetupComponent implements OnInit {
   form = { terminalId: '', type: 'browser', location: '' };
 
   terminalCtrl = new FormControl<string | TerminalOption | null>('');
-  terminals: TerminalOption[] = [];
   filteredTerminals: TerminalOption[] = [];
   selectedTerminal: TerminalOption | null = null;
 
   constructor(private readonly svc: TerminalService, private readonly router: Router, private readonly snackBar: MatSnackBar) {}
 
-  async ngOnInit() {
-    await this.refresh();
-    if (this.state === 'current') {
-      // Bereits registriert -> direkt ins Dashboard
-      this.router.navigate(['/']);
-      return;
-    }
-    await this.loadTerminals();
+  ngOnInit(): void {
+    (async () => {
+      await this.refresh();
+      if (this.state === 'current') {
+        // Bereits registriert -> direkt ins Dashboard
+        this.router.navigate(['/']);
+        return;
+      }
+      await this.loadTerminals();
+    })();
   }
 
   private async refresh() {
     this.state = 'loading';
     const res = await this.svc.getMyTerminal();
-    if (res?.success && res.data) {
+{{ ... }}
       this.current = res.data;
       this.state = 'current';
     } else {
@@ -154,7 +155,8 @@ export class TerminalSetupComponent implements OnInit {
           .filter(t => (t.terminalId?.toLowerCase().includes(q) || t.name?.toLowerCase().includes(q)))
           .slice(0, 50);
       });
-    } catch (_) {
+    } catch (e) {
+      console.error('Terminal-Liste konnte nicht geladen werden:', e);
       this.terminals = [];
       this.filteredTerminals = [];
     }

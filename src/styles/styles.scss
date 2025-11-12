@@ -1,6 +1,4 @@
 // src/styles/styles.scss
-// Global stylesheet importing tokens, mixins and defining the Angular Material theme.
-
 // Responsive Breakpoints & Variablen
 @use './breakpoints';
 @use './responsive';
@@ -8,12 +6,19 @@
 @use '@angular/material' as mat;
 @use './tokens';
 @use './mixins';
+@use './animations';
+@use './admin';
 
 // Load the core styles for Angular Material components
 @include mat.core();
 
 // Define a light theme with default palettes (currently unused)
 $theme: mat.define-theme((color: (theme-type: light)));
+
+// Apply the theme to all Angular Material components inside a CSS rule
+:root {
+  @include mat.all-component-themes($theme);
+}
 
 // Global resets using tokens
 /* Viewport-basierte Container – erlauben sauberes Layout ohne Komponentenumbaus */
@@ -25,8 +30,7 @@ html, body {
   color: tokens.$text-default;
 }
 body {
-  /* Optional: ermöglicht später echte Container-Queries, falls nötig */
-  /* container-type: inline-size; */
+  // placeholder for future container queries
 }
 
 // Example utility class leveraging a mixin
@@ -36,4 +40,9 @@ body {
 
 .spacer {
   flex: 1 1 auto;
+}
+
+// Ensure white cards for data tables and admin tiles
+.mat-mdc-card {
+  background: #fff !important;
 }
