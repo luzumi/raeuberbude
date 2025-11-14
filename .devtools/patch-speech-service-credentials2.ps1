@@ -17,14 +17,14 @@ function Add-WithCredentials {
   )
   return [Regex]::Replace($content, $pattern, { param($m)
     $before = $m.Groups[1].Value
-    $args = $m.Groups[2].Value
+    $arguments = $m.Groups[2].Value
     # Wenn bereits withCredentials vorhanden, nichts tun
-    if ($args -match 'withCredentials\s*:\s*true') { return $m.Value }
+    if ($arguments -match 'withCredentials\s*:\s*true') { return $m.Value }
     # drittes Argument einsetzen
-    if ($args.Trim().EndsWith(")") -or $args.Trim().EndsWith("'})")) {
-      return $before + $args.TrimEnd(')') + ", { withCredentials: true })"
+    if ($arguments.Trim().EndsWith(")") -or $arguments.Trim().EndsWith("'})")) {
+      return $before + $arguments.TrimEnd(')') + ", { withCredentials: true })"
     } else {
-      return $before + $args + ", { withCredentials: true })"
+      return $before + $arguments + ", { withCredentials: true })"
     }
   }, [System.Text.RegularExpressions.RegexOptions]::Singleline)
 }

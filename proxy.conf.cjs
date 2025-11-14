@@ -43,7 +43,47 @@ module.exports = {
           res.writeHead(502, { 'Content-Type': 'application/json' });
         }
         res.end(JSON.stringify({ error: 'Bad gateway', code, target: nestTarget }));
-      } catch (_) {}
+      } catch (e) {console.log(e);}
+    },
+  },
+  // NestJS Users CRUD
+  '/users': {
+    target: nestTarget,
+    secure: false,
+    changeOrigin: true,
+    ws: false,
+    logLevel: 'warn',
+    onError(err, req, res) {
+      const code = err && (err.code || err.name) || 'UNKNOWN';
+      const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${nestTarget}`;
+      // eslint-disable-next-line no-console
+      console.warn(msg);
+      try {
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Bad gateway', code, target: nestTarget }));
+      } catch (e) {console.log(e);}
+    },
+  },
+  // NestJS HomeAssistant Query API
+  '/api/homeassistant': {
+    target: nestTarget,
+    secure: false,
+    changeOrigin: true,
+    ws: false,
+    logLevel: 'warn',
+    onError(err, req, res) {
+      const code = err && (err.code || err.name) || 'UNKNOWN';
+      const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${nestTarget}`;
+      // eslint-disable-next-line no-console
+      console.warn(msg);
+      try {
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Bad gateway', code, target: nestTarget }));
+      } catch (e) {console.log(e);}
     },
   },
   '/api': {
@@ -62,7 +102,7 @@ module.exports = {
           res.writeHead(502, { 'Content-Type': 'application/json' });
         }
         res.end(JSON.stringify({ error: 'Bad gateway', code, target }));
-      } catch (_) {}
+      } catch (e) {console.log(e);}
     },
   },
 };

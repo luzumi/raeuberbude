@@ -36,7 +36,7 @@ async function checkServer() {
   return new Promise(resolve => {
     const req = http.get('http://localhost:4200', res => resolve(res.statusCode === 200));
     req.on('error', () => resolve(false));
-    req.setTimeout(1500, () => { try { req.destroy(); } catch (_) {} resolve(false); });
+    req.setTimeout(1500, () => { try { req.destroy(); } catch (e) {console.log(e);} resolve(false); });
   });
 }
 
@@ -61,7 +61,7 @@ async function startDevServer() {
 
 async function stopDevServer(proc) {
   if (proc && !proc.killed) {
-    try { proc.kill(); } catch (_) {}
+    try { proc.kill(); } catch (e) {console.log(e);}
   }
 }
 
