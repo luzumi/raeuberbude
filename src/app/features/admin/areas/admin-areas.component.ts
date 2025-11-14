@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import {HeaderComponent} from '@shared/components/header/header.component';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-admin-areas',
@@ -107,9 +108,10 @@ export class AdminAreasComponent implements OnInit {
   async load() {
     try {
       // Bereitgestellt vom Nest HomeAssistant-Modul unter /api/homeassistant/entities/areas
-      const res: any = await this.http.get('/api/homeassistant/entities/areas', { withCredentials: true }).toPromise();
+      const res: any = await firstValueFrom(this.http.get('/api/homeassistant/entities/areas', { withCredentials: true }));
       this.areas = res?.data || res || [];
     } catch (e) {
+      console.error(e);
       this.snack.open('Fehler beim Laden der Bereiche', 'Schließen', { duration: 3000, panelClass: 'snackbar-error' });
     }
   }

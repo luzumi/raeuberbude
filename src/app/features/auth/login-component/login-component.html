@@ -1,16 +1,76 @@
-<div class="login-wrapper">
-  <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
-    <h2>Login</h2>
-    <mat-form-field>
-      <mat-label>Benutzername</mat-label>
-      <input matInput type="text" formControlName="username" placeholder="Benutzername" />
-    </mat-form-field>
-    <mat-form-field>
-      <mat-label>Passwort</mat-label>
-      <input matInput type="password" formControlName="password" placeholder="Passwort" />
-    </mat-form-field>
-    <button class="login-button" type="submit" [disabled]="form.invalid">Einloggen</button>
+<div class="auth-page">
+  <div class="auth-shell">
+    <mat-card class="auth-card">
+      <mat-card-header>
+        <mat-card-title *ngIf="!registerMode">Anmelden</mat-card-title>
+        <mat-card-title *ngIf="registerMode">Konto erstellen</mat-card-title>
+        <mat-card-subtitle *ngIf="!registerMode">Willkommen zurück</mat-card-subtitle>
+        <mat-card-subtitle *ngIf="registerMode">In 3 Schritten registrieren</mat-card-subtitle>
+      </mat-card-header>
 
-    <p class="error" *ngIf="error">{{ error }}</p>
-  </form>
+      <mat-card-content>
+        <!-- Login -->
+        <form [formGroup]="form" (ngSubmit)="submit()" class="form" *ngIf="!registerMode">
+          <mat-form-field appearance="fill" class="full">
+            <mat-label>E-Mail oder Benutzername</mat-label>
+            <input matInput type="text" formControlName="identifier" placeholder="z.B. admin oder admin@example.com" />
+          </mat-form-field>
+          <mat-form-field appearance="fill" class="full">
+            <mat-label>Passwort</mat-label>
+            <input matInput type="password" formControlName="password" placeholder="Passwort" />
+          </mat-form-field>
+          <div class="actions">
+            <button class="login-button" type="submit" [disabled]="form.invalid">Einloggen</button>
+            <button class="login-button" type="button" (click)="toggleRegister()">Konto erstellen</button>
+          </div>
+          <p class="error" *ngIf="error">{{ error }}</p>
+        </form>
+
+        <!-- Registrierung (3 Schritte) -->
+        <form [formGroup]="registerForm" class="form" *ngIf="registerMode">
+          <!-- Schritt 1: E-Mail -->
+          <ng-container *ngIf="registerStep === 1">
+            <mat-form-field appearance="fill" class="full">
+              <mat-label>E-Mail</mat-label>
+              <input matInput type="email" formControlName="email" placeholder="name@example.com" />
+            </mat-form-field>
+            <div class="actions">
+              <button mat-button type="button" (click)="toggleRegister()">Zurück zum Login</button>
+              <button class="login-button" type="button" (click)="nextStep()" [disabled]="registerForm.get('email')?.invalid">Weiter</button>
+            </div>
+          </ng-container>
+
+          <!-- Schritt 2: Benutzername -->
+          <ng-container *ngIf="registerStep === 2">
+            <mat-form-field appearance="fill" class="full">
+              <mat-label>Benutzername</mat-label>
+              <input matInput type="text" formControlName="username" placeholder="z.B. max" />
+            </mat-form-field>
+            <div class="actions">
+              <button mat-button type="button" (click)="prevStep()">Zurück</button>
+              <button class="login-button" type="button" (click)="nextStep()" [disabled]="registerForm.get('username')?.invalid">Weiter</button>
+            </div>
+          </ng-container>
+
+          <!-- Schritt 3: Passwort -->
+          <ng-container *ngIf="registerStep === 3">
+            <mat-form-field appearance="fill" class="full">
+              <mat-label>Passwort</mat-label>
+              <input matInput type="password" formControlName="password" placeholder="Passwort" />
+            </mat-form-field>
+            <mat-form-field appearance="fill" class="full">
+              <mat-label>Passwort wiederholen</mat-label>
+              <input matInput type="password" formControlName="passwordRepeat" placeholder="Passwort wiederholen" />
+            </mat-form-field>
+            <div class="actions">
+              <button mat-button type="button" (click)="prevStep()">Zurück</button>
+              <button class="login-button" type="button" (click)="submitRegister()" [disabled]="registerForm.invalid">Registrieren</button>
+            </div>
+          </ng-container>
+
+          <p class="error" *ngIf="error">{{ error }}</p>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
 </div>

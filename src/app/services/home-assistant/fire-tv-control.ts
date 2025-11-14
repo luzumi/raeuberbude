@@ -52,7 +52,7 @@ export class FireTvController {
   }
 
   get isOn(): boolean {
-    console.log(this.state)
+    // avoid console noise in getter
     return this.state !== 'off' && this.state !== 'standby';
   }
 
@@ -77,7 +77,7 @@ export class FireTvController {
       entity_id: this.remote.entity_id,
       command
     }).subscribe({
-      next: (res) => console.log(`[HA] Command '${command}' erfolgreich`, res),
+      next: (res) => console.debug(`[HA] Command '${command}' erfolgreich`, res),
       error: (err) => console.error(`[HA] Fehler beim Command '${command}'`, err)
     });
   }

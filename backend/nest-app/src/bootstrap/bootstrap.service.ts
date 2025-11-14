@@ -26,7 +26,7 @@ export class BootstrapService implements OnModuleInit {
       if (existing) {
         this.logger.log(`Superadmin '${username}' existiert bereits`);
         // Ensure rights are admin
-        await this.rights.update(existing._id.toString(), { role: 'admin' });
+        await this.rights.update(<string>existing._id, { role: 'admin' });
         return;
       }
 
@@ -36,13 +36,13 @@ export class BootstrapService implements OnModuleInit {
       // Default Rechte: admin
       const createdUser = await this.users.findByUsername(username);
       if (createdUser?._id) {
-        await this.rights.update(createdUser._id.toString(), { role: 'admin' });
+        await this.rights.update(<string>createdUser._id, { role: 'admin' });
       } else {
         this.logger.warn(`Konnte ID für neu erstellten Superadmin '${username}' nicht ermitteln – Rechte nicht gesetzt`);
       }
       this.logger.log('Admin-Rechte gesetzt');
     } catch (e) {
-      this.logger.error('Bootstrap (Superadmin-Seeding) fehlgeschlagen', e as any);
+      this.logger.error('Bootstrap (Superadmin-Seeding) fehlgeschlagen', e);
     }
   }
 }

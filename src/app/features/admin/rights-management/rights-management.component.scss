@@ -1,69 +1,31 @@
 @use '../../../../styles/tokens' as t;
 
-.rights-management-container {
-  padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
+/* Header-Styling kommt nun zentral über .admin-header-card */
 
-.header-card {
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+/* Tab-Content-Abstände kommen nun über .admin-tab-content */
 
-  mat-card-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+/* Actions-Leiste zentral: .admin-actions-row */
 
-    mat-icon {
-      font-size: 32px;
-      height: 32px;
-      width: 32px;
-    }
-  }
-
-  mat-card-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 24px;
-    margin: 0;
-  }
-
-  mat-card-subtitle {
-    color: rgba(255, 255, 255, 0.9);
-    margin-top: 5px;
-  }
-}
-
-.tab-content {
-  padding: 20px 0;
-}
-
-.actions-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-
-  @media (max-width: 1200px) {
-    grid-template-columns: 1fr;
-  }
-}
+/* Grid-Layout zentral: .admin-grid */
 
 .list-card, .form-card {
   height: fit-content;
-  max-height: 600px;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+// Keep list fixed but allow form to grow and scroll within viewport
+.list-card {
+  max-height: 600px;
+  overflow: hidden;
+}
+
+.form-card {
+  max-height: calc(100vh - 240px);
+}
+
+.form-card mat-card-content {
+  overflow: auto;
 }
 
 .rights-list, .terminal-list {
@@ -97,6 +59,24 @@
     .active-indicator {
       color: #4caf50;
       animation: pulse-indicator 2s infinite;
+    }
+  }
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+
+    &:hover {
+      background: #555;
     }
   }
 }
@@ -217,7 +197,9 @@
     width: 100%;
   }
 }
-
+.role-panel{
+  overflow: auto;
+}
 .permissions-section {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -239,7 +221,6 @@
     @media (max-width: 600px) {
       grid-template-columns: 1fr;
     }
-
     mat-checkbox {
       font-size: 13px;
     }
@@ -335,27 +316,6 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-}
-
-// Scrollbar styling
-.rights-list, .terminal-list {
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-
-    &:hover {
-      background: #555;
-    }
-  }
 }
 
 // Responsive adjustments

@@ -44,7 +44,7 @@ export class UsersService {
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return null;
     const obj = user.toObject();
-    delete (obj as any).passwordHash;
+    delete obj.passwordHash;
     return obj as unknown as User;
   }
 

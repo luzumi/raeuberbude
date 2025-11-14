@@ -35,7 +35,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   /** Anzeigename des aktuellen Terminals */
   terminalName = '';
 
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private readonly router: Router,
@@ -70,7 +70,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     // Terminal-Name laden (falls Gerät bereits zugewiesen ist)
     this.terminalService.getMyTerminal()
       .then(res => {
-        this.terminalName = res?.data?.name || '';
+        this.terminalName = res?.data?.terminalId || '';
       })
       .catch(() => {
         this.terminalName = '';
@@ -100,8 +100,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
    * Navigiert zur vorherigen Seite.
    */
   goBack(): void {
-    this.location.back();       // inform parent components
-    this.location.back();  // navigate to previous page
+    this.location.back();
   }
 
   /** Methode: Benutzer-Icon anklicken */
@@ -130,7 +129,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Speech input error:', error);
       // Show user-friendly error message
-      this.lastSpeechInput = 'Fehler bei der Spracheingabe. Bitte erneut versuchen.' + error;
+      this.lastSpeechInput = `Fehler bei der Spracheingabe. Bitte erneut versuchen. ${error}`;
     }
   }
 }

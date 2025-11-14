@@ -109,7 +109,7 @@ export class BudeComponent implements OnInit {
   }
 
   // --- Long-Press Support für orange-light ---
-  private longPressTimer: any = null;
+  private longPressTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly longPressThreshold = 500; // ms
 
   onPressStart(type: Device['type'], idx: number, event: Event): void {
@@ -136,8 +136,7 @@ export class BudeComponent implements OnInit {
     }
   }
 
-  onPressCancel(event: Event): void {
-    console.log(event);
+  onPressCancel(_event: Event): void {
     this.clearLongPressTimer();
   }
 
@@ -170,7 +169,7 @@ export class BudeComponent implements OnInit {
     const targetService = isCurrentlyOn ? 'turn_off' : 'turn_on';
     const optimisticState = isCurrentlyOn ? 'off' : 'on';
 
-    console.log(`🔄 Orange Light Toggle: "${entity.state}" → ${targetService}`);
+    console.debug(`🔄 Orange Light Toggle: "${entity.state}" → ${targetService}`);
 
     // OPTIMISTIC UPDATE: Sofort lokalen State ändern
     const optimisticEntity = { ...entity, state: optimisticState };
@@ -179,23 +178,23 @@ export class BudeComponent implements OnInit {
       allEntities[currentIndex] = optimisticEntity;
       // Trigger manual update im Service
       (this.ha as any).entitiesSubject?.next([...allEntities]);
-      console.log(`⚡ Optimistic Update: State lokal auf "${optimisticState}" gesetzt`);
+      console.debug(`⚡ Optimistic Update: State lokal auf "${optimisticState}" gesetzt`);
     }
 
     // Service-Call an Home Assistant
     this.ha.callService('light', targetService, { entity_id: entityId }).subscribe({
       next: (response) => {
-        console.log(`✅ ${targetService} successful:`, response);
+        console.debug(`✅ ${targetService} successful:`, response);
         // Nach 1 Sekunde den ECHTEN State von HA holen
         setTimeout(() => {
-          console.log('🔄 Verifiziere echten State von Home Assistant...');
+          console.debug('🔄 Verifiziere echten State von Home Assistant...');
           this.ha.refreshEntities();
         }, 1000);
       },
       error: (err) => {
         console.error(`❌ ${targetService} failed:`, err);
         // Bei Fehler: Rollback zum Original-State
-        console.log('🔙 Rollback: Stelle Original-State wieder her');
+        console.debug('🔙 Rollback: Stelle Original-State wieder her');
         this.ha.refreshEntities();
       }
     });
@@ -226,6 +225,7 @@ export class BudeComponent implements OnInit {
       case 'laptop':       return '#3498db';
       case 'creator':      return '#9b59b6';
       case 'samsung-tv':   return '#2ecc71';
+      default:             return 'transparent';
     }
   }
 
@@ -262,7 +262,7 @@ export class BudeComponent implements OnInit {
           console.debug(json);
         } catch (e) {
           console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
-          console.log(json);
+          console.warn(json);
         }
       },
       error: (err) => {
@@ -281,7 +281,7 @@ export class BudeComponent implements OnInit {
           console.debug(json);
         } catch (e) {
           console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
-          console.log(json);
+          console.warn(json);
         }
       },
       error: (err) => {
@@ -300,14 +300,14 @@ export class BudeComponent implements OnInit {
           console.debug(json);
         } catch (e) {
           console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
-          console.log(json);
+          console.warn(json);
         }
       },
       error: (err) => console.error('[Bude] Failed to get FireTV device actions JSON:', err)
     });
   }
 
-  // --- Dev helper: copy androidtv domain services as JSON ---
+
   copyAndroidTvServicesJson(): void {
     this.ha.getAndroidTvServicesJson().subscribe({
       next: async (json) => {
@@ -317,7 +317,7 @@ export class BudeComponent implements OnInit {
           console.debug(json);
         } catch (e) {
           console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
-          console.log(json);
+          console.warn(json);
         }
       },
       error: (err) => console.error('[Bude] Failed to get androidtv services JSON:', err)
@@ -334,7 +334,7 @@ export class BudeComponent implements OnInit {
           console.debug(json);
         } catch (e) {
           console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
-          console.log(json);
+          console.warn(json);
         }
       },
       error: (err) => console.error('[Bude] Failed to get media_player services JSON:', err)
@@ -351,7 +351,7 @@ export class BudeComponent implements OnInit {
           console.debug(json);
         } catch (e) {
           console.warn('[Bude] Clipboard write failed, printing JSON below:', e);
-          console.log(json);
+          console.warn(json);
         }
       },
       error: (err) => console.error('[Bude] Failed to get Fire TV capabilities JSON:', err)

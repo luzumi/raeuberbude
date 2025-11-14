@@ -90,7 +90,7 @@ import { firstValueFrom } from 'rxjs';
 export class AdminRolesComponent implements OnInit {
   rows: any[] = [];
   displayedColumns = ['role', 'total', 'active', 'inactive', 'actions'];
-  private nestBase!: string;
+  private readonly nestBase: string;
 
   constructor(
     private readonly http: HttpClient,
@@ -110,6 +110,7 @@ export class AdminRolesComponent implements OnInit {
       const res: any = await firstValueFrom(this.http.get(`${this.nestBase}/api/speech/rights/stats`, { withCredentials: true }));
       this.rows = res?.data?.byRole || [];
     } catch (e) {
+      console.error(e);
       this.snack.open('Fehler beim Laden der Rollen-Statistik', 'Schließen', { duration: 3000, panelClass: 'snackbar-error' });
     }
   }
