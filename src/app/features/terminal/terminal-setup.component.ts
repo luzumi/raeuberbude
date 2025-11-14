@@ -114,13 +114,14 @@ export class TerminalSetupComponent implements OnInit {
   form = { terminalId: '', type: 'browser', location: '' };
 
   terminalCtrl = new FormControl<string | TerminalOption | null>('');
+  terminals: TerminalOption[] = [];
   filteredTerminals: TerminalOption[] = [];
   selectedTerminal: TerminalOption | null = null;
 
   constructor(private readonly svc: TerminalService, private readonly router: Router, private readonly snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
-    (async () => {
+    void (async () => {
       await this.refresh();
       if (this.state === 'current') {
         // Bereits registriert -> direkt ins Dashboard
@@ -134,7 +135,7 @@ export class TerminalSetupComponent implements OnInit {
   private async refresh() {
     this.state = 'loading';
     const res = await this.svc.getMyTerminal();
-{{ ... }}
+    if (res?.success && res?.data) {
       this.current = res.data;
       this.state = 'current';
     } else {

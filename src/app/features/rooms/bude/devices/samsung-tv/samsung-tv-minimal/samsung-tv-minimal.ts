@@ -78,7 +78,9 @@ export class SamsungTvMinimal implements OnInit, OnDestroy {
   /** Schaltet den Fernseher an oder aus. */
   togglePower(): void {
     // Einheitliche Power-Schaltung über den Service
-    this.tv.togglePower(this.samsung?.state);
+    if(this.samsung?.state) {
+      this.tv.togglePower( this.samsung.state );
+    }
   }
 
   /** Erhöht die Lautstärke per Remote-Kommando. */

@@ -86,7 +86,7 @@ export class SamsungTv implements OnInit {
       next: (res) => {
         if (res.entity_id) this.fireRemoteId = res.entity_id;
         this.fireTvCommands = res.commands?.length ? res.commands : this.defaultFireTvCommands();
-        console.log('[SamsungTv] FireTV commands source=', res.source, 'count=', this.fireTvCommands.length);
+        console.debug('[SamsungTv] FireTV commands source=', res.source, 'count=', this.fireTvCommands.length);
       },
       error: err => console.error('[SamsungTv] FireTV commands lookup failed:', err)
     });
