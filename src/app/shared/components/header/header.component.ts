@@ -3,6 +3,7 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, NgOptimizedImage, Location } from '@angular/common';
 import { Router } from '@angular/router';
+import { SpeechFeedbackComponent } from '../speech-feedback/speech-feedback.component';
 import { AppButtonComponent } from '../app-button/app-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
 import { SpeechService } from '../../../core/services/speech.service';
@@ -18,6 +19,7 @@ import { takeUntil } from 'rxjs/operators';
     AppButtonComponent,
     LogoutButtonComponent,
     NgOptimizedImage,
+    SpeechFeedbackComponent,
   ],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
@@ -45,6 +47,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Aktiviere Validierung und TTS
+    this.speechService.setValidationEnabled(true);
+    this.speechService.setTTSEnabled(true);
+
     // Subscribe to last speech input updates
     this.speechService.lastInput$
       .pipe(takeUntil(this.destroy$))

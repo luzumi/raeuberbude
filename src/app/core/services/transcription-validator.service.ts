@@ -1,0 +1,419 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { lastValueFrom } from 'rxjs';
+
+export interface ValidationResult {
+  isValid: boolean;
+  confidence: number;
+  hasAmbiguity: boolean;
+  suggestions?: string[];
+  clarificationNeeded?: boolean;
+  clarificationQuestion?: string;
+  issues?: string[]; // optional
+}
+
+interface LMStudioResponse {
+  choices: Array<{
+    message: {
+      content: string;
+      role: string;
+    };
+    finish_reason: string;
+  }>;
+  model: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class TranscriptionValidatorService {
+  private readonly lmStudioUrl = 'http://192.168.56.1:1234/v1/chat/completions';
+  private readonly model = 'mistralai/mistral-7b-instruct-v0.3';
+
+  constructor(private readonly http: HttpClient) {}
+
+  // German stop words and common filler words
+  private readonly germanStopWords = new Set([
+    'der', 'die', 'das', 'ein', 'eine', 'und', 'oder', 'aber',
+    'in', 'zu', 'von', 'mit', 'bei', 'auf', 'an', 'für'
+  ]);
+
+  // Common nonsensical patterns in German STT
+  private readonly nonsensePatterns = [
+    /^[äöüß\s]+$/i,  // Only umlauts
+    /(.)\1{4,}/,      // Character repeated 5+ times
+    /^[^aeiouäöü\s]{8,}$/i, // 8+ consonants without vowels
+    /\d{8,}/,         // Very long number sequences
+  ];
+
+  // Minimum meaningful word length for German
+  private readonly minMeaningfulWords = 2;
+  private readonly minWordLength = 2;
+
+  // Erweiterte Deutsch-Heuristiken
+  // Häufige deutsche Kernwörter (Befehle, Artikel, Alltagswörter)
+  private readonly germanCoreWords = new Set([
+    'der','die','das','ein','eine','den','dem','und','oder','aber','bitte','machen','mach','schalte','licht','lampe','fernseher','tv','musik','laut','leiser','stopp','stop','start','öffne','schließe','raum','zimmer','heizung','temperatur','status','zeige','wetter','computer','pc','monitor','hell','dunkel','an','aus','weiter','zurück','hilfe','menü','menue'
+  ]);
+
+  // Zeichen und Cluster, die auf Polnisch / andere Sprache hindeuten (vereinfachte Heuristik)
+  private readonly foreignCharPattern = /[łśźżąęńćòŠŽŁĆĘĄŃŻŹ]/i; // typische nicht-deutsche diakritische Zeichen
+  private readonly foreignClusters = [
+    'szcz','cz','rz','dz','dź','dż','ł','ś','ź','ż'
+  ];
+
+  // Erlaubte deutsche Basis-Buchstaben inkl. Umlaute
+  private readonly germanLettersPattern = /^[a-zA-Zäöüß0-9\s.,!?'-]+$/;
+
+  /** Berechnet einen einfachen Deutsch-Score (0..1) basierend auf Kernwörtern und bekannten Mustern */
+  private computeGermanScore(words: string[]): number {
+    if (!words.length) return 0;
+    let coreHits = 0;
+    for (const w of words) {
+      if (this.germanCoreWords.has(w)) coreHits++;
+    }
+    const ratio = coreHits / words.length;
+    // Bonus für Umlaute (typisch deutsch) und Verwendung von Artikeln
+    const umlautCount = words.filter(w => /[äöüß]/.test(w)).length;
+    const umlautBonus = Math.min(0.15, umlautCount * 0.03);
+    return Math.min(1, ratio + umlautBonus);
+  }
+
+  /** Prüft auf starke Hinweise für andere Sprache (hier grob polnisch / nicht deutsch) */
+  private detectForeignIndicators(transcript: string): number {
+    let indicators = 0;
+    if (this.foreignCharPattern.test(transcript)) indicators += 2;
+    for (const cluster of this.foreignClusters) {
+      if (transcript.includes(cluster)) indicators++;
+    }
+    const consonantRuns = transcript.match(/[^aeiouäöü\s]{5,}/gi)?.length || 0;
+    indicators += consonantRuns;
+    return indicators;
+  }
+
+  /** Prüft ob das eher Geräusch / nicht Sprache ist (zu wenig Vokale, kaum bekannte Wörter) */
+  private looksLikeNoise(transcript: string, germanScore: number): boolean {
+    const onlyLetters = transcript.replace(/[^a-zA-Zäöüß]/g, '').toLowerCase();
+    if (!onlyLetters) return true;
+    const vowels = onlyLetters.match(/[aeiouäöü]/g)?.length || 0;
+    const vowelRatio = vowels / onlyLetters.length;
+    if (vowelRatio < 0.25 && germanScore < 0.15) return true;
+    return /(.)\1{5,}/.test(onlyLetters);
+  }
+
+  /** Reinstate hasLikelyVerb helper */
+  private hasLikelyVerb(words: string[]): boolean {
+    const germanVerbEndings = ['en','st','et','t','e'];
+    const commonVerbs = new Set([
+      'ist','sind','war','waren','hat','haben','wird','werden','kann','könnte','soll','sollte','muss','musste','will','wollte',
+      'mach','mache','machen','schalte','schalten','öffne','öffnen','schließe','schließen','zeig','zeige','zeigen','gib','geben',
+      'spiel','spiele','spielen','starte','starten','stoppe','stoppen'
+    ]);
+    return words.some(w => commonVerbs.has(w) || (w.length > 3 && germanVerbEndings.some(e => w.endsWith(e))));
+  }
+
+  private isGreetingLike(transcript: string, words: string[]): boolean {
+    const t = transcript.toLowerCase();
+    if (/^(hallo|guten\s+(morgen|tag|abend))/.test(t)) return true;
+    if (t.includes('willkommen')) return true;
+    if (t.startsWith('hallo und herzlich willkommen')) return true;
+    return false;
+  }
+
+  /**
+   * Validate transcription using LLM (Mistral via LM Studio)
+   */
+  async validateLocally(
+    transcript: string,
+    originalConfidence: number
+  ): Promise<ValidationResult> {
+    // Fallback für sehr kurze/leere Transkripte
+    if (!transcript || transcript.trim().length < 2) {
+      return {
+        isValid: false,
+        confidence: 0,
+        hasAmbiguity: true,
+        clarificationNeeded: true,
+        clarificationQuestion: `Ich konnte Sie nicht verstehen. Bitte sprechen Sie noch einmal deutlicher.`,
+        issues: undefined
+      };
+    }
+
+    try {
+      // LLM-Validierung
+      const llmResult = await this.validateWithLLM(transcript, originalConfidence);
+      return llmResult;
+    } catch (error) {
+      console.error('LLM validation failed, using simple fallback:', error);
+      // Fallback: Bei LLM-Fehler akzeptieren wir die Eingabe mit reduzierter Confidence
+      return {
+        isValid: true,
+        confidence: originalConfidence * 0.7,
+        hasAmbiguity: true,
+        clarificationNeeded: false,
+        issues: ['LLM nicht erreichbar']
+      };
+    }
+  }
+
+  /**
+   * Validate transcription using LLM (Mistral via LM Studio)
+   */
+  private async validateWithLLM(
+    transcript: string,
+    originalConfidence: number
+  ): Promise<ValidationResult> {
+    const systemPrompt = `Du bist ein Sprach-Validator für ein Smart Home System auf Deutsch.
+Deine Aufgabe: Prüfe ob die Spracheingabe sinnvoll ist und ob sie ein gültiger Befehl oder eine gültige Aussage auf Deutsch ist.
+
+Antworte NUR mit einem JSON-Objekt (keine zusätzlichen Erklärungen) im folgenden Format:
+{
+  "isValid": true/false,
+  "confidence": 0.0-1.0,
+  "hasAmbiguity": true/false,
+  "clarificationNeeded": true/false,
+  "clarificationQuestion": "Deine Rückfrage auf Deutsch oder null",
+  "suggestions": ["Vorschlag1", "Vorschlag2"] oder null
+}
+
+Kriterien:
+- isValid=true wenn: klarer deutscher Satz, Begrüßung, sinnvoller Befehl
+- isValid=false wenn: Unsinn, Geräusche, fremde Sprache, unverständlich
+- clarificationNeeded=true wenn: unklar, mehrdeutig, zu kurz, fehlende Information
+- confidence: kombiniere STT-Confidence mit deiner Einschätzung
+- clarificationQuestion: freundliche deutsche Rückfrage wenn unklar
+
+Beispiele:
+"Schalte das Licht ein" → isValid=true, clarificationNeeded=false
+"das Licht" → isValid=false, clarificationNeeded=true, clarificationQuestion="Was möchten Sie mit dem Licht machen?"
+"Hallo und herzlich willkommen" → isValid=true (Begrüßung)
+"äöü ßßß" → isValid=false, clarificationQuestion="Ich konnte Sie nicht verstehen. Bitte wiederholen Sie."`;
+
+    const userPrompt = `STT-Confidence: ${(originalConfidence * 100).toFixed(0)}%
+Transkript: "${transcript}"
+
+Validiere diese Spracheingabe.`;
+
+    try {
+      // Mistral unterstützt nur user/assistant Rollen - kombiniere System-Prompt in erste User-Message
+      const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+
+      const response = await lastValueFrom(
+        this.http.post<LMStudioResponse>(
+          this.lmStudioUrl,
+          {
+            model: this.model,
+            messages: [
+              { role: 'user', content: combinedPrompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 500,
+            stream: false
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+      );
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty LLM response');
+      }
+
+      // Parse JSON aus der LLM-Antwort
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn('LLM response not JSON:', content);
+        throw new Error('Invalid LLM response format');
+      }
+
+      const llmResult = JSON.parse(jsonMatch[0]);
+
+      // Validierung des LLM-Results und Mapping
+      const result: ValidationResult = {
+        isValid: llmResult.isValid === true,
+        confidence: typeof llmResult.confidence === 'number' ? llmResult.confidence : originalConfidence,
+        hasAmbiguity: llmResult.hasAmbiguity === true,
+        clarificationNeeded: llmResult.clarificationNeeded === true,
+        clarificationQuestion: llmResult.clarificationQuestion || undefined,
+        suggestions: Array.isArray(llmResult.suggestions) ? llmResult.suggestions : undefined,
+        issues: undefined
+      };
+
+      console.log('LLM Validation Result:', result);
+      return result;
+
+    } catch (error: any) {
+      console.error('LLM validation error:', error);
+
+      // Bei Netzwerkfehler oder LLM nicht erreichbar
+      if (error.status === 0 || error.status === 404) {
+        console.warn('LM Studio not reachable at', this.lmStudioUrl);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Legacy method - now redirects to LLM validation
+   */
+  private async validateLocallyOld(
+    transcript: string,
+    originalConfidence: number
+  ): Promise<ValidationResult> {
+    // Variablen für Validierungsergebnisse
+    const issues: string[] = [];
+    let isValid = true;
+    let hasAmbiguity = false;
+    let clarificationNeeded = false;
+    let clarificationQuestion: string | undefined;
+    // Flags für vereinheitlichte Rückfrage
+    let flagLowGerman = false;
+    let flagNoVerb = false;
+    let flagFewMeaningful = false;
+    let flagNoise = false;
+
+    // Check if transcript is empty or too short
+    if (!transcript || transcript.trim().length < 3) {
+      issues.push('Transkription zu kurz oder leer');
+      isValid = false;
+      clarificationNeeded = true;
+      clarificationQuestion = `Ich konnte Sie nicht richtig verstehen. Haben Sie "${transcript}" gesagt? Bitte sprechen Sie noch einmal deutlicher.`;
+      return {
+        isValid,
+        confidence: 0,
+        hasAmbiguity,
+        clarificationNeeded,
+        clarificationQuestion,
+        issues: undefined // Detaillierte Issues hier nicht nötig
+      };
+    }
+
+    const normalizedTranscript = transcript.toLowerCase().trim();
+    const words = normalizedTranscript.split(/\s+/).filter(w => w.length >= this.minWordLength);
+    const germanScore = this.computeGermanScore(words);
+    const foreignIndicators = this.detectForeignIndicators(normalizedTranscript);
+    const noiseLike = this.looksLikeNoise(normalizedTranscript, germanScore);
+    const isGreeting = this.isGreetingLike(normalizedTranscript, words);
+
+    // Fremdsprache – eigener spezieller Hinweis
+    if (foreignIndicators >= 2 && germanScore < 0.2) {
+      issues.push('Vermutlich andere Sprache erkannt (nicht Deutsch)');
+      hasAmbiguity = true;
+      if (originalConfidence < 0.85) {
+        clarificationNeeded = true;
+        clarificationQuestion = `Haben Sie auf Deutsch gesprochen? Haben Sie "${transcript}" gesagt? Bitte wiederholen Sie Ihren Befehl deutlich auf Deutsch.`;
+      }
+    }
+
+    // Geräusch
+    if (noiseLike) {
+      hasAmbiguity = true;
+      flagNoise = true;
+      if (originalConfidence < 0.8) {
+        clarificationNeeded = true;
+      }
+    }
+
+    if (!this.germanLettersPattern.test(transcript) && germanScore < 0.2) {
+      hasAmbiguity = true;
+      flagLowGerman = true; // Zeichen sprechen gegen Deutsch
+    }
+
+    if (originalConfidence < 0.6) {
+      issues.push('Niedrige STT-Konfidenz');
+      hasAmbiguity = true;
+    }
+
+    for (const pattern of this.nonsensePatterns) {
+      if (pattern.test(normalizedTranscript)) {
+        issues.push('Ungewöhnliches Muster erkannt');
+        isValid = false;
+        break;
+      }
+    }
+
+    const meaningfulWords = words.filter(word =>
+      !this.germanStopWords.has(word) && word.length >= 3
+    );
+
+    if (meaningfulWords.length < this.minMeaningfulWords) {
+      hasAmbiguity = true;
+      flagFewMeaningful = true;
+      if (meaningfulWords.length === 0) {
+        isValid = false;
+      }
+    }
+
+    const endsWithPunctuation = /[.!?]$/.test(transcript.trim());
+    const hasVerb = this.hasLikelyVerb(words);
+
+    if (!endsWithPunctuation && words.length > 3) {
+      hasAmbiguity = true; // aber kein eigener Flag nötig
+    }
+
+    if (!hasVerb && words.length > 2) {
+      hasAmbiguity = true;
+      flagNoVerb = true;
+    }
+
+    if (germanScore < 0.15) {
+      hasAmbiguity = true;
+      flagLowGerman = true;
+    }
+
+    // Vereinheitlichte Klarstellungsnachricht für typische Verständnis-Probleme
+    const needsUnifiedClarification = (flagLowGerman || flagNoVerb || flagFewMeaningful || flagNoise) && !clarificationQuestion;
+
+    if ((hasAmbiguity && originalConfidence < 0.7) || !isValid || needsUnifiedClarification) {
+      clarificationNeeded = true;
+      if (foreignIndicators >= 2 && germanScore < 0.2 && clarificationQuestion) {
+        // Fremdsprachenfall behält eigene Frage
+      } else {
+        // Einheitliche Standardnachfrage
+        clarificationQuestion = `Ich konnte Sie nicht richtig verstehen. Haben Sie "${transcript}" gesagt? Bitte sprechen Sie noch einmal deutlicher.`;
+      }
+    }
+
+    // Berechnung der Confidence
+    let validationConfidence = originalConfidence;
+    if (issues.length > 0) {
+      validationConfidence *= (1 - (issues.length * 0.12));
+    }
+    if (germanScore >= 0.4) {
+      validationConfidence += 0.05;
+    }
+    if (meaningfulWords.length >= 3) {
+      validationConfidence += 0.05;
+    }
+    validationConfidence = Math.max(0, Math.min(1, validationConfidence));
+
+    // Detaillierte Issues für vereinheitlichte Klarstellung ausblenden
+    let finalIssues: string[] | undefined = issues; // allow undefined
+    if (needsUnifiedClarification) {
+      finalIssues = undefined;
+    }
+    return {
+      isValid: isValid && !clarificationNeeded,
+      confidence: validationConfidence,
+      hasAmbiguity,
+      clarificationNeeded,
+      clarificationQuestion,
+      issues: finalIssues
+    };
+  }
+
+  async validate(
+    transcript: string,
+    originalConfidence: number,
+    useServer: boolean = false,
+    context?: { location?: string; userId?: string; previousInputs?: string[] }
+  ): Promise<ValidationResult> {
+    // Server validation currently disabled; fallback to local heuristics
+    return this.validateLocally(transcript, originalConfidence);
+  }
+}
