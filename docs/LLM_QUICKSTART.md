@@ -42,6 +42,7 @@ Sprechen Sie wie gewohnt:
 - **Befehle**: „Schalte das Licht ein"
 - **Begrüßungen**: „Hallo und herzlich willkommen"
 - **Fragen**: „Wie spät ist es?"
+- **Internetanfragen**: „Wo wird heute Fußball übertragen?"
 
 ### LLM-Validierung läuft automatisch
 

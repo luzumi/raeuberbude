@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
+import { IntentRecognitionResult, IntentType } from '../models/intent-recognition.model';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -10,6 +11,9 @@ export interface ValidationResult {
   clarificationNeeded?: boolean;
   clarificationQuestion?: string;
   issues?: string[]; // optional
+
+  // Intent-Erkennung
+  intent?: IntentRecognitionResult;
 }
 
 interface LMStudioResponse {
@@ -163,31 +167,63 @@ export class TranscriptionValidatorService {
     transcript: string,
     originalConfidence: number
   ): Promise<ValidationResult> {
-    const systemPrompt = `Du bist ein Sprach-Validator für ein Smart Home System auf Deutsch.
-Deine Aufgabe: Prüfe ob die Spracheingabe sinnvoll ist und ob sie ein gültiger Befehl oder eine gültige Aussage auf Deutsch ist.
+    const systemPrompt = `Du bist ein intelligenter Intent-Classifier für ein Smart Home System auf Deutsch.
+Deine Aufgaben:
+1. Validiere ob die Spracheingabe sinnvoll ist
+2. Erkenne die ABSICHT (Intent) des Benutzers
+3. Extrahiere relevante Informationen
 
-Antworte NUR mit einem JSON-Objekt (keine zusätzlichen Erklärungen) im folgenden Format:
+Antworte NUR mit einem JSON-Objekt (keine zusätzlichen Erklärungen):
 {
   "isValid": true/false,
   "confidence": 0.0-1.0,
   "hasAmbiguity": true/false,
   "clarificationNeeded": true/false,
-  "clarificationQuestion": "Deine Rückfrage auf Deutsch oder null",
-  "suggestions": ["Vorschlag1", "Vorschlag2"] oder null
+  "clarificationQuestion": "Rückfrage oder null",
+  "intent": {
+    "type": "home_assistant_command|home_assistant_query|navigation|web_search|greeting|general_question|unknown",
+    "summary": "Kurze Beschreibung",
+    "keywords": ["Wort1", "Wort2"],
+    "homeAssistant": { "action": "turn_on|turn_off|set|toggle|query", "entityType": "light|switch|media_player|...", "location": "wohnzimmer|..." } oder null,
+    "navigation": { "target": "samsung-tv|dashboard|..." } oder null,
+    "webSearch": { "query": "Suchbegriff", "searchType": "sports|news|weather|general" } oder null
+  }
 }
 
-Kriterien:
-- isValid=true wenn: klarer deutscher Satz, Begrüßung, sinnvoller Befehl
-- isValid=false wenn: Unsinn, Geräusche, fremde Sprache, unverständlich
-- clarificationNeeded=true wenn: unklar, mehrdeutig, zu kurz, fehlende Information
-- confidence: kombiniere STT-Confidence mit deiner Einschätzung
-- clarificationQuestion: freundliche deutsche Rückfrage wenn unklar
+INTENT-TYPEN:
+1. home_assistant_command: Befehle an Smart Home Geräte
+   - "Mach das Licht aus" → action=turn_off, entityType=light
+   - "Schalte TV ein" → action=turn_on, entityType=media_player
+   - "Stelle Heizung auf 22 Grad" → action=set, entityType=climate
+
+2. home_assistant_query: Abfragen über Smart Home Status
+   - "Ist das Licht an?" → action=query, entityType=light
+   - "Welche Temperatur hat es?" → action=query, entityType=sensor
+
+3. navigation: App-Navigation
+   - "Zeige mir den Samsung TV" → target=samsung-tv
+   - "Öffne Dashboard" → target=dashboard
+   - "Gehe zu Einstellungen" → target=settings
+
+4. web_search: Internet-Anfragen
+   - "Wie hat Werder Bremen heute gespielt?" → query="Werder Bremen Spielergebnis heute", searchType=sports
+   - "Wetter morgen" → query="Wetter morgen", searchType=weather
+   - "Wo wird heute Fußball übertragen?" → query="Fußball Übertragung heute", searchType=sports
+
+5. greeting: Begrüßungen
+   - "Hallo", "Guten Morgen", etc.
+
+6. general_question: Allgemeine Fragen
+   - "Wie spät ist es?"
+   - "Welcher Tag ist heute?"
+
+7. unknown: Unklare Eingaben
 
 Beispiele:
-"Schalte das Licht ein" → isValid=true, clarificationNeeded=false
-"das Licht" → isValid=false, clarificationNeeded=true, clarificationQuestion="Was möchten Sie mit dem Licht machen?"
-"Hallo und herzlich willkommen" → isValid=true (Begrüßung)
-"äöü ßßß" → isValid=false, clarificationQuestion="Ich konnte Sie nicht verstehen. Bitte wiederholen Sie."`;
+"Schalte alle Lichter im Wohnzimmer aus" → intent.type=home_assistant_command, homeAssistant={action:turn_off, entityType:light, location:wohnzimmer}, keywords=["lichter","wohnzimmer","aus"]
+"Zeige Samsung TV" → intent.type=navigation, navigation={target:samsung-tv}, keywords=["samsung","tv"]
+"Wie hat Werder heute gespielt?" → intent.type=web_search, webSearch={query:"Werder Bremen Spielergebnis heute", searchType:sports}, keywords=["werder","gespielt"]
+"Hallo" → intent.type=greeting, keywords=["hallo"]`;
 
     const userPrompt = `STT-Confidence: ${(originalConfidence * 100).toFixed(0)}%
 Transkript: "${transcript}"
@@ -232,6 +268,21 @@ Validiere diese Spracheingabe.`;
 
       const llmResult = JSON.parse(jsonMatch[0]);
 
+      // Intent-Erkennung parsen
+      let intent: IntentRecognitionResult | undefined;
+      if (llmResult.intent) {
+        intent = {
+          intent: llmResult.intent.type as IntentType || 'unknown',
+          confidence: typeof llmResult.confidence === 'number' ? llmResult.confidence : originalConfidence,
+          originalTranscript: transcript,
+          summary: llmResult.intent.summary || transcript,
+          keywords: Array.isArray(llmResult.intent.keywords) ? llmResult.intent.keywords : [],
+          homeAssistant: llmResult.intent.homeAssistant || undefined,
+          navigation: llmResult.intent.navigation || undefined,
+          webSearch: llmResult.intent.webSearch || undefined
+        };
+      }
+
       // Validierung des LLM-Results und Mapping
       const result: ValidationResult = {
         isValid: llmResult.isValid === true,
@@ -240,10 +291,12 @@ Validiere diese Spracheingabe.`;
         clarificationNeeded: llmResult.clarificationNeeded === true,
         clarificationQuestion: llmResult.clarificationQuestion || undefined,
         suggestions: Array.isArray(llmResult.suggestions) ? llmResult.suggestions : undefined,
-        issues: undefined
+        issues: undefined,
+        intent
       };
 
       console.log('LLM Validation Result:', result);
+      console.log('Detected Intent:', intent?.intent, intent?.summary);
       return result;
 
     } catch (error: any) {

@@ -26,8 +26,17 @@ try { require('dotenv').config(); } catch (e) {console.log(e);}
 function readSecrets() {
   try {
     const p = path.resolve(__dirname, 'sonarqube.secrets.json');
-    if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8')) || {};
-  } catch (e) {console.log(e);}
+    if (fs.existsSync(p)) {
+      let content = fs.readFileSync(p, 'utf8');
+      // Remove BOM if present (UTF-8 BOM = \uFEFF)
+      if (content.charCodeAt(0) === 0xFEFF) {
+        content = content.slice(1);
+      }
+      return JSON.parse(content) || {};
+    }
+  } catch (e) {
+    console.error('[sonarqube-mcp] Error reading secrets:', e.message);
+  }
   return {};
 }
 

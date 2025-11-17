@@ -2,6 +2,38 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.0.1.
 
+## 🚀 Quick Start
+
+### Lokale Entwicklung (PC only)
+
+```powershell
+npm start
+# Öffne http://localhost:4200/
+```
+
+### Netzwerk-Zugriff (PC + Handy im LAN)
+
+```powershell
+npm run start:network
+# Frontend: http://localhost:4301/ oder http://<deine-IP>:4301/
+# Backend: http://localhost:3001/
+# MCP-Server: verschiedene Ports (siehe Konsole)
+```
+
+### Mikrofon-Zugriff vom Handy
+
+Die App funktioniert auf jedem Gerät, wo der Benutzer **eingeloggt ist** und **Mikrofon-Berechtigung erteilt** hat.
+
+**Keine zusätzlichen Schritte nötig!** Einfach:
+1. Im Browser öffnen: `http://<deine-IP>:4301` (z. B. `http://192.168.178.25:4301`)
+2. Einloggen
+3. Mikrofon-Berechtigung erlauben (Browser fragt beim ersten Mal)
+4. Spracheingabe nutzen
+
+**Hinweis:** Bei manchen Browsern (Chrome/Firefox) ist für HTTP-Zugriff ein einmaliges Flag erforderlich. Siehe [docs/MIKROFON_SETUP.md](docs/MIKROFON_SETUP.md) für Details.
+
+---
+
 # Projektbuch: Angular Home Assistant Dashboard – "Räuberbude"
 
 ## Überblick

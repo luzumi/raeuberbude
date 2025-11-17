@@ -7,7 +7,6 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   Req,
   Res,
   HttpStatus,
@@ -22,7 +21,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
   ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
@@ -40,7 +38,7 @@ import { STTProviderService } from './stt/stt.provider';
 import { AudioConverterService } from './stt/audio-converter.service';
 import { memoryStorage } from 'multer';
 import { Request, Response } from 'express';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 @ApiTags('speech')
 @Controller('api/speech')
@@ -77,12 +75,10 @@ export class SpeechController {
       try {
         const termDoc = await this.terminalsService.findByTerminalId(cookieTerminalId);
         if (termDoc?._id) {
-          createDto.terminalId = termDoc._id.toString();
+          createDto.terminalId = String(termDoc._id);
           publicTerminalIdForActivity = termDoc.terminalId;
         }
-      } catch (e) {
-        this.logger.warn(`Terminal cookie present but not found: ${cookieTerminalId}`);
-      }
+      } catch { /* Terminal nicht gefunden – ignorieren */ }
     }
 
     // Terminal-Aktivität aktualisieren (Public-ID bevorzugt)
@@ -122,9 +118,7 @@ export class SpeechController {
     try {
       const terminal = await this.terminalsService.findByTerminalId(cookieTerminalId);
       return { success: true, data: terminal };
-    } catch (e) {
-      return { success: false, data: null, message: 'Terminal not found for cookie' };
-    }
+    } catch { return { success: false, data: null, message: 'Terminal not found for cookie' }; }
   }
 
   @Post('terminals/claim')
@@ -282,10 +276,21 @@ export class SpeechController {
         throw new BadRequestException('No audio file provided');
       }
 
+      // Vorab: Status prüfen – schneller Fehler statt langer Timeout-Kette
+      const providerStatus = await this.sttProvider.getProvidersStatus();
+      const anyUp = Object.values(providerStatus).includes(true);
+      if (!anyUp) {
+        return {
+          success: false,
+          error: 'stt_unavailable',
+          message: 'Kein STT Provider verfügbar',
+          providers: providerStatus,
+        };
+      }
+
       this.logger.log(`Received audio for transcription: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
 
-      // Validate audio duration
-      const maxDuration = maxDurationMs ? parseInt(maxDurationMs, 10) : 30000;
+      const maxDuration = maxDurationMs ? Number.parseInt(maxDurationMs, 10) : 30000;
       const validation = await this.audioConverter.validateAudio(
         file.buffer,
         file.mimetype,
@@ -316,25 +321,40 @@ export class SpeechController {
         },
       };
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
+      const msg = (error as any)?.message || '';
 
-      this.logger.error(`Transcription failed: ${error.message}`, error.stack);
-
-      if (error.message.includes('timeout') || error.message.includes('unavailable')) {
-        throw new InternalServerErrorException({
+      // Spezielle Behandlung: Alle Provider down
+      if (msg.includes('All STT providers failed')) {
+        const status = await this.sttProvider.getProvidersStatus().catch(() => ({}));
+        this.logger.warn('STT unavailable for request');
+        return {
           success: false,
-          error: 'STT service temporarily unavailable',
-          message: error.message,
-        });
+          error: 'stt_unavailable',
+          message: 'Alle STT Provider nicht verfügbar',
+          providers: status,
+        };
       }
 
-      throw new InternalServerErrorException({
+      if (error instanceof BadRequestException) {
+        throw error; // unverändert weiterreichen
+      }
+
+      this.logger.error(`Transcription failed: ${msg}`, (error as any)?.stack);
+
+      // Service temporär nicht erreichbar / Timeout
+      if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('unavailable')) {
+        return {
+          success: false,
+          error: 'stt_timeout',
+          message: 'STT Dienst vorübergehend nicht erreichbar',
+        };
+      }
+
+      return {
         success: false,
-        error: 'Transcription failed',
-        message: error.message,
-      });
+        error: 'stt_failure',
+        message: msg || 'Transcription failed',
+      };
     }
   }
 

@@ -24,11 +24,11 @@ const VOSK_PHRASES: string[] = [
 export class VoskProvider implements STTProvider {
   readonly name = 'vosk';
   private readonly logger = new Logger(VoskProvider.name);
-  private wsUrl: string;
+  private readonly wsUrl: string;
 
   constructor(
-    private configService: ConfigService,
-    private audioConverter: AudioConverterService,
+    private readonly configService: ConfigService,
+    private readonly audioConverter: AudioConverterService,
   ) {
     this.wsUrl = this.configService.get<string>('VOSK_WS_URL', 'ws://localhost:2700');
   }
@@ -60,90 +60,66 @@ export class VoskProvider implements STTProvider {
     language?: string,
   ): Promise<TranscriptionResult> {
     const startTime = Date.now();
-    
+
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(this.wsUrl);
       let transcript = '';
-      let confidence = 0;
-      let resultCount = 0;
+      let partial = '';
       let isResolved = false;
 
-      const timeout = setTimeout(() => {
+      const hardTimeout = setTimeout(() => {
         if (!isResolved) {
-          ws.close();
+          try { ws.close(); } catch {}
+          isResolved = true;
           reject(new Error('Vosk transcription timeout'));
         }
       }, 30000);
 
+      const resolveWith = (text: string) => {
+        if (isResolved) return;
+        isResolved = true;
+        clearTimeout(hardTimeout);
+        try { ws.close(); } catch {}
+        resolve({
+          provider: this.name,
+          transcript: text.trim(),
+          confidence: text ? 0.9 : 0,
+          durationMs: Date.now() - startTime,
+          language: language || 'de-DE',
+        });
+      };
+
       ws.on('open', async () => {
         this.logger.debug('Connected to Vosk WebSocket');
-        
-        // Send config message
         const config = {
-          config: {
-            sample_rate: 16000,
-            words: false,
-            max_alternatives: 0,
-            phrase_list: VOSK_PHRASES,
-          }
+          config: { sample_rate: 16000, words: false, max_alternatives: 0, phrase_list: VOSK_PHRASES }
         };
         ws.send(JSON.stringify(config));
 
         try {
-          // Ensure audio is 16kHz PCM s16le mono before sending
-          const pcmBuffer = await this.audioConverter.convertToPCM(audioBuffer, mimeType, {
-            sampleRate: 16000,
-            channels: 1,
-          });
-
-          // Send audio data in chunks
+          const pcmBuffer = await this.audioConverter.convertToPCM(audioBuffer, mimeType, { sampleRate: 16000, channels: 1 });
           const chunkSize = 8192;
           for (let i = 0; i < pcmBuffer.length; i += chunkSize) {
             const chunk = pcmBuffer.slice(i, Math.min(i + chunkSize, pcmBuffer.length));
             ws.send(chunk);
           }
-
-          // Send EOF
-          ws.send('{"eof": 1}');
-        } catch (convErr: any) {
-          this.logger.error(`Audio conversion failed: ${convErr.message}`);
-          if (!isResolved) {
-            isResolved = true;
-            clearTimeout(timeout);
-            ws.close();
-            reject(new Error(`Audio conversion failed: ${convErr.message}`));
-          }
+          // kleines Flush-Delay, dann EOF
+          setTimeout(() => { try { ws.send('{"eof": 1}'); } catch {} }, 10);
+        } catch (error_: any) {
+          this.logger.error(`Audio conversion failed: ${error_.message}`);
+          resolveWith('');
         }
       });
 
       ws.on('message', (data) => {
         try {
           const result = JSON.parse(data.toString());
-          
-          if (result.text) {
-            transcript = result.text;
-            confidence = 0.9; // Vosk doesn't provide confidence scores directly
-            resultCount++;
-          } else if (result.partial) {
-            // Handle partial results if needed
-            this.logger.debug(`Partial result: ${result.partial}`);
+          if (typeof result.partial === 'string') {
+            partial = result.partial;
+            this.logger.debug(`Partial result: ${partial}`);
           }
-
-          // If we have a final result, close the connection
-          if (result.text !== undefined && result.text !== '') {
-            if (!isResolved) {
-              isResolved = true;
-              clearTimeout(timeout);
-              ws.close();
-              
-              resolve({
-                provider: this.name,
-                transcript: transcript.trim(),
-                confidence,
-                durationMs: Date.now() - startTime,
-                language: language || 'de-DE',
-              });
-            }
+          if (typeof result.text === 'string') {
+            transcript = result.text;
           }
         } catch (error) {
           this.logger.error(`Error parsing Vosk response: ${error.message}`);
@@ -152,28 +128,18 @@ export class VoskProvider implements STTProvider {
 
       ws.on('error', (error) => {
         if (!isResolved) {
-          isResolved = true;
-          clearTimeout(timeout);
-          reject(new Error(`Vosk WebSocket error: ${error.message}`));
+          this.logger.error(`Vosk WebSocket error: ${error.message}`);
+          resolveWith(transcript || partial || '');
         }
       });
 
       ws.on('close', () => {
         if (!isResolved) {
-          isResolved = true;
-          clearTimeout(timeout);
-          
-          if (transcript) {
-            resolve({
-              provider: this.name,
-              transcript: transcript.trim(),
-              confidence,
-              durationMs: Date.now() - startTime,
-              language: language || 'de-DE',
-            });
-          } else {
-            reject(new Error('Vosk connection closed without result'));
+          const finalText = transcript || partial || '';
+          if (!finalText) {
+            this.logger.error('Vosk connection closed without result');
           }
+          resolveWith(finalText);
         }
       });
     });
