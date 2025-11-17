@@ -374,8 +374,13 @@ export class IntentActionService {
 
     console.log('📝 Action Log:', logEntry);
 
-    // TODO: An Backend-API senden für persistentes Logging
-    await this.http.post('/api/intent-logs', logEntry).toPromise();
+    // Optional: An Backend-API senden für persistentes Logging (falls verfügbar)
+    try {
+      await this.http.post('/api/intent-logs', logEntry).toPromise();
+    } catch (err) {
+      // Endpoint noch nicht implementiert - ignorieren
+      console.debug('[IntentAction] Intent logging endpoint not available yet');
+    }
   }
 }
 

@@ -4,6 +4,7 @@ import { BehaviorSubject, Subject, lastValueFrom } from 'rxjs';
 import {IntentActionService} from './intent-action.service';
 import { TtsService } from './tts.service';
 import { TranscriptionValidatorService, ValidationResult } from './transcription-validator.service';
+import { environment } from '../../../environments/environment';
 
 // Web Speech API interfaces
 declare global {
@@ -51,9 +52,10 @@ export class SpeechService {
   private readonly isRecordingSubject = new BehaviorSubject<boolean>(false);
   private readonly lastInputSubject = new BehaviorSubject<string>('');
   private readonly transcriptSubject = new Subject<SpeechRecognitionResult>();
-  private readonly apiUrl = `/api/speech`;
+  private readonly apiUrl = `${environment.backendApiUrl}/api/speech`;
   private readonly sessionId: string;
   private readonly terminalId: string;
+  private currentUserId: string = 'anonymous'; // Cache for current user ID
 
   // Server STT Support
   private sttMode: STTMode = 'auto';
@@ -62,6 +64,7 @@ export class SpeechService {
   private serverRecordingTimeout: any = null;
   private isServerRecording = false;
   private maxServerRecordingMs = 30000;
+  private lastMediaStream: MediaStream | null = null;
 
   // Promise-basierter Ergebnisfluss für Server-Recording
   private pendingResultResolver: ((res: PlainTranscription) => void) | null = null;
@@ -84,6 +87,12 @@ export class SpeechService {
 
   private lastGetUserMediaErrorName?: string;
   private lastGetUserMediaErrorMessage?: string;
+
+  // Browser-STT failure/backoff control
+  private browserSTTErrorCount = 0;
+  private browserSTTDisabledUntil: number | null = null; // timestamp
+  // Global automatic stop control: user requested no automatic transitions — default OFF
+  private autoStopEnabled = false;
 
   isRecording$ = this.isRecordingSubject.asObservable();
   lastInput$ = this.lastInputSubject.asObservable();
@@ -170,31 +179,24 @@ export class SpeechService {
     this.recognition.onerror = async (event: any) => {
       console.error('[Speech] Browser STT error:', event.error);
 
-      // Spezial-Fall: network error = Google Speech API nicht erreichbar
-      // → Einmaliger Wechsel zu Server-STT
-      if (event?.error === 'network') {
-        console.warn('[Speech] Browser STT network error - falling back to server STT');
-        this.displayStatus('Wechsle zu Server-STT...');
-        this.isRecordingSubject.next(false);
+      // Kein automatischer Fallback auf Server-STT mehr. Fehler offen anzeigen und Logging
+      this.handleRecognitionError(event?.error);
 
-        // Server-STT als Fallback starten
-        setTimeout(async () => {
-          await this.startServerRecording({
-            silent: false,
-            persist: true,
-            language: 'de-DE',
-            maxDurationMs: this.maxServerRecordingMs
-          });
-        }, 500);
-        return;
+      // Bei Netzwerkfehlern deutlichen Hinweis geben, aber nicht selbständig wechseln
+      if (event?.error === 'network') {
+        // Exponentielles Backoff und Sperre, damit das Gerät nicht im Loop versucht neu zu starten
+        this.browserSTTErrorCount = Math.min(this.browserSTTErrorCount + 1, 6);
+        const backoffMs = Math.min(5 * 60 * 1000, Math.pow(2, this.browserSTTErrorCount) * 1000 * 5); // 5s,10s,20s.. cap 5min
+        this.browserSTTDisabledUntil = Date.now() + backoffMs;
+        console.warn('[Speech] Browser STT network error - disabled until', new Date(this.browserSTTDisabledUntil).toISOString(), 'backoffMs=', backoffMs);
+        this.displayStatus('Browser-STT Netzwerkfehler. Bitte manuell neu starten oder Server-STT wählen.');
       }
 
-      // Alle anderen Fehler: Normal behandeln
-      this.handleRecognitionError(event?.error);
       this.isRecordingSubject.next(false);
     };
     this.recognition.onend = () => { if (!this.isRetrying) this.isRecordingSubject.next(false); };
-    this.recognition.onspeechend = () => { this.stopRecording().then(); };
+    // Only auto-stop on speechend when autoStopEnabled is true (user requested no automatic behaviour)
+    this.recognition.onspeechend = () => { if (this.autoStopEnabled) { this.stopRecording().then(); } };
     this.recognition.onstart = () => {
       this.isRetrying = false;
       // Status updaten - Flag wurde bereits in startBrowserRecording() gesetzt
@@ -215,23 +217,30 @@ export class SpeechService {
       return;
     }
 
-    // Entscheidung: Browser STT (wenn verfügbar) ODER Server STT
-    if (this.recognition) {
-      // Browser STT (Web Speech API)
-      this.startBrowserRecording();
-    } else {
-      // Server STT (MediaRecorder + Backend)
-      await this.startServerRecording({
-        silent: false,
-        persist: true,
-        language: 'de-DE',
-        maxDurationMs: this.maxServerRecordingMs
-      });
-    }
+    // VEREINHEITLICHT: Alle Terminals verwenden Server-STT (einheitlicher Workflow)
+    // Browser-STT hat zu viele Probleme (network errors, instabil)
+    console.log('[Speech] Starting unified Server-STT workflow for all terminals');
+    this.displayStatus('Höre zu...');
+
+    await this.startServerRecording({
+      silent: false,
+      persist: true,
+      language: 'de-DE',
+      maxDurationMs: this.maxServerRecordingMs
+    });
   }
 
   private startBrowserRecording(): void {
     console.log('[Speech] Starting browser STT (Web Speech API)');
+
+    // Check if Browser STT is temporarily disabled due to repeated network errors
+    if (this.browserSTTDisabledUntil && Date.now() < this.browserSTTDisabledUntil) {
+      const waitSec = Math.round((this.browserSTTDisabledUntil - Date.now()) / 1000);
+      console.warn('[Speech] Browser STT start suppressed due to recent errors, retry in', waitSec, 's');
+      this.displayStatus(`Browser-STT momentan nicht verfügbar (noch ${waitSec}s).`);
+      this.isRecordingSubject.next(false);
+      return;
+    }
 
     this.browserRecStartAt = performance.now();
     this.browserRecRealStart = Date.now();
@@ -245,12 +254,14 @@ export class SpeechService {
       this.recognition.start();
 
       // Auto-stop nach 30s
-      setTimeout(() => {
-        if (this.isRecordingSubject.value) {
-          console.log('[Speech] Browser STT auto-stop after 30s');
-          this.stopRecording();
-        }
-      }, 30000);
+      if (this.autoStopEnabled) {
+        setTimeout(() => {
+          if (this.isRecordingSubject.value) {
+            console.log('[Speech] Browser STT auto-stop after 30s');
+            this.stopRecording();
+          }
+        }, 30000);
+      }
     } catch (err: any) {
       console.error('[Speech] Browser STT start failed:', err);
 
@@ -271,6 +282,21 @@ export class SpeechService {
     if (this.isServerRecording) {
       await this.stopServerRecording();
     }
+  }
+
+  // Allow toggling auto-stop behavior (exposed for tests/UI)
+  setAutoStopEnabled(enabled: boolean): void {
+    this.autoStopEnabled = enabled;
+    console.log('[Speech] autoStopEnabled set to', enabled);
+  }
+
+  // New public helper methods to force modes from UI
+  forceServerMode(): void {
+    this.setSTTMode('server');
+  }
+
+  forceBrowserMode(): void {
+    this.setSTTMode('browser');
   }
 
   // ========== Server STT ==========
@@ -308,8 +334,11 @@ export class SpeechService {
 
   private async setupMediaRecorderAndStart(stream: MediaStream, options?: { silent?: boolean; persist?: boolean; language?: string; maxDurationMs?: number }): Promise<void> {
     const mimeType = this.getSupportedMimeType();
+    this.lastMediaStream = stream; // Save for cleanup
     this.mediaRecorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 192000 });
     this.recordedChunks = [];
+    // reset last UI input when starting a fresh recording
+    try { this.lastInputSubject.next(''); } catch {}
     this.serverRecStartAt = performance.now();
     this.serverRecRealStart = Date.now();
     this.isServerRecording = true;
@@ -335,7 +364,9 @@ export class SpeechService {
     this.mediaRecorder.start(1000);
     this.isRecordingSubject.next(true);
     if (!this.silentMode) this.displayStatus('Höre zu...');
-    this.serverRecordingTimeout = setTimeout(() => { if (this.isServerRecording) this.stopServerRecording(); }, this.maxServerRecordingMs);
+    if (this.autoStopEnabled) {
+      this.serverRecordingTimeout = setTimeout(() => { if (this.isServerRecording) this.stopServerRecording(); }, this.maxServerRecordingMs);
+    }
   }
 
   private async handleMediaRecorderStop(stream: MediaStream, mimeType: string, language?: string): Promise<void> {
@@ -421,6 +452,16 @@ export class SpeechService {
     formData.append('audio', audioBlob, 'recording.webm');
     formData.append('language', language || 'de-DE');
     formData.append('maxDurationMs', String(this.maxServerRecordingMs));
+
+    // Provide client identifiers so backend can select a single, consistent workflow
+    try {
+      formData.append('sessionId', this.sessionId);
+      formData.append('terminalId', this.terminalId);
+      formData.append('sttMode', this.sttMode);
+    } catch (err) {
+      // ignore if FormData append fails for any reason
+      console.warn('[Speech] Could not append client identifiers to transcription request:', err);
+    }
 
     return lastValueFrom(
       this.http.post<ServerTranscriptionResult>(`${this.apiUrl}/transcribe`, formData, { withCredentials: true })
@@ -860,24 +901,96 @@ export class SpeechService {
   // Registriert Terminal beim Backend (best-effort, Fehler werden geloggt aber nicht gestoppt)
   private async registerTerminal(): Promise<void> {
     try {
-      const userId = this.getCurrentUserId();
-      const payload = { terminalId: this.terminalId, userAgent: navigator.userAgent, userId };
-      await lastValueFrom(this.http.post(`${this.apiUrl}/terminals`, payload, { withCredentials: true }));
+      // Keep payload minimal to match backend validation (avoid sending userAgent/userId fields)
+      const payload: any = {
+        terminalId: this.terminalId,
+        name: String(this.generateTerminalName()),
+        type: this.getDeviceType(),
+        capabilities: {
+          hasMicrophone: true,
+          hasSpeaker: true,
+          supportsSpeechRecognition: Boolean(this.recognition)
+        },
+        metadata: {
+          platform: navigator.platform
+        }
+      };
+
+      await lastValueFrom(this.http.post(`${this.apiUrl}/terminals/register`, payload, { withCredentials: true }));
     } catch (e) {
       console.warn('[Speech] Terminal registration skipped:', (e as any)?.message);
     }
   }
 
+  // Expose a method so callers (e.g. after login) can re-register the terminal with a now-known userId
+  async reRegisterTerminal(): Promise<void> {
+    try {
+      await this.registerTerminal();
+      console.log('[Speech] Terminal re-registered');
+    } catch (err) {
+      console.warn('[Speech] Terminal re-registration failed:', (err as any)?.message || err);
+    }
+  }
+
+  private generateTerminalName(): string {
+    const ua = navigator.userAgent;
+    if (ua.includes('Chrome')) return 'Chrome Browser';
+    if (ua.includes('Firefox')) return 'Firefox Browser';
+    if (ua.includes('Safari')) return 'Safari Browser';
+    if (ua.includes('Edge')) return 'Edge Browser';
+    return 'Browser Terminal';
+  }
+
+  private getDeviceType(): string {
+    const ua = navigator.userAgent;
+    if (/mobile/i.test(ua)) return 'mobile';
+    if (/tablet|ipad/i.test(ua)) return 'tablet';
+    return 'browser';
+  }
+
   // Aktuellen User bestimmen (vereinfachter Zugriff)
   private getCurrentUserId(): string {
+    // Nutze gecachten Wert wenn vorhanden
+    if (this.currentUserId && this.currentUserId !== 'anonymous') {
+      return this.currentUserId;
+    }
+
     try {
       const raw = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
-      if (!raw) return 'anonymous';
+      if (!raw) {
+        this.currentUserId = 'anonymous';
+        return this.currentUserId;
+      }
       const parsed = JSON.parse(raw);
-      return parsed._id || parsed.id || parsed.userId || 'anonymous';
+      this.currentUserId = parsed._id || parsed.id || parsed.userId || 'anonymous';
+      return this.currentUserId;
     } catch {
-      return 'anonymous';
+      this.currentUserId = 'anonymous';
+      return this.currentUserId;
     }
+  }
+
+  /**
+   * Setzt die aktuelle User-ID (sollte direkt nach Login aufgerufen werden)
+   * @param userId Die User-ID vom Backend
+   */
+  setCurrentUserId(userId: string): void {
+    this.currentUserId = userId;
+    console.log('[Speech] User ID set to:', userId);
+
+    // Terminal mit neuer User-ID re-registrieren
+    this.reRegisterTerminal().catch(err =>
+      console.warn('[Speech] Re-registration with new userId failed:', err)
+    );
+  }
+
+  /**
+   * Initialisiert den SpeechService nach dem Login
+   * (wichtig für späteres "always listening" Feature)
+   */
+  async initializeAfterLogin(userId: string): Promise<void> {
+    this.setCurrentUserId(userId);
+    console.log('[Speech] SpeechService initialized after login for user:', userId);
   }
 
 
@@ -920,7 +1033,6 @@ export class SpeechService {
       const userId = this.getCurrentUserId();
       const body: any = {
         userId,
-        terminalId: undefined,
         inputText: transcript,
         inputType: 'speech',
         context: {
@@ -995,5 +1107,69 @@ export class SpeechService {
       console.warn('[Speech] getUserMedia Aufruf nicht möglich:', error_?.message || error_);
       return null;
     }
+  }
+
+  // ========== ABORT FUNCTIONS ==========
+
+  /**
+   * Bricht die aktuelle Aufnahme/Verarbeitung vollständig ab
+   * Alle Verbindungen werden geschlossen, Status wird zurückgesetzt
+   */
+  public abortCurrentOperation(): void {
+    console.log('[Speech] Aborting current operation');
+
+    // Stop recording if active
+    if (this.isRecordingSubject.value || this.isServerRecording) {
+      this.forceStopRecording();
+    }
+
+    // Cancel pending validation/intent processing
+    if (this.pendingResultRejecter) {
+      this.pendingResultRejecter(new Error('Operation aborted by user'));
+    }
+
+    // Clear all timeouts
+    if (this.serverRecordingTimeout) {
+      clearTimeout(this.serverRecordingTimeout);
+      this.serverRecordingTimeout = undefined;
+    }
+
+    // Reset all subjects
+    this.isRecordingSubject.next(false);
+    this.lastInputSubject.next('');
+    this.awaitingClarification = false;
+    this.lastValidationResult = null;
+
+    // Close dialog
+    this.intentActionService.emitResult({
+      success: false,
+      message: 'Abgebrochen',
+      showDialog: false,
+      isLoading: false
+    });
+
+    this.displayStatus('Bereit');
+  }
+
+  /**
+   * Stoppt die Aufnahme sofort ohne Verarbeitung
+   */
+  private forceStopRecording(): void {
+    // Server recording cleanup
+    if (this.mediaRecorder?.state === 'recording') {
+      this.mediaRecorder.stop();
+      this.mediaRecorder = null;
+    }
+
+    // Stop all media tracks
+    if (this.lastMediaStream) {
+      for (const track of this.lastMediaStream.getTracks()) {
+        track.stop();
+      }
+      this.lastMediaStream = null;
+    }
+
+    this.isServerRecording = false;
+    this.recordedChunks = [];
   }
 }

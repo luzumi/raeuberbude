@@ -124,12 +124,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   /**
    * Toggle speech input recording
+   * Bei laufender Aufnahme: Beendet Aufnahme (Stop)
+   * Danach wird Verarbeitung gestartet - Button wird zum Abort-Button
    */
   async toggleSpeechInput(): Promise<void> {
     try {
       if (this.isRecording) {
+        // Stop recording - Verarbeitung beginnt
         await this.speechService.stopRecording();
+        this.lastSpeechInput = 'Verarbeite...';
       } else {
+        // Start recording
         await this.speechService.startRecording();
       }
     } catch (error) {
@@ -137,5 +142,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
       // Show user-friendly error message
       this.lastSpeechInput = `Fehler bei der Spracheingabe. Bitte erneut versuchen. ${error}`;
     }
+  }
+
+  /**
+   * Bricht die aktuelle Operation ab
+   * Wird aufgerufen wenn User während Verarbeitung abbricht
+   */
+  abortCurrentOperation(): void {
+    this.speechService.abortCurrentOperation();
+    this.lastSpeechInput = 'Abgebrochen';
   }
 }
