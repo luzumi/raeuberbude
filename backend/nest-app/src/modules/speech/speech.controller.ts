@@ -7,8 +7,8 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   Req,
+  Res,
   HttpStatus,
   HttpCode,
   Logger,
@@ -21,7 +21,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
   ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
@@ -38,6 +37,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { STTProviderService } from './stt/stt.provider';
 import { AudioConverterService } from './stt/audio-converter.service';
 import { memoryStorage } from 'multer';
+import { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 
 @ApiTags('speech')
 @Controller('api/speech')
@@ -60,25 +61,102 @@ export class SpeechController {
   @ApiResponse({ status: 201, description: 'Input created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient rights' })
-  async createInput(@Body() createDto: CreateHumanInputDto, @Req() req: any) {
+  async createInput(@Body() createDto: CreateHumanInputDto, @Req() req: Request) {
     // Rechteprüfung optional: über ENV steuerbar (Default: AUS)
     if (process.env.SPEECH_RIGHTS_ENABLED === 'true') {
       await this.rightsService.checkPermission(createDto.userId, 'speech.use');
     }
 
-    // Update terminal activity if provided
-    if (createDto.terminalId) {
-      await this.terminalsService.updateActivity(createDto.terminalId);
+    // Terminal aus Cookie auflösen, falls nicht im DTO enthalten
+    const cookieName = 'rb_terminal_id';
+    const cookieTerminalId = (req as any)?.cookies?.[cookieName] as string | undefined;
+    let publicTerminalIdForActivity: string | null = null;
+    if (!createDto.terminalId && cookieTerminalId) {
+      try {
+        const termDoc = await this.terminalsService.findByTerminalId(cookieTerminalId);
+        if (termDoc?._id) {
+          createDto.terminalId = String(termDoc._id);
+          publicTerminalIdForActivity = termDoc.terminalId;
+        }
+      } catch { /* Terminal nicht gefunden – ignorieren */ }
+    }
+
+    // Terminal-Aktivität aktualisieren (Public-ID bevorzugt)
+    try {
+      if (publicTerminalIdForActivity) {
+        await this.terminalsService.updateActivity(publicTerminalIdForActivity);
+      } else if (cookieTerminalId) {
+        await this.terminalsService.updateActivity(cookieTerminalId);
+      }
+    } catch (e) {
+      this.logger.warn('updateActivity failed', (e as any)?.message || e);
     }
 
     const input = await this.speechService.create(createDto);
     this.logger.log(`Created input from user ${createDto.userId}`);
-    
+
     return {
       success: true,
       data: input,
       message: 'Speech input recorded successfully',
     };
+  }
+
+  @Get('terminals/me')
+  @ApiOperation({ summary: 'Get terminal bound to current cookie (rb_terminal_id)' })
+  async getMyTerminal(@Req() req: Request) {
+    const cookieName = 'rb_terminal_id';
+    const cookieTerminalId = (req as any)?.cookies?.[cookieName] as string | undefined;
+    if (!cookieTerminalId) {
+      return {
+        success: false,
+        data: null,
+        message: 'No terminal cookie present',
+      };
+    }
+
+    try {
+      const terminal = await this.terminalsService.findByTerminalId(cookieTerminalId);
+      return { success: true, data: terminal };
+    } catch { return { success: false, data: null, message: 'Terminal not found for cookie' }; }
+  }
+
+  @Post('terminals/claim')
+  @ApiOperation({ summary: 'Bind current device to an existing terminalId (sets cookie)' })
+  async claimTerminal(
+    @Body('terminalId') terminalId: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (!terminalId) {
+      throw new BadRequestException('terminalId is required');
+    }
+    const existing = await this.terminalsService.findByTerminalId(terminalId);
+    const secure = (process.env.NODE_ENV === 'production');
+    const cookieName = 'rb_terminal_id';
+    res.cookie(cookieName, existing.terminalId, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure,
+      maxAge: 365 * 24 * 60 * 60 * 1000,
+    });
+    await this.terminalsService.updateActivity(existing.terminalId);
+    return { success: true, data: existing, message: 'Terminal claimed for this device' };
+  }
+
+  @Post('terminals/unclaim')
+  @ApiOperation({ summary: 'Unbind current device from terminal (clears cookie)' })
+  async unclaimTerminal(
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const cookieName = 'rb_terminal_id';
+    const secure = (process.env.NODE_ENV === 'production');
+    res.clearCookie(cookieName, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure,
+    });
+    return { success: true, message: 'Terminal unclaimed for this device' };
   }
 
   @Get('inputs')
@@ -103,9 +181,9 @@ export class SpeechController {
   ) {
     const filters = { userId, terminalId, status, inputType, startDate, endDate };
     const options = { limit, skip };
-    
+
     const inputs = await this.speechService.findAll(filters, options);
-    
+
     return {
       success: true,
       data: inputs,
@@ -118,7 +196,7 @@ export class SpeechController {
   @ApiQuery({ name: 'count', required: false, type: Number })
   async getLatestInputs(@Query('count') count: number = 10) {
     const inputs = await this.speechService.findLatest(count);
-    
+
     return {
       success: true,
       data: inputs,
@@ -135,7 +213,7 @@ export class SpeechController {
     @Query('skip') skip?: number,
   ) {
     const inputs = await this.speechService.findByUser(userId, { limit, skip });
-    
+
     return {
       success: true,
       data: inputs,
@@ -148,7 +226,7 @@ export class SpeechController {
   @ApiParam({ name: 'id', description: 'Input ID' })
   async getInput(@Param('id') id: string) {
     const input = await this.speechService.findOne(id);
-    
+
     return {
       success: true,
       data: input,
@@ -175,7 +253,7 @@ export class SpeechController {
         'audio/x-wav',
         'audio/x-m4a',
       ];
-      
+
       if (allowedMimes.includes(file.mimetype)) {
         callback(null, true);
       } else {
@@ -198,10 +276,21 @@ export class SpeechController {
         throw new BadRequestException('No audio file provided');
       }
 
+      // Vorab: Status prüfen – schneller Fehler statt langer Timeout-Kette
+      const providerStatus = await this.sttProvider.getProvidersStatus();
+      const anyUp = Object.values(providerStatus).includes(true);
+      if (!anyUp) {
+        return {
+          success: false,
+          error: 'stt_unavailable',
+          message: 'Kein STT Provider verfügbar',
+          providers: providerStatus,
+        };
+      }
+
       this.logger.log(`Received audio for transcription: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
 
-      // Validate audio duration
-      const maxDuration = maxDurationMs ? parseInt(maxDurationMs, 10) : 30000;
+      const maxDuration = maxDurationMs ? Number.parseInt(maxDurationMs, 10) : 30000;
       const validation = await this.audioConverter.validateAudio(
         file.buffer,
         file.mimetype,
@@ -232,25 +321,40 @@ export class SpeechController {
         },
       };
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
+      const msg = (error as any)?.message || '';
 
-      this.logger.error(`Transcription failed: ${error.message}`, error.stack);
-      
-      if (error.message.includes('timeout') || error.message.includes('unavailable')) {
-        throw new InternalServerErrorException({
+      // Spezielle Behandlung: Alle Provider down
+      if (msg.includes('All STT providers failed')) {
+        const status = await this.sttProvider.getProvidersStatus().catch(() => ({}));
+        this.logger.warn('STT unavailable for request');
+        return {
           success: false,
-          error: 'STT service temporarily unavailable',
-          message: error.message,
-        });
+          error: 'stt_unavailable',
+          message: 'Alle STT Provider nicht verfügbar',
+          providers: status,
+        };
       }
 
-      throw new InternalServerErrorException({
+      if (error instanceof BadRequestException) {
+        throw error; // unverändert weiterreichen
+      }
+
+      this.logger.error(`Transcription failed: ${msg}`, (error as any)?.stack);
+
+      // Service temporär nicht erreichbar / Timeout
+      if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('unavailable')) {
+        return {
+          success: false,
+          error: 'stt_timeout',
+          message: 'STT Dienst vorübergehend nicht erreichbar',
+        };
+      }
+
+      return {
         success: false,
-        error: 'Transcription failed',
-        message: error.message,
-      });
+        error: 'stt_failure',
+        message: msg || 'Transcription failed',
+      };
     }
   }
 
@@ -259,7 +363,7 @@ export class SpeechController {
   @ApiResponse({ status: 200, description: 'Provider status retrieved' })
   async getTranscribeStatus() {
     const status = await this.sttProvider.getProvidersStatus();
-    
+
     return {
       success: true,
       data: {
@@ -281,7 +385,7 @@ export class SpeechController {
     @Body() updateDto: UpdateHumanInputDto,
   ) {
     const input = await this.speechService.update(id, updateDto);
-    
+
     return {
       success: true,
       data: input,
@@ -302,7 +406,7 @@ export class SpeechController {
   @ApiQuery({ name: 'userId', required: false })
   async getInputStats(@Query('userId') userId?: string) {
     const stats = await this.speechService.getStatistics(userId);
-    
+
     return {
       success: true,
       data: stats,
@@ -316,7 +420,7 @@ export class SpeechController {
   @ApiOperation({ summary: 'Create a new app terminal' })
   async createTerminal(@Body() createDto: CreateAppTerminalDto) {
     const terminal = await this.terminalsService.create(createDto);
-    
+
     return {
       success: true,
       data: terminal,
@@ -326,9 +430,35 @@ export class SpeechController {
 
   @Post('terminals/register')
   @ApiOperation({ summary: 'Register or update a terminal' })
-  async registerTerminal(@Body() terminalData: any) {
+  async registerTerminal(@Body() terminalData: any, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
-      const terminal = await this.terminalsService.registerTerminal(terminalData);
+      const cookieName = 'rb_terminal_id';
+      let termId = (req as any)?.cookies?.[cookieName] as string | undefined;
+      if (!termId) {
+        termId = randomUUID();
+        const secure = (process.env.NODE_ENV === 'production');
+        res.cookie(cookieName, termId, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure,
+          maxAge: 365 * 24 * 60 * 60 * 1000, // 1 Jahr
+        });
+      } else {
+        // Refresh cookie expiration
+        const secure = (process.env.NODE_ENV === 'production');
+        res.cookie(cookieName, termId, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure,
+          maxAge: 365 * 24 * 60 * 60 * 1000,
+        });
+      }
+
+      const terminal = await this.terminalsService.registerTerminal({
+        ...terminalData,
+        terminalId: termId,
+      });
+
       return {
         success: true,
         data: terminal,
@@ -338,7 +468,7 @@ export class SpeechController {
       this.logger.error('registerTerminal failed', err?.stack || err);
       // Bekannte Nest-HTTP-Exceptions durchreichen, Unbekannte als 500 melden
       if (err && typeof err.getStatus === 'function') throw err;
-      throw new InternalServerErrorException(err?.message || 'Failed to register terminal');
+      throw new InternalServerErrorException(err?.message || 'Failed to claim terminal');
     }
   }
 
@@ -354,7 +484,6 @@ export class SpeechController {
   ) {
     const filters = { type, status, location };
     const terminals = await this.terminalsService.findAll(filters);
-    
     return {
       success: true,
       data: terminals,
@@ -366,7 +495,7 @@ export class SpeechController {
   @ApiOperation({ summary: 'Get active terminals' })
   async getActiveTerminals() {
     const terminals = await this.terminalsService.getActiveTerminals();
-    
+
     return {
       success: true,
       data: terminals,
@@ -378,7 +507,7 @@ export class SpeechController {
   @ApiOperation({ summary: 'Get terminal statistics' })
   async getTerminalStats() {
     const stats = await this.terminalsService.getStatistics();
-    
+
     return {
       success: true,
       data: stats,
@@ -390,7 +519,7 @@ export class SpeechController {
   @ApiParam({ name: 'id', description: 'Terminal ID or terminalId' })
   async getTerminal(@Param('id') id: string) {
     const terminal = await this.terminalsService.findOne(id);
-    
+
     return {
       success: true,
       data: terminal,
@@ -405,7 +534,7 @@ export class SpeechController {
     @Body() updateDto: UpdateAppTerminalDto,
   ) {
     const terminal = await this.terminalsService.update(id, updateDto);
-    
+
     return {
       success: true,
       data: terminal,
@@ -421,7 +550,7 @@ export class SpeechController {
     @Body('status') status: 'active' | 'inactive' | 'maintenance',
   ) {
     const terminal = await this.terminalsService.setStatus(id, status);
-    
+
     return {
       success: true,
       data: terminal,
@@ -437,7 +566,7 @@ export class SpeechController {
     @Body('userId') userId: string | null,
   ) {
     const terminal = await this.terminalsService.assignUser(id, userId);
-    
+
     return {
       success: true,
       data: terminal,
@@ -460,7 +589,7 @@ export class SpeechController {
   @ApiOperation({ summary: 'Create user rights' })
   async createRights(@Body() createDto: CreateUserRightsDto) {
     const rights = await this.rightsService.create(createDto);
-    
+
     return {
       success: true,
       data: rights,
@@ -478,7 +607,7 @@ export class SpeechController {
   ) {
     const filters = { role, status };
     const rights = await this.rightsService.findAll(filters);
-    
+
     return {
       success: true,
       data: rights,
@@ -490,7 +619,7 @@ export class SpeechController {
   @ApiOperation({ summary: 'Get rights statistics' })
   async getRightsStats() {
     const stats = await this.rightsService.getRoleStatistics();
-    
+
     return {
       success: true,
       data: stats,
@@ -502,7 +631,7 @@ export class SpeechController {
   @ApiParam({ name: 'userId', description: 'User ID' })
   async getUserRights(@Param('userId') userId: string) {
     const rights = await this.rightsService.findByUserId(userId);
-    
+
     return {
       success: true,
       data: rights,
@@ -517,7 +646,7 @@ export class SpeechController {
     @Body() updateDto: UpdateUserRightsDto,
   ) {
     const rights = await this.rightsService.update(userId, updateDto);
-    
+
     return {
       success: true,
       data: rights,
@@ -533,7 +662,7 @@ export class SpeechController {
     @Body('role') role: string,
   ) {
     const rights = await this.rightsService.assignRole(userId, role);
-    
+
     return {
       success: true,
       data: rights,
@@ -549,7 +678,7 @@ export class SpeechController {
     @Body('permission') permission: string,
   ) {
     const rights = await this.rightsService.grantPermission(userId, permission);
-    
+
     return {
       success: true,
       data: rights,
@@ -565,7 +694,7 @@ export class SpeechController {
     @Body('permission') permission: string,
   ) {
     const rights = await this.rightsService.revokePermission(userId, permission);
-    
+
     return {
       success: true,
       data: rights,
@@ -581,7 +710,7 @@ export class SpeechController {
     @Body('reason') reason?: string,
   ) {
     const rights = await this.rightsService.suspendUser(userId, reason);
-    
+
     return {
       success: true,
       data: rights,
@@ -594,7 +723,7 @@ export class SpeechController {
   @ApiParam({ name: 'userId', description: 'User ID' })
   async activateUser(@Param('userId') userId: string) {
     const rights = await this.rightsService.activateUser(userId);
-    
+
     return {
       success: true,
       data: rights,
@@ -619,7 +748,7 @@ export class SpeechController {
     @Param('permission') permission: string,
   ) {
     const hasPermission = await this.rightsService.hasPermission(userId, permission);
-    
+
     return {
       success: true,
       hasPermission,

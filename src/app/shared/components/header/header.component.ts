@@ -3,9 +3,11 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, NgOptimizedImage, Location } from '@angular/common';
 import { Router } from '@angular/router';
+import { SpeechFeedbackComponent } from '../speech-feedback/speech-feedback.component';
 import { AppButtonComponent } from '../app-button/app-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
 import { SpeechService } from '../../../core/services/speech.service';
+import { TerminalService } from '../../../core/services/terminal.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -17,6 +19,7 @@ import { takeUntil } from 'rxjs/operators';
     AppButtonComponent,
     LogoutButtonComponent,
     NgOptimizedImage,
+    SpeechFeedbackComponent,
   ],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
@@ -31,15 +34,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
   /** Letzte Spracheingabe für Marquee-Anzeige */
   lastSpeechInput = '';
 
-  private destroy$ = new Subject<void>();
+  /** Anzeigename des aktuellen Terminals */
+  terminalName = '';
+
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private readonly router: Router,
     private readonly location: Location,
-    private readonly speechService: SpeechService
+    private readonly speechService: SpeechService,
+    private readonly terminalService: TerminalService,
   ) {}
 
   ngOnInit(): void {
+    // Aktiviere Validierung und TTS
+    this.speechService.setValidationEnabled(true);
+    this.speechService.setTTSEnabled(true);
+
     // Subscribe to last speech input updates
     this.speechService.lastInput$
       .pipe(takeUntil(this.destroy$))
@@ -60,6 +71,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(status => {
         this.isRecording = status;
+      });
+
+    // Terminal-Name laden (falls Gerät bereits zugewiesen ist)
+    this.terminalService.getMyTerminal()
+      .then(res => {
+        this.terminalName = res?.data?.terminalId || '';
+      })
+      .catch(() => {
+        this.terminalName = '';
       });
   }
 
@@ -86,8 +106,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
    * Navigiert zur vorherigen Seite.
    */
   goBack(): void {
-    this.location.back();       // inform parent components
-    this.location.back();  // navigate to previous page
+    this.location.back();
   }
 
   /** Methode: Benutzer-Icon anklicken */
@@ -105,18 +124,32 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   /**
    * Toggle speech input recording
+   * Bei laufender Aufnahme: Beendet Aufnahme (Stop)
+   * Danach wird Verarbeitung gestartet - Button wird zum Abort-Button
    */
   async toggleSpeechInput(): Promise<void> {
     try {
       if (this.isRecording) {
+        // Stop recording - Verarbeitung beginnt
         await this.speechService.stopRecording();
+        this.lastSpeechInput = 'Verarbeite...';
       } else {
+        // Start recording
         await this.speechService.startRecording();
       }
     } catch (error) {
       console.error('Speech input error:', error);
       // Show user-friendly error message
-      this.lastSpeechInput = 'Fehler bei der Spracheingabe. Bitte erneut versuchen.' + error;
+      this.lastSpeechInput = `Fehler bei der Spracheingabe. Bitte erneut versuchen. ${error}`;
     }
+  }
+
+  /**
+   * Bricht die aktuelle Operation ab
+   * Wird aufgerufen wenn User während Verarbeitung abbricht
+   */
+  abortCurrentOperation(): void {
+    this.speechService.abortCurrentOperation();
+    this.lastSpeechInput = 'Abgebrochen';
   }
 }

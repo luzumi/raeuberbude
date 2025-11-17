@@ -51,7 +51,7 @@ curl -X POST http://localhost:4300/agents/planning/backlog \
     "type": "PRIORITIZE_BACKLOG",
     "payload": {
       "user_stories": "${USER_STORIES}",
-      "priority_criteria": ["business_value", "complexity", "dependencies"]
+      "priority_criteria": ["business_value", "complexity", "dependencies", "test"]
     }
   }'
 ```

@@ -12,8 +12,9 @@
     <span class="greeting-line">{{ userName }} -> {{ greeting }}!</span>
   </div>
 
-  <!-- Mitte: absolut zentrierter Mikrofon-Button -->
+  <!-- Mitte: Terminalname + Mikrofon-Button -->
   <div class="center">
+    <div class="terminal-name" *ngIf="terminalName as tname">{{ tname }}</div>
     <div class="speech-button">
       <app-button
         name="Sprache"
@@ -26,6 +27,7 @@
         hoverAnimColorRgb="255, 87, 34"
       ></app-button>
     </div>
+
   </div>
 
   <!-- Rechts: Settings + Logout nebeneinander -->
@@ -49,3 +51,7 @@
   </div>
 </div>
 </header>
+
+<!-- Speech Validation Feedback (nur bei Nachfragen) -->
+<app-speech-feedback></app-speech-feedback>
+

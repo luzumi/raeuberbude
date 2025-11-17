@@ -68,6 +68,19 @@
             },
             "development": {
               "buildTarget": "raeuberbude:build:development"
+            },
+            "network": {
+              "buildTarget": "raeuberbude:build:development",
+              "host": "0.0.0.0",
+              "port": 4301
+            },
+            "https": {
+              "buildTarget": "raeuberbude:build:development",
+              "ssl": true,
+              "sslCert": "ssl/localhost.crt",
+              "sslKey": "ssl/localhost.key",
+              "host": "0.0.0.0",
+              "port": 4200
             }
           },
           "defaultConfiguration": "development"

@@ -5,6 +5,7 @@ import { UsersModule } from './users/users.module';
 import { HealthModule } from './health/health.module';
 import { HomeAssistantModule } from './modules/homeassistant/homeassistant.module';
 import { SpeechModule } from './modules/speech/speech.module';
+import { BootstrapService } from './bootstrap/bootstrap.service';
 
 function buildMongoUri(config: ConfigService): string {
   const direct = config.get<string>('MONGO_URI');
@@ -12,7 +13,7 @@ function buildMongoUri(config: ConfigService): string {
 
   const host = config.get<string>('MONGO_HOST', 'localhost');
   const port = config.get<string>('MONGO_PORT', '27017');
-  const db = config.get<string>('MONGO_DB', 'raueberbude');
+  const db = config.get<string>('MONGO_DB', 'raeuberbude');
   const user = config.get<string>('MONGO_USER');
   const pass = config.get<string>('MONGO_PASSWORD');
   const authSource = config.get<string>('MONGO_AUTH_SOURCE', 'admin');
@@ -45,5 +46,6 @@ function buildMongoUri(config: ConfigService): string {
     HomeAssistantModule,
     SpeechModule,
   ],
+  providers: [BootstrapService],
 })
 export class AppModule {}

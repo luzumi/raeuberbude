@@ -9,7 +9,7 @@ interface PcCommand {
   description: string;
   service: string;
   domain: string;
-  serviceData?: any;
+  serviceData?: Record<string, unknown>;
   tested?: boolean;
   testSuccess?: boolean;
   bookmarked?: boolean;
@@ -53,7 +53,7 @@ export class Creator implements OnInit, OnDestroy {
   spyScreenshotUrl = '';
   imageLoadStatus = 'Warte auf Bild...';
   imageErrorMessage = '';
-  timeout: number = 2000;
+  readonly timeout: number = 2000;
   private screenshotRefreshInterval?: number;
   private errorDebounceTimer?: number;
   private consecutiveErrors = 0;
@@ -94,11 +94,11 @@ export class Creator implements OnInit, OnDestroy {
     try {
       // Hole alle Entities von Home Assistant
       const entities = await firstValueFrom(this.hass.getStatesWs());
-      console.log('[PC] Alle Entities geladen:', entities.length);
+      console.debug('[PC] Alle Entities geladen:', entities.length);
 
       // Filtere PC-relevante Entities
       const pcEntities = entities.filter(e => this.isPcEntity(e.entity_id));
-      console.log('[PC] PC-relevante Entities gefunden:', pcEntities.length, pcEntities.map(e => e.entity_id));
+      console.debug('[PC] PC-relevante Entities gefunden:', pcEntities.length, pcEntities.map(e => e.entity_id));
 
       if (pcEntities.length === 0) {
         this.loadError = 'Keine CREATOR-Z590-P1 Entities gefunden. Stelle sicher, dass HASS.Agent auf dem PC läuft und Entities mit "creator_z590_p1" oder "creator-z590-p1" im Namen existieren.';
@@ -114,7 +114,7 @@ export class Creator implements OnInit, OnDestroy {
         this.commands.push(...commands);
       }
 
-      console.log('[PC] Befehle erstellt:', this.commands.length);
+      console.debug('[PC] Befehle erstellt:', this.commands.length);
 
       // Lade gespeicherte Bookmarks
       this.loadBookmarks();
@@ -392,13 +392,13 @@ export class Creator implements OnInit, OnDestroy {
 
     // Sensoren können nicht ausgeführt werden
     if (cmd.service === 'none') {
-      console.log('[PC] Sensor-Entity, keine Aktion möglich:', cmd.entityId);
+      console.debug('[PC] Sensor-Entity, keine Aktion möglich:', cmd.entityId);
       return;
     }
 
     // Spezialbehandlung für Starte_Spy Button (robuster Vergleich)
     if (cmd.entityId && cmd.entityId.toLowerCase().includes('starte_spy')) {
-      console.log('[PC] Starte_Spy Button erkannt, öffne Dialog...');
+      console.debug('[PC] Starte_Spy Button erkannt, öffne Dialog...');
       await this.startSpy();
       cmd.tested = true;
       cmd.testSuccess = true;
@@ -409,12 +409,12 @@ export class Creator implements OnInit, OnDestroy {
     cmd.tested = true;
 
     try {
-      console.log(`[PC] Führe Befehl aus: ${cmd.domain}.${cmd.service}`, cmd.serviceData);
+      console.debug(`[PC] Führe Befehl aus: ${cmd.domain}.${cmd.service}`, cmd.serviceData);
       const response = await firstValueFrom(
         this.hass.callService(cmd.domain, cmd.service, cmd.serviceData || {})
       );
       cmd.testSuccess = response.success;
-      console.log(`[PC] ✅ Befehl ${cmd.command} erfolgreich:`, response);
+      console.debug(`[PC] ✅ Befehl ${cmd.command} erfolgreich:`, response);
     } catch (error) {
       cmd.testSuccess = false;
       console.error(`[PC] ❌ Befehl ${cmd.command} fehlgeschlagen:`, error);
@@ -426,7 +426,7 @@ export class Creator implements OnInit, OnDestroy {
   /** Startet das Spy-Script und öffnet den Screenshot-Dialog */
   async startSpy(): Promise<void> {
     try {
-      console.log('[PC] Starte Spy-Script...');
+      console.debug('[PC] Starte Spy-Script...');
 
       // Sende Starte-Spy Befehl
       await firstValueFrom(
@@ -435,16 +435,16 @@ export class Creator implements OnInit, OnDestroy {
         })
       );
 
-      console.log('[PC] ✅ Spy-Script gestartet');
+      console.debug('[PC] ✅ Spy-Script gestartet');
 
       // Öffne Dialog
-      console.log('[PC] Setze showSpyDialog auf true...');
+      console.debug('[PC] Setze showSpyDialog auf true...');
       this.showSpyDialog = true;
-      console.log('[PC] showSpyDialog ist jetzt:', this.showSpyDialog);
+      console.debug('[PC] showSpyDialog ist jetzt:', this.showSpyDialog);
 
       // Starte Screenshot-Refresh (alle 500ms)
       this.startScreenshotRefresh();
-      console.log('[PC] Screenshot-Refresh gestartet, URL:', this.spyScreenshotUrl);
+      console.debug('[PC] Screenshot-Refresh gestartet, URL:', this.spyScreenshotUrl);
 
     } catch (error) {
       console.error('[PC] ❌ Fehler beim Starten des Spy-Scripts:', error);
@@ -454,7 +454,7 @@ export class Creator implements OnInit, OnDestroy {
   /** Stoppt das Spy-Script */
   async stopSpy(): Promise<void> {
     try {
-      console.log('[PC] Stoppe Spy-Script...');
+      console.debug('[PC] Stoppe Spy-Script...');
 
       // Stoppe Screenshot-Refresh
       this.stopScreenshotRefresh();
@@ -466,7 +466,7 @@ export class Creator implements OnInit, OnDestroy {
         })
       );
 
-      console.log('[PC] ✅ Spy-Script gestoppt');
+      console.debug('[PC] ✅ Spy-Script gestoppt');
 
     } catch (error) {
       console.error('[PC] ❌ Fehler beim Stoppen des Spy-Scripts:', error);
@@ -509,7 +509,7 @@ export class Creator implements OnInit, OnDestroy {
     preloadImg.onload = () => {
       // Bild erfolgreich geladen → setze URL
       this.spyScreenshotUrl = newUrl;
-      console.log('[PC] 📸 Screenshot preloaded und aktualisiert');
+      console.debug('[PC] 📸 Screenshot preloaded und aktualisiert');
     };
 
     preloadImg.onerror = () => {
@@ -585,7 +585,7 @@ export class Creator implements OnInit, OnDestroy {
       this.errorDebounceTimer = undefined;
     }
 
-    console.log('[PC] 🖼️ Screenshot erfolgreich geladen');
+    console.debug('[PC] 🖼️ Screenshot erfolgreich geladen');
   }
 
   /** Image Error Handler - MIT DEBOUNCING */
@@ -595,7 +595,7 @@ export class Creator implements OnInit, OnDestroy {
     // Nur bei wiederholten Fehlern (3+) eine Meldung anzeigen
     // Verhindert Flackern bei kurzzeitigen Ladefehlern
     if (this.consecutiveErrors < 3) {
-      console.log(`[PC] ⚠️ Bild-Ladefehler #${this.consecutiveErrors} (ignoriert, warte auf Wiederholung)`);
+      console.debug(`[PC] ⚠️ Bild-Ladefehler #${this.consecutiveErrors} (ignoriert, warte auf Wiederholung)`);
       return;
     }
 
@@ -641,13 +641,13 @@ export class Creator implements OnInit, OnDestroy {
 
     // Versuche zusätzlich den Stoppe_Spy Button auszulösen (Sicherheit)
     try {
-      console.log('[PC] Stoppe Spy-Script vor dem Zurückkehren...');
+      console.debug('[PC] Stoppe Spy-Script vor dem Zurückkehren...');
       await firstValueFrom(
         this.hass.callService('button', 'press', {
           entity_id: this.STOPPE_SPY_ENTITY
         })
       );
-      console.log('[PC] ✅ Spy-Script gestoppt');
+      console.debug('[PC] ✅ Spy-Script gestoppt');
     } catch (error) {
       console.warn('[PC] ⚠️ Konnte Spy-Script nicht stoppen:', error);
       // Fehler nicht weiterwerfen, damit der Zurück-Button trotzdem funktioniert

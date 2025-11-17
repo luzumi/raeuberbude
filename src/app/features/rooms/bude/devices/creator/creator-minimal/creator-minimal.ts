@@ -538,7 +538,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       if (s && this.isSpyEntityIdSafe(s)) this.spyStartAction = this.toActionById(s);
       if (p && this.isSpyEntityIdSafe(p)) this.spyStopAction = this.toActionById(p);
       if (s || p) console.debug('[CreatorMinimal] loaded spy overrides from localStorage', { s, p });
-    } catch {}
+    } catch {
+      // no-op: localStorage may be unavailable (privacy/SSR); override is optional
+    }
   }
 
   private isSpyEntityIdSafe(entityId: string): boolean {
@@ -566,7 +568,9 @@ export class CreatorMinimal implements OnInit, OnDestroy {
       const override = localStorage.getItem('ha.guardBootMs');
       const n = override ? Number.parseInt(override, 10) : NaN;
       if (Number.isFinite(n) && n >= 0) guardMs = n;
-    } catch {}
+    } catch {
+      // no-op: on storage access failure keep defaultBootMs as guard window
+    }
     const active = (now - this.componentInitMs) < guardMs;
     if (active) {
       console.debug('[CreatorMinimal][GUARD] Boot-Fenster aktiv – Spy-Autostart unterdrückt');

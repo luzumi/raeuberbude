@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -13,7 +13,11 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { environment } from '../../../../environments/environment';
+import { Router } from '@angular/router';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatOptionModule } from '@angular/material/core';
+import {HeaderComponent} from '@shared/components/header/header.component';
+import { firstValueFrom } from 'rxjs';
 
 interface UserRights {
   _id?: string;
@@ -59,7 +63,10 @@ interface Terminal {
     MatTabsModule,
     MatCheckboxModule,
     MatChipsModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatAutocompleteModule,
+    MatOptionModule,
+    HeaderComponent,
   ],
   templateUrl: './rights-management.component.html',
   styleUrls: ['./rights-management.component.scss']
@@ -68,12 +75,18 @@ export class RightsManagementComponent implements OnInit {
   userRights: UserRights[] = [];
   terminals: Terminal[] = [];
   users: any[] = [];
+  locations: string[] = [];
+  permissionsCtrl = new FormControl<string>('');
+  filteredPermissions: { key: string; label: string }[] = [];
 
   rightsForm: FormGroup;
   terminalForm: FormGroup;
 
   selectedUserRights: UserRights | null = null;
   selectedTerminal: Terminal | null = null;
+
+  // 0 = Benutzerrechte, 1 = Terminals
+  selectedTabIndex = 0;
 
   roles = ['admin', 'manager', 'regular', 'guest', 'terminal'];
   terminalTypes = ['browser', 'mobile', 'tablet', 'kiosk', 'smart-tv', 'other'];
@@ -96,18 +109,36 @@ export class RightsManagementComponent implements OnInit {
     { key: 'system.admin', label: 'System-Admin' },
   ];
 
-  private apiUrl = `${environment.apiUrl || 'http://localhost:3001'}/api`;
+  // Absolute API bases (work both when app runs on :4301 or within MCP :4200)
+  private readonly nestBase: string;
+  private readonly speechApiBase: string;
+  private readonly usersApiBase: string;
 
   constructor(
-    private fb: FormBuilder,
-    private http: HttpClient,
-    private snackBar: MatSnackBar
+    private readonly fb: FormBuilder,
+    private readonly http: HttpClient,
+    private readonly snackBar: MatSnackBar,
+    private readonly router: Router,
   ) {
     this.rightsForm = this.createRightsForm();
     this.terminalForm = this.createTerminalForm();
+    const host = (globalThis as any)?.location?.hostname || 'localhost';
+    const port = 3001;
+    this.nestBase = `http://${host}:${port}`;
+    this.speechApiBase = `${this.nestBase}/api/speech`;
+    this.usersApiBase = `${this.nestBase}/users`;
+    this.permissionsCtrl.valueChanges.subscribe((q) => this.applyPermFilter(q || ''));
+    this.applyPermFilter('');
   }
 
   ngOnInit(): void {
+    // Select tab based on route
+    const url = this.router.url || '';
+    if (url.includes('/admin/terminals')) {
+      this.selectedTabIndex = 1;
+    } else {
+      this.selectedTabIndex = 0;
+    }
     this.loadData();
   }
 
@@ -115,7 +146,7 @@ export class RightsManagementComponent implements OnInit {
     return this.fb.group({
       userId: ['', Validators.required],
       role: ['regular', Validators.required],
-      permissions: [[]],
+      permissions: [],
       canUseSpeechInput: [true],
       canManageTerminals: [false],
       canManageUsers: [false],
@@ -123,7 +154,7 @@ export class RightsManagementComponent implements OnInit {
       canViewAllInputs: [false],
       canDeleteInputs: [false],
       status: ['active'],
-      allowedTerminals: [[]]
+      allowedTerminals: []
     });
   }
 
@@ -134,22 +165,28 @@ export class RightsManagementComponent implements OnInit {
       type: ['browser', Validators.required],
       status: ['active', Validators.required],
       location: [''],
-      assignedUserId: ['']
+      assignedUserId: [null]
     });
   }
 
   async loadData(): Promise<void> {
     try {
       // Load user rights
-      const rightsResponse = await this.http.get<any>(`${this.apiUrl}/speech/rights`).toPromise();
-      this.userRights = rightsResponse.data || [];
+      const rightsResponse = await firstValueFrom(this.http.get<any>(`${this.speechApiBase}/rights`, { withCredentials: true }));
+      this.userRights = rightsResponse?.data || [];
 
       // Load terminals
-      const terminalsResponse = await this.http.get<any>(`${this.apiUrl}/speech/terminals`).toPromise();
-      this.terminals = terminalsResponse.data || [];
+      const terminalsResponse = await firstValueFrom(this.http.get<any>(`${this.speechApiBase}/terminals`, { withCredentials: true }));
+      this.terminals = terminalsResponse?.data || [];
+      // derive distinct locations
+      this.locations = Array.from(new Set((this.terminals || [])
+        .map((t: any) => t.location)
+        .filter((x: any) => !!x)))
+        .map(String)
+        .sort((a: string, b: string) => a.localeCompare(b));
 
       // Load users
-      const usersResponse = await this.http.get<any[]>(`${this.apiUrl}/users`).toPromise();
+      const usersResponse = await firstValueFrom(this.http.get<any[]>(`${this.usersApiBase}`, { withCredentials: true }));
       this.users = usersResponse || [];
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -173,6 +210,7 @@ export class RightsManagementComponent implements OnInit {
       status: rights.status,
       allowedTerminals: rights.allowedTerminals.map(t => t._id || t)
     });
+    this.applyPermFilter('');
   }
 
   async saveUserRights(): Promise<void> {
@@ -182,17 +220,35 @@ export class RightsManagementComponent implements OnInit {
     }
 
     const formData = this.rightsForm.value;
+    // Sanitize payload
+    const payload: any = { ...formData };
+    payload.permissions = Array.isArray(payload.permissions) ? payload.permissions : [];
+    payload.allowedTerminals = Array.isArray(payload.allowedTerminals)
+      ? payload.allowedTerminals.map((t: any) => (t?._id || t)).filter(Boolean)
+      : [];
 
     try {
       if (this.selectedUserRights) {
         // Update existing rights
         const userId = this.selectedUserRights.userId?._id || this.selectedUserRights.userId;
-        await this.http.put(`${this.apiUrl}/speech/rights/user/${userId}`, formData).toPromise();
+        await firstValueFrom(this.http.put(`${this.speechApiBase}/rights/user/${userId}`, payload, { withCredentials: true }));
         this.showMessage('Benutzerrechte aktualisiert', 'success');
       } else {
         // Create new rights
-        await this.http.post(`${this.apiUrl}/speech/rights`, formData).toPromise();
-        this.showMessage('Benutzerrechte erstellt', 'success');
+        try {
+          await firstValueFrom(this.http.post(`${this.speechApiBase}/rights`, payload, { withCredentials: true }));
+          this.showMessage('Benutzerrechte erstellt', 'success');
+        } catch (err: any) {
+          const msg = err?.error?.message || err?.message || '';
+          // Fallback: wenn Rechte existieren, auf Update wechseln
+          if (typeof msg === 'string' && msg.includes('User rights already exist')) {
+            const userId = payload.userId?._id || payload.userId;
+            await firstValueFrom(this.http.put(`${this.speechApiBase}/rights/user/${userId}`, payload, { withCredentials: true }));
+            this.showMessage('Benutzerrechte aktualisiert (existierten bereits)', 'success');
+          } else {
+            throw err;
+          }
+        }
       }
 
       this.resetRightsForm();
@@ -210,7 +266,7 @@ export class RightsManagementComponent implements OnInit {
 
     try {
       const userId = rights.userId?._id || rights.userId;
-      await this.http.delete(`${this.apiUrl}/speech/rights/user/${userId}`).toPromise();
+      await firstValueFrom(this.http.delete(`${this.speechApiBase}/rights/user/${userId}`, { withCredentials: true }));
       this.showMessage('Benutzerrechte gelöscht', 'success');
       this.loadData();
     } catch (error) {
@@ -221,7 +277,7 @@ export class RightsManagementComponent implements OnInit {
 
   async assignRole(userId: string, role: string): Promise<void> {
     try {
-      await this.http.put(`${this.apiUrl}/speech/rights/user/${userId}/role`, { role }).toPromise();
+      await firstValueFrom(this.http.put(`${this.speechApiBase}/rights/user/${userId}/role`, { role }, { withCredentials: true }));
       this.showMessage(`Rolle ${role} zugewiesen`, 'success');
       this.loadData();
     } catch (error) {
@@ -236,11 +292,11 @@ export class RightsManagementComponent implements OnInit {
 
     try {
       if (newStatus === 'suspended') {
-        await this.http.put(`${this.apiUrl}/speech/rights/user/${userId}/suspend`, {
+        await firstValueFrom(this.http.put(`${this.speechApiBase}/rights/user/${userId}/suspend`, {
           reason: 'Admin action'
-        }).toPromise();
+        }, { withCredentials: true }));
       } else {
-        await this.http.put(`${this.apiUrl}/speech/rights/user/${userId}/activate`, {}).toPromise();
+        await firstValueFrom(this.http.put(`${this.speechApiBase}/rights/user/${userId}/activate`, {}, { withCredentials: true }));
       }
       this.showMessage(`Benutzer ${newStatus === 'active' ? 'aktiviert' : 'gesperrt'}`, 'success');
       this.loadData();
@@ -280,16 +336,23 @@ export class RightsManagementComponent implements OnInit {
     }
 
     const formData = this.terminalForm.value;
+    const payload: any = { ...formData };
+    // Normalize optional fields
+    if (payload.assignedUserId === '' || payload.assignedUserId === null) {
+      delete payload.assignedUserId;
+    }
+    if (typeof payload.terminalId === 'string') payload.terminalId = payload.terminalId.trim();
+    if (typeof payload.name === 'string') payload.name = payload.name.trim();
 
     try {
       if (this.selectedTerminal) {
         // Update existing terminal
         const id = this.selectedTerminal._id || this.selectedTerminal.terminalId;
-        await this.http.put(`${this.apiUrl}/speech/terminals/${id}`, formData).toPromise();
+        await firstValueFrom(this.http.put(`${this.speechApiBase}/terminals/${id}`, payload, { withCredentials: true }));
         this.showMessage('Terminal aktualisiert', 'success');
       } else {
         // Create new terminal
-        await this.http.post(`${this.apiUrl}/speech/terminals`, formData).toPromise();
+        await firstValueFrom(this.http.post(`${this.speechApiBase}/terminals`, payload, { withCredentials: true }));
         this.showMessage('Terminal erstellt', 'success');
       }
 
@@ -308,7 +371,7 @@ export class RightsManagementComponent implements OnInit {
 
     try {
       const id = terminal._id || terminal.terminalId;
-      await this.http.delete(`${this.apiUrl}/speech/terminals/${id}`).toPromise();
+      await firstValueFrom(this.http.delete(`${this.speechApiBase}/terminals/${id}`, { withCredentials: true }));
       this.showMessage('Terminal gelöscht', 'success');
       this.loadData();
     } catch (error) {
@@ -321,9 +384,9 @@ export class RightsManagementComponent implements OnInit {
     const newStatus = terminal.status === 'active' ? 'inactive' : 'active';
 
     try {
-      await this.http.put(`${this.apiUrl}/speech/terminals/${terminal.terminalId}/status`, {
+      await firstValueFrom(this.http.put(`${this.speechApiBase}/terminals/${terminal.terminalId}/status`, {
         status: newStatus
-      }).toPromise();
+      }, { withCredentials: true }));
       this.showMessage(`Terminal ${newStatus === 'active' ? 'aktiviert' : 'deaktiviert'}`, 'success');
       this.loadData();
     } catch (error) {
@@ -336,7 +399,9 @@ export class RightsManagementComponent implements OnInit {
     this.selectedTerminal = null;
     this.terminalForm.reset({
       type: 'browser',
-      status: 'active'
+      status: 'active',
+      assignedUserId: null,
+      location: ''
     });
   }
 
@@ -344,7 +409,7 @@ export class RightsManagementComponent implements OnInit {
   getUserName(userId: any): string {
     const id = userId?._id || userId;
     const user = this.users.find(u => u._id === id);
-    return user ? user.name || user.email : 'Unbekannt';
+    return user ? user.username || user.email : 'Unbekannt';
   }
 
   getRoleBadgeClass(role: string): string {
@@ -398,6 +463,7 @@ export class RightsManagementComponent implements OnInit {
       canViewAllInputs: role === 'admin' || role === 'manager',
       canDeleteInputs: role === 'admin'
     });
+    this.applyPermFilter('');
   }
 
   // Update permissions when a checkbox is toggled in the template
@@ -414,6 +480,37 @@ export class RightsManagementComponent implements OnInit {
     }
 
     this.rightsForm.patchValue({ permissions: next });
+  }
+
+  // === Permissions Multi-Autocomplete Helpers ===
+  applyPermFilter(query: string) {
+    const q = (query || '').toLowerCase();
+    const selected: string[] = this.rightsForm.value.permissions || [];
+    this.filteredPermissions = this.availablePermissions
+      .filter(p => !selected.includes(p.key))
+      .filter(p => p.key.toLowerCase().includes(q) || p.label.toLowerCase().includes(q))
+      .slice(0, 100);
+  }
+
+  selectPermission(key: string) {
+    const current: string[] = this.rightsForm.value.permissions || [];
+    if (!current.includes(key)) {
+      const next = [...current, key];
+      this.rightsForm.patchValue({ permissions: next });
+      this.permissionsCtrl.setValue('');
+      this.applyPermFilter('');
+    }
+  }
+
+  removePermission(key: string) {
+    const current: string[] = this.rightsForm.value.permissions || [];
+    const next = current.filter(k => k !== key);
+    this.rightsForm.patchValue({ permissions: next });
+    this.applyPermFilter(this.permissionsCtrl.value || '');
+  }
+
+  getPermLabel(key: string): string {
+    return this.availablePermissions.find(p => p.key === key)?.label || key;
   }
 
   private showMessage(message: string, type: 'success' | 'error' = 'success'): void {

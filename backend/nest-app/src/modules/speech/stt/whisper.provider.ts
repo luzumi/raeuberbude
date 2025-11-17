@@ -35,17 +35,24 @@ export class WhisperProvider implements STTProvider {
     }
   }
 
+  /**
+   * Transcribe audio using Whisper
+   * @param audioBuffer The audio buffer to transcribe
+   * @param mimeType The MIME type of the audio buffer
+   * @param language The language code to use for transcription (optional)
+   * @returns A promise that resolves to a TranscriptionResult object
+   */
   async transcribe(
     audioBuffer: Buffer,
     mimeType: string,
     language?: string,
   ): Promise<TranscriptionResult> {
     const startTime = Date.now();
-    
+
     try {
       // Create form data for multipart upload
       const formData = new FormData();
-      
+
       // Determine file extension based on mime type
       let extension = 'wav';
       if (mimeType.includes('webm')) extension = 'webm';
@@ -54,24 +61,9 @@ export class WhisperProvider implements STTProvider {
       else if (mimeType.includes('wav')) extension = 'wav';
 
       // Add audio file to form data (whisper-asr expects 'audio_file')
-      formData.append('audio_file', audioBuffer, {
-        filename: `audio.${extension}`,
-        contentType: mimeType,
-      });
+      this.addAudioFileFromFormData( formData, audioBuffer, extension, mimeType, language );
 
-      const whisperLang = this.mapLanguageCode(language || 'de-DE');
-      formData.append('language', whisperLang);
-      
-      // Optional: Add task type (transcribe vs translate)
-      formData.append('task', 'transcribe');
-
-      // Optional: Add output format
-      formData.append('output', 'json');
-
-      // Hint to server to encode if needed (helps with some formats)
-      formData.append('encode', 'true');
-
-      // Optional: initial prompt to bias recognition (configurable via WHISPER_INITIAL_PROMPT)
+      // Optional: Initial prompt to bias recognition (configurable via WHISPER_INITIAL_PROMPT)
       const initialPrompt = this.configService.get<string>('WHISPER_INITIAL_PROMPT');
       if (initialPrompt) {
         formData.append('initial_prompt', initialPrompt);
@@ -93,34 +85,59 @@ export class WhisperProvider implements STTProvider {
         )
       );
 
-      // Parse response
       const result = response.data;
-      
-      // Extract transcript and confidence
       let transcript = '';
-      let confidence = 0.95; // Default high confidence for Whisper
+      let confidence = 0.95;
 
+      // 1) plain string
       if (typeof result === 'string') {
         transcript = result;
-      } else if (result && typeof result.text === 'string' && result.text.trim().length > 0) {
+      }
+      // 2) standard { text }
+      else if (result && typeof result.text === 'string' && result.text.trim()) {
         transcript = result.text;
-        if (result.confidence !== undefined) {
-          confidence = result.confidence;
-        }
-      } else if (result && Array.isArray(result.segments) && result.segments.length > 0) {
-        // Server returns segments inside object
+        if (typeof result.confidence === 'number') confidence = result.confidence;
+      }
+      // 3) segments array with { text }
+      else if (result && Array.isArray(result.segments) && result.segments.length > 0) {
         transcript = result.segments.map((s: any) => s?.text || s?.transcript || '').join(' ').trim();
-      } else if (result && result.transcription) {
+        if (typeof result.confidence === 'number') confidence = result.confidence;
+      }
+      // 4) alternative field names often used by wrappers
+      else if (result && typeof result.transcription === 'string' && result.transcription.trim()) {
         transcript = result.transcription;
-      } else if (Array.isArray(result) && result.length > 0) {
-        // Handle array response (segments)
-        transcript = result.map((segment: any) => segment.text || segment.transcript || '').join(' ').trim();
-        if (result[0].confidence !== undefined) {
-          confidence = result.reduce((sum: number, s: any) => sum + (s.confidence || 0), 0) / result.length;
+      }
+      // 5) { result: [...words or segments...] }
+      else if (result && Array.isArray(result.result) && result.result.length > 0) {
+        transcript = result.result.map((r: any) => r?.text || r?.word || '').join(' ').trim();
+      }
+      // 6) nested data containers: { data: { text: ... } } or { prediction: ... } or { pred_text: ... }
+      else if (result && typeof result.data === 'object') {
+        const d = result.data;
+        if (typeof d.text === 'string' && d.text.trim()) transcript = d.text;
+        else if (typeof d.transcription === 'string' && d.transcription.trim()) transcript = d.transcription;
+        else if (typeof d.prediction === 'string' && d.prediction.trim()) transcript = d.prediction;
+        else if (typeof d.pred_text === 'string' && d.pred_text.trim()) transcript = d.pred_text;
+      }
+      // 7) array of segments [{ text }]
+      else if (Array.isArray(result) && result.length > 0) {
+        transcript = result.map((segment: any) => segment?.text || segment?.transcript || '').join(' ').trim();
+        if (result[0] && typeof result[0].confidence === 'number') {
+          const sum = result.reduce((acc: number, s: any) => acc + (s.confidence || 0), 0);
+          confidence = sum / result.length;
         }
       }
 
-      if (!transcript) {
+      // Graceful final fallback: try to stringify and regex minimal text
+      if (!transcript && result && typeof result === 'object') {
+        try {
+          const json = JSON.stringify(result);
+          const m = json.match(/"text"\s*:\s*"([^"]+)"/);
+          if (m && m[1]) transcript = m[1];
+        } catch { /* ignore */ }
+      }
+
+      if (!transcript || !transcript.trim()) {
         throw new Error('No transcript in Whisper response');
       }
 
@@ -136,6 +153,25 @@ export class WhisperProvider implements STTProvider {
       this.logger.error(`Whisper transcription failed: ${error.message}`);
       throw new Error(`Whisper transcription failed: ${error.message}`);
     }
+  }
+
+  private addAudioFileFromFormData(formData: FormData, audioBuffer: Buffer<ArrayBufferLike>, extension: string, mimeType: string, language: string): void {
+    formData.append( 'audio_file', audioBuffer, {
+      filename: `audio.${ extension }`,
+      contentType: mimeType,
+    } );
+
+    const whisperLang = this.mapLanguageCode( language || 'de-DE' );
+    formData.append( 'language', whisperLang );
+
+    // Optional: Add task type (transcribe vs translate)
+    formData.append( 'task', 'transcribe' );
+
+    // Optional: Add output format
+    formData.append( 'output', 'json' );
+
+    // Hint to server to encode if needed (helps with some formats)
+    formData.append( 'encode', 'true' );
   }
 
   private mapLanguageCode(language: string): string {

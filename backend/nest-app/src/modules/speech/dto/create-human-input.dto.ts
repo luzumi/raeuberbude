@@ -1,7 +1,7 @@
 import { IsString, IsOptional, IsIn, IsObject, IsMongoId } from 'class-validator';
 
 export class CreateHumanInputDto {
-  @IsMongoId()
+  @IsString()
   userId: string;
 
   @IsOptional()

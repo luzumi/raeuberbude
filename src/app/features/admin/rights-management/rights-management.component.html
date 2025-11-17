@@ -1,5 +1,7 @@
-<div class="rights-management-container">
-  <mat-card class="header-card">
+<app-header></app-header>
+<div class="admin-page">
+  <div class="admin-shell">
+  <mat-card class="admin-card admin-header-card">
     <mat-card-header>
       <mat-card-title>
         <mat-icon>security</mat-icon>
@@ -9,11 +11,11 @@
     </mat-card-header>
   </mat-card>
 
-  <mat-tab-group>
+  <mat-tab-group [selectedIndex]="selectedTabIndex" (selectedIndexChange)="selectedTabIndex = $event">
     <!-- User Rights Tab -->
     <mat-tab label="Benutzerrechte">
-      <div class="tab-content">
-        <div class="actions-row">
+      <div class="admin-tab-content">
+        <div class="admin-actions-row">
           <button mat-raised-button color="primary" (click)="resetRightsForm()">
             <mat-icon>add</mat-icon>
             Neue Rechte
@@ -24,16 +26,16 @@
           </button>
         </div>
 
-        <div class="content-grid">
+        <div class="admin-grid">
           <!-- Rights List -->
-          <mat-card class="list-card">
+          <mat-card class="admin-card list-card">
             <mat-card-header>
               <mat-card-title>Benutzerrechte-Liste</mat-card-title>
             </mat-card-header>
             <mat-card-content>
               <div class="rights-list">
-                <div *ngFor="let rights of userRights" 
-                     class="rights-item" 
+                <div *ngFor="let rights of userRights"
+                     class="rights-item"
                      [class.selected]="selectedUserRights === rights"
                      (click)="selectUserRights(rights)">
                   <div class="user-info">
@@ -62,7 +64,7 @@
           </mat-card>
 
           <!-- Rights Form -->
-          <mat-card class="form-card">
+          <mat-card class="admin-card form-card">
             <mat-card-header>
               <mat-card-title>
                 {{ selectedUserRights ? 'Rechte bearbeiten' : 'Neue Rechte erstellen' }}
@@ -75,7 +77,7 @@
                   <mat-label>Benutzer</mat-label>
                   <mat-select formControlName="userId" required>
                     <mat-option *ngFor="let user of users" [value]="user._id">
-                      {{ user.name || user.email }}
+                      {{ user.username || user.email }}
                     </mat-option>
                   </mat-select>
                 </mat-form-field>
@@ -93,56 +95,72 @@
                 <!-- Permissions -->
                 <div class="permissions-section">
                   <h4>Berechtigungen</h4>
-                  <div class="permissions-grid">
-                    <mat-checkbox *ngFor="let perm of availablePermissions"
-                                  [checked]="rightsForm.value.permissions?.includes(perm.key)"
-                                  (change)="onPermissionToggle($event.checked, perm.key)">
-                      {{ perm.label }}
-                    </mat-checkbox>
+                  <mat-form-field appearance="fill">
+                    <mat-label>Berechtigungen wählen</mat-label>
+                    <mat-chip-grid #permGrid aria-label="Ausgewählte Berechtigungen">
+                      <mat-chip-row *ngFor="let key of rightsForm.value.permissions"
+                                    [removable]="true"
+                                    (removed)="removePermission(key)">
+                        {{ getPermLabel(key) }}
+                        <button matChipRemove aria-label="Entfernen">
+                          <mat-icon>cancel</mat-icon>
+                        </button>
+                      </mat-chip-row>
+                      <input
+                        [formControl]="permissionsCtrl"
+                        [matAutocomplete]="permAuto"
+                        [matChipInputFor]="permGrid"
+                        placeholder="Berechtigung suchen...">
+                    </mat-chip-grid>
+                    <mat-autocomplete #permAuto="matAutocomplete" (optionSelected)="selectPermission($event.option.value)">
+                      <mat-option *ngFor="let p of filteredPermissions" [value]="p.key">
+                        {{ p.label }} ({{ p.key }})
+                      </mat-option>
+                    </mat-autocomplete>
+                  </mat-form-field>
+
+                  <!-- Quick Settings -->
+                  <div class="quick-settings">
+                    <h4>Schnelleinstellungen</h4>
+                    <mat-checkbox formControlName="canUseSpeechInput">Spracheingabe erlauben</mat-checkbox>
+                    <mat-checkbox formControlName="canViewOwnInputs">Eigene Eingaben anzeigen</mat-checkbox>
+                    <mat-checkbox formControlName="canViewAllInputs">Alle Eingaben anzeigen</mat-checkbox>
+                    <mat-checkbox formControlName="canDeleteInputs">Eingaben löschen</mat-checkbox>
+                    <mat-checkbox formControlName="canManageTerminals">Terminals verwalten</mat-checkbox>
+                    <mat-checkbox formControlName="canManageUsers">Benutzer verwalten</mat-checkbox>
                   </div>
-                </div>
 
-                <!-- Quick Settings -->
-                <div class="quick-settings">
-                  <h4>Schnelleinstellungen</h4>
-                  <mat-checkbox formControlName="canUseSpeechInput">Spracheingabe erlauben</mat-checkbox>
-                  <mat-checkbox formControlName="canViewOwnInputs">Eigene Eingaben anzeigen</mat-checkbox>
-                  <mat-checkbox formControlName="canViewAllInputs">Alle Eingaben anzeigen</mat-checkbox>
-                  <mat-checkbox formControlName="canDeleteInputs">Eingaben löschen</mat-checkbox>
-                  <mat-checkbox formControlName="canManageTerminals">Terminals verwalten</mat-checkbox>
-                  <mat-checkbox formControlName="canManageUsers">Benutzer verwalten</mat-checkbox>
-                </div>
+                  <!-- Allowed Terminals -->
+                  <mat-form-field>
+                    <mat-label>Erlaubte Terminals</mat-label>
+                    <mat-select formControlName="allowedTerminals" multiple>
+                      <mat-option *ngFor="let terminal of terminals" [value]="terminal._id">
+                        {{ terminal.name }} ({{ terminal.terminalId }})
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
 
-                <!-- Allowed Terminals -->
-                <mat-form-field>
-                  <mat-label>Erlaubte Terminals</mat-label>
-                  <mat-select formControlName="allowedTerminals" multiple>
-                    <mat-option *ngFor="let terminal of terminals" [value]="terminal._id">
-                      {{ terminal.name }} ({{ terminal.terminalId }})
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
+                  <!-- Status -->
+                  <mat-form-field>
+                    <mat-label>Status</mat-label>
+                    <mat-select formControlName="status">
+                      <mat-option value="active">Aktiv</mat-option>
+                      <mat-option value="suspended">Gesperrt</mat-option>
+                      <mat-option value="revoked">Widerrufen</mat-option>
+                    </mat-select>
+                  </mat-form-field>
 
-                <!-- Status -->
-                <mat-form-field>
-                  <mat-label>Status</mat-label>
-                  <mat-select formControlName="status">
-                    <mat-option value="active">Aktiv</mat-option>
-                    <mat-option value="suspended">Gesperrt</mat-option>
-                    <mat-option value="revoked">Widerrufen</mat-option>
-                  </mat-select>
-                </mat-form-field>
-
-                <!-- Form Actions -->
-                <div class="form-actions">
-                  <button mat-raised-button color="primary" (click)="saveUserRights()" [disabled]="!rightsForm.valid">
-                    <mat-icon>save</mat-icon>
-                    Speichern
-                  </button>
-                  <button mat-button (click)="resetRightsForm()">
-                    <mat-icon>clear</mat-icon>
-                    Abbrechen
-                  </button>
+                  <!-- Form Actions -->
+                  <div class="form-actions">
+                    <button mat-raised-button color="primary" (click)="saveUserRights()" [disabled]="!rightsForm.valid">
+                      <mat-icon>save</mat-icon>
+                      Speichern
+                    </button>
+                    <button mat-button (click)="resetRightsForm()">
+                      <mat-icon>clear</mat-icon>
+                      Abbrechen
+                    </button>
+                  </div>
                 </div>
               </form>
             </mat-card-content>
@@ -153,8 +171,8 @@
 
     <!-- Terminals Tab -->
     <mat-tab label="Terminals">
-      <div class="tab-content">
-        <div class="actions-row">
+      <div class="admin-tab-content">
+        <div class="admin-actions-row">
           <button mat-raised-button color="primary" (click)="resetTerminalForm()">
             <mat-icon>add</mat-icon>
             Neues Terminal
@@ -165,23 +183,26 @@
           </button>
         </div>
 
-        <div class="content-grid">
+        <div class="admin-grid">
           <!-- Terminal List -->
-          <mat-card class="list-card">
+          <mat-card class="admin-card list-card">
             <mat-card-header>
               <mat-card-title>Terminal-Liste</mat-card-title>
             </mat-card-header>
             <mat-card-content>
               <div class="terminal-list">
-                <div *ngFor="let terminal of terminals" 
+                <div *ngFor="let terminal of terminals"
                      class="terminal-item"
                      [class.selected]="selectedTerminal === terminal"
                      [class.active]="isTerminalActive(terminal)"
                      (click)="selectTerminal(terminal)">
                   <div class="terminal-info">
-                    <mat-icon>{{ terminal.type === 'mobile' ? 'smartphone' : 
-                                terminal.type === 'tablet' ? 'tablet' : 
-                                terminal.type === 'kiosk' ? 'tv' : 'computer' }}</mat-icon>
+                    <mat-icon>{{
+                        terminal.type === 'mobile' ? 'smartphone' :
+                          terminal.type === 'tablet' ? 'tablet' :
+                            terminal.type === 'kiosk' ? 'tv' : 'computer'
+                      }}
+                    </mat-icon>
                     <div class="terminal-details">
                       <span class="terminal-name">{{ terminal.name }}</span>
                       <span class="terminal-id">{{ terminal.terminalId }}</span>
@@ -221,7 +242,7 @@
                 <!-- Terminal ID -->
                 <mat-form-field>
                   <mat-label>Terminal ID</mat-label>
-                  <input matInput formControlName="terminalId" 
+                  <input matInput formControlName="terminalId"
                          [readonly]="!!selectedTerminal"
                          placeholder="z.B. terminal-001" required>
                 </mat-form-field>
@@ -229,7 +250,7 @@
                 <!-- Name -->
                 <mat-form-field>
                   <mat-label>Name</mat-label>
-                  <input matInput formControlName="name" 
+                  <input matInput formControlName="name"
                          placeholder="z.B. Wohnzimmer Tablet" required>
                 </mat-form-field>
 
@@ -253,23 +274,25 @@
                   </mat-select>
                 </mat-form-field>
 
-                <!-- Location -->
+                <!-- Location with autocomplete from known locations -->
                 <mat-form-field>
                   <mat-label>Standort</mat-label>
-                  <input matInput formControlName="location" 
-                         placeholder="z.B. Wohnzimmer">
+                  <input matInput formControlName="location" placeholder="z.B. Wohnzimmer" [matAutocomplete]="locAuto">
+                  <mat-autocomplete #locAuto="matAutocomplete">
+                    <mat-option *ngFor="let loc of locations" [value]="loc">{{ loc }}</mat-option>
+                  </mat-autocomplete>
                 </mat-form-field>
 
                 <!-- Assigned User -->
-                <mat-form-field>
-                  <mat-label>Zugewiesener Benutzer</mat-label>
-                  <mat-select formControlName="assignedUserId">
-                    <mat-option [value]="">Nicht zugewiesen</mat-option>
-                    <mat-option *ngFor="let user of users" [value]="user._id">
-                      {{ user.name || user.email }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
+                  <mat-form-field>
+                    <mat-label>Zugewiesener Benutzer</mat-label>
+                    <mat-select formControlName="assignedUserId">
+                      <mat-option [value]="null">Nicht zugewiesen</mat-option>
+                      <mat-option *ngFor="let user of users" [value]="user._id">
+                        {{ user.username || user.email }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
 
                 <!-- Form Actions -->
                 <div class="form-actions">
@@ -289,4 +312,5 @@
       </div>
     </mat-tab>
   </mat-tab-group>
+  </div>
 </div>

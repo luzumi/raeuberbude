@@ -1,0 +1,143 @@
+// src/styles/admin/_index.scss
+// Zentrales Admin-Layout & Utilities
+
+@use '../tokens' as t;
+
+:root {
+  /* Standard-Variablen (können projektweit überschrieben werden) */
+  --header-h: 64px;
+  --page-padding: 20px; /* vorher: 20px in Terminal-Styling */
+  --admin-max-w: 1400px; /* zurück auf 1400px */
+  --admin-gap: 20px; /* zurück auf 20px */
+  /* Hintergrund wie im Terminal-Setup – kann bei Bedarf überschrieben werden */
+  --admin-bg: radial-gradient(circle at center, rgba(0,150,136,0.2), rgba(0,0,0,0.9));
+}
+
+/* Seiten-Wrapper direkt unterhalb des Headers */
+.admin-page {
+  padding: var(--page-padding, 16px);
+  background: var(--admin-bg, t.$background);
+  min-height: calc(100dvh - var(--header-h, 56px));
+}
+
+/* Zentrale Shell mit Max-Breite und voller Viewport-Höhe (abzgl. Header) */
+.admin-shell {
+  width: 100%;
+  max-width: var(--admin-max-w, 1400px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap, 16px);
+}
+
+/* Kopfkarte (Hero/Section-Header) */
+.admin-header-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: rgba(9, 0, 0, 0.53);
+  mat-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    mat-icon {
+      font-size: 32px;
+      height: 32px;
+      width: 32px;
+    }
+  }
+  mat-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 24px;
+    margin: 0;
+  }
+  mat-card-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 5px;
+  }
+}
+
+/* Einheitliche Aktionsleiste */
+.admin-actions-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+/* Standard-Content-Raum innerhalb Tabs oder Sektionen */
+.admin-tab-content {
+  padding: 16px 0;
+  overflow: auto;
+}
+
+/* Reusable Grid für 2-Spalten-Layouts */
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--admin-gap, 16px);
+}
+@media (max-width: 1200px) {
+  .admin-grid { grid-template-columns: 1fr; }
+}
+
+/* Konsistente Karten-Grundlage */
+.admin-card {
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+}
+
+/* Tabellen in Admin-Karten standardmäßig auf volle Breite */
+.admin-table { width: 100%; }
+
+/* Terminal-Tab-Style: Listen-/Form-Kartenhöhen & Scrollbereiche */
+.admin-list-card { max-height: 600px; overflow: hidden; }
+.admin-form-card { max-height: calc(100vh - 240px); }
+.admin-form-card mat-card-content { overflow: auto; }
+.admin-scroll-list { max-height: 450px; overflow-y: auto; padding: 5px; }
+
+/* Admin-Navigation (z.B. Menü-Links) */
+.admin-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.admin-nav a[mat-stroked-button] {
+  text-align: center;
+}
+
+/* Kleinere Sektionen innerhalb Karten */
+.admin-section-card {
+  padding: 12px;
+}
+
+/* Aliasse für bestehende Klassen (Kompatibilität mit Terminal-Tab-Layout) */
+.list-card { @extend .admin-list-card; }
+.form-card { @extend .admin-form-card; }
+.rights-list, .terminal-list { @extend .admin-scroll-list; }
+
+/* Formular-Grids */
+.admin-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--admin-gap, 16px);
+}
+
+/* Formular-Aktionsleiste */
+.admin-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Vertikales Stacking von Sektionen/Karten */
+.admin-stack {
+  display: grid;
+  grid-auto-rows: min-content;
+  row-gap: var(--admin-gap, 16px);
+}

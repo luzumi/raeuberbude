@@ -1202,8 +1202,7 @@ import { Directive, ElementRef, Input, OnDestroy, Renderer2, OnInit } from '@ang
 })
 export class HoverShaderDirective implements OnInit, OnDestroy {
   private enabled = true;
-  @Input('appHoverShader') set appHoverShader(val: any) {
-    this.enabled = val === '' || val === true || val === 'true';
+  @Input('appHoverShader')  set appHoverShader(val: any) {   this.enabled = val === '' || val === true || val === 'true';
   }
   @Input() hsColor: string = '255 255 255'; // CSS Color 4 space-separated RGB
   @Input() hsSpeed = 1;
@@ -1241,8 +1240,8 @@ export class HoverShaderDirective implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stop();
-    try { this.unlistenEnter?.(); } catch {}
-    try { this.unlistenLeave?.(); } catch {}
+    try { this.unlistenEnter?.(); } catch { /* listener already removed or never set */ }
+    try { this.unlistenLeave?.(); } catch { /* listener already removed or never set */ }
   }
 
   private getAnchor(): HTMLElement {
@@ -1414,7 +1413,7 @@ export class HoverShaderDirective implements OnInit, OnDestroy {
 
     if (this.gl) {
       // Try to lose context to free GPU memory
-      try { (this.gl.getExtension('WEBGL_lose_context') as any)?.loseContext?.(); } catch {}
+      try { (this.gl.getExtension('WEBGL_lose_context') as any)?.loseContext?.(); } catch { /* extension may be missing */ }
     }
     this.gl = null;
 
@@ -1429,7 +1428,7 @@ export class HoverShaderDirective implements OnInit, OnDestroy {
       this.resizeObserver = undefined;
     }
 
-    try { this.unlistenMove?.(); } catch {}
+    try { this.unlistenMove?.(); } catch { /* runtime cleanup best-effort */ }
     this.unlistenMove = undefined;
 
     if (this.cleanupPosition) { this.cleanupPosition(); this.cleanupPosition = undefined; }

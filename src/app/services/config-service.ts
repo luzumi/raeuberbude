@@ -10,7 +10,7 @@ export interface AppConfig {
 
 @Injectable({ providedIn: 'root' })
 export class ConfigService {
-  private config!: AppConfig;
+  private config: AppConfig = { homeAssistantUrl: '', token: '' };
 
   constructor(private http: HttpClient) {}
 

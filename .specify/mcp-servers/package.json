@@ -9,7 +9,10 @@
     "orchestrator": "node multi-agent-orchestrator.js",
     "youtrack": "node youtrack-mcp-server.js",
     "web": "node web-mcp-server.js",
-    "all": "concurrently \"npm run orchestrator\" \"npm run youtrack\" \"npm run web\"",
+    "sonar": "node sonarqube-mcp-server.js",
+    "sonar:dev": "nodemon sonarqube-mcp-server.js",
+    "webstorm": "node webstorm-mcp-server.js",
+    "all": "concurrently \"npm run orchestrator\" \"npm run youtrack\" \"npm run web\" \"npm run sonar\" \"npm run webstorm\"",
     "test": "jest",
     "test:agents": "jest agents/*.spec.js"
   },

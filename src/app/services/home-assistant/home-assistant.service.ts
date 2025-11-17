@@ -59,7 +59,10 @@ export class HomeAssistantService {
       const override = localStorage.getItem('ha.guardBootMs');
       const n = override ? Number.parseInt(override, 10) : NaN;
       if (Number.isFinite(n) && n >= 0) guardMs = n;
-    } catch {}
+    } catch {
+      // intentional no-op: accessing localStorage can fail in SSR/private-mode
+      // We fallback to defaultBootMs in that case.
+    }
     return now - this.appStartMs < guardMs;
   }
 
@@ -104,25 +107,25 @@ export class HomeAssistantService {
 
   constructor(private readonly http: HttpClient, private readonly bridge: WebSocketBridgeService) {
     // Log WebSocket connection status
-    console.log('[HA] WebSocket connected:', this.bridge.isConnected());
-    
+    console.debug('[HA] WebSocket connected:', this.bridge.isConnected());
+
     // Subscribe to WebSocket logs
     this.bridge.logs$.subscribe(log => {
       if (log.dir === '->' && log.type === 'call_service') {
-        console.log('[WS→] Sending service call:', log.summary, log.payload);
+        console.debug('[WS→] Sending service call:', log.summary, log.payload);
       } else if (log.dir === 'queue') {
         console.warn('[WS⏸️] Message queued (not connected yet):', log.summary);
       }
     });
-    
+
     this.refreshEntities();
 
     this.bridge.subscribeEvent('state_changed').subscribe((event:any) => {
-      console.log('[HA] state_changed event RAW:', event);
-      
+      console.debug('[HA] state_changed event RAW:', event);
+
       // Compressed format: event.c oder event.a
       if (event.c) {
-        console.log('[HA] Compressed format detected');
+        console.debug('[HA] Compressed format detected');
         // event.c = { "entity_id": { "+": { "s": "on", "a": {...} } } }
         for (const [entityId, changes] of Object.entries(event.c)) {
           const change = (changes as any)['+'];
@@ -135,7 +138,7 @@ export class HomeAssistantService {
                 state: change.s,
                 attributes: { ...currentEntity.attributes, ...change.a }
               };
-              console.log(`[HA] Updating entity (compressed): ${entityId} → ${change.s}`);
+              console.debug(`[HA] Updating entity (compressed): ${entityId} → ${change.s}`);
               this.entitiesMap.set(entityId, updatedEntity);
               this.entitiesSubject.next([...this.entitiesMap.values()]);
             }
@@ -146,7 +149,7 @@ export class HomeAssistantService {
       else if (event.data?.new_state) {
         const newState = event.data.new_state as Entity;
         if (newState?.entity_id) {
-          console.log(`[HA] Updating entity (standard): ${newState.entity_id} → ${newState.state}`);
+          console.debug(`[HA] Updating entity (standard): ${newState.entity_id} → ${newState.state}`);
           this.entitiesMap.set(newState.entity_id, newState);
           this.entitiesSubject.next([...this.entitiesMap.values()]);
         }
@@ -188,7 +191,7 @@ export class HomeAssistantService {
 
   public callService<T>(domain: string, service: string, data: any): Observable<HassServiceResponse> {
     const isConnected = this.bridge.isConnected();
-    console.log(`[HA] Calling service: ${domain}.${service} (WS connected: ${isConnected})`, data);
+    console.debug(`[HA] Calling service: ${domain}.${service} (WS connected: ${isConnected})`, data);
     // Sicherheits-Log und Start-Schutz: blockt gefährliche Calls im Boot-Fenster
     const guard = this.isMonitorOffCall(domain, service, data);
     if (guard.suspicious) {
@@ -204,11 +207,11 @@ export class HomeAssistantService {
         return of({ id: -1, type: 'result', success: true } as unknown as HassServiceResponse);
       }
     }
-    
+
     if (!isConnected) {
       console.warn('[HA] ⚠️ WebSocket NOT connected! Message will be queued.');
     }
-    
+
     return from(this.bridge.send({
       type: 'call_service',
       domain,
@@ -216,7 +219,7 @@ export class HomeAssistantService {
       service_data: data
     } as unknown as Omit<HassServiceResponse, "id">)).pipe(
       tap({
-        next: (response) => console.log(`[HA] ✅ Service response:`, response),
+        next: (response) => console.debug(`[HA] ✅ Service response:`, response),
         error: (error) => console.error(`[HA] ❌ Service error:`, error)
       })
     );
@@ -256,7 +259,7 @@ export class HomeAssistantService {
   public getAllMediaplayers(name: string): Subscription {
     return this.entities$.subscribe((entities) => {
       const players = entities.filter(e => e.entity_id.startsWith(name + '.'));
-      console.log('Alle MediaPlayer:', players.map(p => p.entity_id));
+      console.debug('Alle MediaPlayer:', players.map(p => p.entity_id));
     });
   }
 
@@ -356,7 +359,7 @@ export class HomeAssistantService {
           console.warn('[HA] FireTV remote not found among states.');
           return { entity_id: undefined, name: undefined, commands: [], source: 'none' as const };
         }
-        console.log('[HA] FireTV remote entity:', remote.entity_id, 'attrs keys:', Object.keys(remote.attributes || {}));
+        console.debug('[HA] FireTV remote entity:', remote.entity_id, 'attrs keys:', Object.keys(remote.attributes || {}));
         let cmds = this.extractCommandsFromAttrs(remote.attributes);
 
         // Additionally, try to enrich with media_player source_list (apps/inputs)
@@ -367,7 +370,7 @@ export class HomeAssistantService {
 
         if (cmds.length) {
           cmds = Array.from(new Set([...cmds, ...sourceCmds]));
-          console.log('[HA] FireTV commands from attributes (+sources if any):', cmds);
+          console.debug('[HA] FireTV commands from attributes (+sources if any):', cmds);
           return { entity_id: remote.entity_id, name: remote.attributes?.friendly_name, commands: cmds, source: 'attributes' as const };
         }
         const fallback = [
@@ -376,7 +379,7 @@ export class HomeAssistantService {
           'VOLUME_UP','VOLUME_DOWN','MUTE','SLEEP','?'
         ];
         const merged = Array.from(new Set([...fallback, ...sourceCmds]));
-        console.log('[HA] FireTV commands fallback used (no attributes list exposed by integration). Added sources if present.');
+        console.debug('[HA] FireTV commands fallback used (no attributes list exposed by integration). Added sources if present.');
         return { entity_id: remote.entity_id, name: remote.attributes?.friendly_name, commands: merged, source: 'fallback' as const };
       })
     );

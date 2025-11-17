@@ -54,14 +54,14 @@ export class OrangeLightMinimal implements OnDestroy {
           const previousState = this.isOn;
           this.isOn = entity.state === 'on';
           this.isAvailable = entity.state !== 'unavailable';
-          console.log(`💡 Orange Light State Update: ${entity.state} (isOn: ${previousState} → ${this.isOn})`);
+          console.debug(`💡 Orange Light State Update: ${entity.state} (isOn: ${previousState} → ${this.isOn})`);
           
           // Trigger Change Detection manuell
           this.cdr.markForCheck();
         } else {
           this.isOn = false;
           this.isAvailable = false;
-          console.log('💡 Orange Light: Entity not found');
+          console.debug('💡 Orange Light: Entity not found');
           this.cdr.markForCheck();
         }
       });

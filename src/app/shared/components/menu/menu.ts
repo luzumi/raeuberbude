@@ -1,30 +1,55 @@
 // Verschoben aus den Control-Features in den Shared-Bereich
 import {Component, Input} from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import {Location} from '@angular/common';
+import {HeaderComponent} from '@shared/components/header/header.component';
+import { TerminalService } from '../../../core/services/terminal.service';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-menu',
   standalone: true,
+  imports: [RouterLink, HeaderComponent, MatCardModule, MatButtonModule],
   template: `
-    <div class="menu-container">
-      <h2>Menü</h2>
-      <!-- Platzhalter‐Inhalt -->
-      <p>Hier stehen später die Menü‐Einträge.</p>
-      <button (click)="close()">Schließen</button>
+    <app-header></app-header>
+    <div class="admin-page">
+      <div class="admin-shell">
+        <mat-card class="admin-card">
+          <mat-card-header>
+            <mat-card-title>Menü</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="admin-grid">
+              <mat-card class="admin-card admin-section-card">
+                <h3>Allgemein</h3>
+                <div class="group">
+                  <button mat-raised-button color="primary" (click)="switchTerminal()" class="rb-hover-shader">Terminal wechseln</button>
+                  <a routerLink="/terminal-setup" mat-stroked-button>Terminal einrichten</a>
+                </div>
+              </mat-card>
+
+              <mat-card class="admin-card admin-section-card">
+                <h3>Administration</h3>
+                <nav class="admin-nav">
+                  <a routerLink="/admin/users" mat-stroked-button>Benutzer</a>
+                  <a routerLink="/admin/terminals" mat-stroked-button>Terminals</a>
+                  <a routerLink="/admin/bereiche" mat-stroked-button>Bereiche</a>
+                  <a routerLink="/admin/rechte" mat-stroked-button>Rechte</a>
+                  <a routerLink="/admin/rollen" mat-stroked-button>Rollen</a>
+                </nav>
+              </mat-card>
+            </div>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-button (click)="close()">Schließen</button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
     </div>
   `,
   styles: [`
-    .menu-container {
-      width: 100%;
-      height: 100%;
-      background-color: #ecf0f1;
-      border-radius: 8px;
-      box-sizing: border-box;
-      padding: 1rem;
-    }
-    h2 {
-      margin-top: 0;
-    }
+    .group { display: flex; gap: 8px; flex-wrap: wrap; }
   `]
 })
 export class MenuComponent {
@@ -34,7 +59,11 @@ export class MenuComponent {
    */
   @Input() closeCallback?: OmitThisParameter<() => void>;
 
-  constructor(private readonly location: Location) {}
+  constructor(
+    private readonly location: Location,
+    private readonly terminal: TerminalService,
+    private readonly router: Router,
+  ) {}
 
   /**
    * Führt das optionale Schließen-Callback aus oder navigiert zurück.
@@ -45,5 +74,14 @@ export class MenuComponent {
     } else {
       this.location.back();
     }
+  }
+
+  async switchTerminal() {
+    try {
+      await this.terminal.unclaimTerminal();
+    } catch {
+      // Ignorieren – wir navigieren trotzdem zur Setup-Seite
+    }
+    this.router.navigate(['/terminal-setup']);
   }
 }

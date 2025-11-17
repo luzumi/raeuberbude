@@ -119,7 +119,9 @@ export class FiretvComponent implements OnDestroy, AfterViewInit {
         // Kleines Delay, damit Services/WS initialisiert sind
         setTimeout(() => this.runWsDiagnostics(), 300);
       }
-    } catch {}
+    } catch {
+      // no-op: URL parsing may fail in SSR/private-mode; diagnostics remain optional
+    }
 
     // Fetch available command list once component is constructed.
     this.loadCommands();
@@ -312,12 +314,14 @@ export class FiretvComponent implements OnDestroy, AfterViewInit {
     try {
       await navigator.clipboard.writeText(JSON.stringify(this.adbTestResults, null, 2));
       console.info('[ADB] Test results copied to clipboard');
-    } catch {}
+    } catch {
+      // no-op: Clipboard API may be unavailable; results remain visible in UI
+    }
   }
 
   copyAdbTestResults(): void {
     const json = JSON.stringify(this.adbTestResults, null, 2);
-    navigator.clipboard.writeText(json).then(() => console.info('[ADB] Copied results')).catch(()=>console.log(json));
+    navigator.clipboard.writeText(json).then(() => console.info('[ADB] Copied results')).catch(()=>console.warn(json));
   }
 
   // --- WS Logs dialog controls ---
@@ -451,14 +455,14 @@ export class FiretvComponent implements OnDestroy, AfterViewInit {
     report.finishedAt = new Date().toISOString();
     this.diagnosticsReport = report;
     // Exponieren für MCP/Scraper
-    try { (globalThis as any).__lastDiagnostics = report; } catch {}
-    try { localStorage.setItem('firetv_ws_diag', JSON.stringify(report)); } catch {}
+    try { (globalThis as any).__lastDiagnostics = report; } catch { /* best-effort exposure for MCP */ }
+    try { localStorage.setItem('firetv_ws_diag', JSON.stringify(report)); } catch { /* storage may be blocked */ }
   }
 
   async copyWsDiagnostics(): Promise<void> {
     if (!this.diagnosticsReport) return;
     const json = JSON.stringify(this.diagnosticsReport, null, 2);
-    try { await navigator.clipboard.writeText(json); } catch { console.log(json); }
+    try { await navigator.clipboard.writeText(json); } catch { console.warn(json); }
   }
 
   downloadWsDiagnostics(): void {
@@ -537,7 +541,7 @@ export class FiretvComponent implements OnDestroy, AfterViewInit {
   /** Toggle the power state of the Fire TV. */
   togglePower(): void {
     if (!this.firetv) return;
-    console.log(this.firetv.isOn ? 'Powering off' : 'Powering on');
+    console.debug(this.firetv.isOn ? 'Powering off' : 'Powering on');
     this.firetv.isOn ? this.firetv.turnOff() : this.firetv.turnOn();
   }
 
