@@ -13,7 +13,7 @@ export interface TTSOptions {
 })
 export class TtsService {
   private synth: SpeechSynthesis;
-  private isSpeakingSubject = new BehaviorSubject<boolean>(false);
+  private readonly isSpeakingSubject = new BehaviorSubject<boolean>(false);
   private voices: SpeechSynthesisVoice[] = [];
   private defaultVoice: SpeechSynthesisVoice | null = null;
 
@@ -161,4 +161,3 @@ export class TtsService {
     await this.speak(message, { rate: 1.1 });
   }
 }
-

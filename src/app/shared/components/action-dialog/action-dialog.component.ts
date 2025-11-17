@@ -4,6 +4,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { IntentActionService, ActionResult } from '../../../core/services/intent-action.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
+// @ts-ignore
 @Component({
   selector: 'app-action-dialog',
   standalone: true,
@@ -19,10 +20,11 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
         <!-- Content -->
         <div class="dialog-content" [class]="dialogContent?.type" [class.loading]="dialogContent?.isLoading">
-          <div [innerHTML]="safeHtml"></div>
+        <div [innerHTML]="safeHtml"></div>
 
           <!-- Links (für Web-Suche) -->
-          <div class="action-links" *ngIf="dialogContent &&dialogContent?.links && dialogContent?.links?.length > 0">
+        @if(dialogContent !== undefined && dialogContent.links !== undefined && dialogContent.links.length > 0) {
+          <div class="action-links">
             <a *ngFor="let link of dialogContent.links"
                [href]="link.url"
                target="_blank"
@@ -31,6 +33,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
               {{ link.title }}
             </a>
           </div>
+        }
         </div>
 
         <!-- Footer -->

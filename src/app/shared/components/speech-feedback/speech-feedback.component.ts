@@ -194,7 +194,7 @@ import { ValidationResult } from '../../../core/services/transcription-validator
   `]
 })
 export class SpeechFeedbackComponent implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   showFeedback = false;
   clarificationQuestion = '';
@@ -295,4 +295,3 @@ export class SpeechFeedbackComponent implements OnInit, OnDestroy {
     }
   }
 }
-
