@@ -25,38 +25,28 @@ const nestUrlFromEnv = () => {
 };
 const nestTarget = nestUrlFromEnv();
 
+// Backend API target (Node.js Express)
+const backendUrlFromEnv = () => {
+  const base = process.env.BACKEND_BASE_URL;
+  if (base) return base;
+  const host = process.env.BACKEND_HOST || 'localhost';
+  const port = process.env.BACKEND_PORT || '3000';
+  return `http://${host}:${port}`;
+};
+const backendTarget = backendUrlFromEnv();
+
 /** @type {import('@angular-devkit/build-angular').ProxyConfig} */
 module.exports = {
+  // NestJS Speech API (höchste Priorität)
   '/api/speech': {
     target: nestTarget,
     secure: false,
     changeOrigin: true,
     ws: false,
-    logLevel: 'warn',
+    logLevel: 'debug',
     onError(err, req, res) {
       const code = err && (err.code || err.name) || 'UNKNOWN';
       const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${nestTarget}`;
-      // eslint-disable-next-line no-console
-      console.warn(msg);
-      try {
-        if (!res.headersSent) {
-          res.writeHead(502, { 'Content-Type': 'application/json' });
-        }
-        res.end(JSON.stringify({ error: 'Bad gateway', code, target: nestTarget }));
-      } catch (e) {console.log(e);}
-    },
-  },
-  // NestJS Users CRUD
-  '/users': {
-    target: nestTarget,
-    secure: false,
-    changeOrigin: true,
-    ws: false,
-    logLevel: 'warn',
-    onError(err, req, res) {
-      const code = err && (err.code || err.name) || 'UNKNOWN';
-      const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${nestTarget}`;
-      // eslint-disable-next-line no-console
       console.warn(msg);
       try {
         if (!res.headersSent) {
@@ -72,11 +62,10 @@ module.exports = {
     secure: false,
     changeOrigin: true,
     ws: false,
-    logLevel: 'warn',
+    logLevel: 'debug',
     onError(err, req, res) {
       const code = err && (err.code || err.name) || 'UNKNOWN';
       const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${nestTarget}`;
-      // eslint-disable-next-line no-console
       console.warn(msg);
       try {
         if (!res.headersSent) {
@@ -86,16 +75,72 @@ module.exports = {
       } catch (e) {console.log(e);}
     },
   },
+  // Backend API (Transcripts, Intent-Logs etc.)
+  '/api/transcripts': {
+    target: backendTarget,
+    secure: false,
+    changeOrigin: true,
+    ws: false,
+    logLevel: 'debug',
+    onError(err, req, res) {
+      const code = err && (err.code || err.name) || 'UNKNOWN';
+      const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${backendTarget}`;
+      console.warn(msg);
+      try {
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Bad gateway', code, target: backendTarget }));
+      } catch (e) {console.log(e);}
+    },
+  },
+  '/api/intent-logs': {
+    target: backendTarget,
+    secure: false,
+    changeOrigin: true,
+    ws: false,
+    logLevel: 'debug',
+    onError(err, req, res) {
+      const code = err && (err.code || err.name) || 'UNKNOWN';
+      const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${backendTarget}`;
+      console.warn(msg);
+      try {
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Bad gateway', code, target: backendTarget }));
+      } catch (e) {console.log(e);}
+    },
+  },
+  // NestJS Users CRUD
+  '/users': {
+    target: nestTarget,
+    secure: false,
+    changeOrigin: true,
+    ws: false,
+    logLevel: 'debug',
+    onError(err, req, res) {
+      const code = err && (err.code || err.name) || 'UNKNOWN';
+      const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${nestTarget}`;
+      console.warn(msg);
+      try {
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Bad gateway', code, target: nestTarget }));
+      } catch (e) {console.log(e);}
+    },
+  },
+  // Home Assistant API (catch-all für /api/*, muss LETZTER sein)
   '/api': {
-    target,
+    target: target,
     secure: false,
     changeOrigin: true,
     ws: true,
-    logLevel: 'warn',
+    logLevel: 'debug',
     onError(err, req, res) {
       const code = err && (err.code || err.name) || 'UNKNOWN';
       const msg = `[proxy] ${code} while proxying ${req.method} ${req.url} -> ${target}`;
-      // eslint-disable-next-line no-console
       console.warn(msg);
       try {
         if (!res.headersSent) {

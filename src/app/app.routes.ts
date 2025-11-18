@@ -56,6 +56,10 @@ export const routes: Routes = [
       { path: 'users', component: AdminUsersComponent },
       { path: 'bereiche', component: AdminAreasComponent },
       { path: 'rollen', component: AdminRolesComponent },
+      {
+        path: 'speech-assistant',
+        loadComponent: () => import('./features/admin/speech-assistant/admin-speech-assistant.component').then(m => m.AdminSpeechAssistantComponent)
+      },
       // Legacy/Memory alias
       { path: 'rights-management', redirectTo: 'rechte' },
     ],
