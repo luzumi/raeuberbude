@@ -1,0 +1,315 @@
+    &lt;div class="admin-page"&gt;
+      &lt;div class="admin-shell"&gt;
+        &lt;mat-card class="admin-card"&gt;
+          &lt;mat-card-header&gt;
+            &lt;mat-card-title&gt;
+              &lt;mat-icon&gt;mic&lt;/mat-icon&gt;
+              Sprachassistent Admin
+            &lt;/mat-card-title&gt;
+            &lt;mat-card-subtitle&gt;
+              LLM-Konfiguration, Performance-Monitoring und Anfrage-Log
+            &lt;/mat-card-subtitle&gt;
+          &lt;/mat-card-header&gt;
+
+          &lt;mat-card-content&gt;
+            &lt;mat-tab-group&gt;
+              &lt;!-- Tab 1: Modelle &amp; Konfiguration --&gt;
+              &lt;mat-tab label="Modelle &amp; Env"&gt;
+                &lt;div class="tab-content"&gt;
+                  &lt;h3&gt;LLM Konfiguration&lt;/h3&gt;
+
+                  &lt;div class="config-grid"&gt;
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;LLM URL&lt;/mat-label&gt;
+                      &lt;input matInput [(ngModel)]="config.url" placeholder="http://192.168.56.1:1234/v1/chat/completions"&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Primäres Modell&lt;/mat-label&gt;
+                      &lt;mat-select [(ngModel)]="config.model"&gt;
+                        &lt;mat-option value="mistralai/mistral-7b-instruct-v0.3"&gt;Mistral 7B Instruct v0.3&lt;/mat-option&gt;
+                        &lt;mat-option value="meta-llama/llama-3.1-8b-instruct"&gt;LLaMA 3.1 8B Instruct&lt;/mat-option&gt;
+                        &lt;mat-option value="meta-llama/llama-3.2-3b-instruct"&gt;LLaMA 3.2 3B Instruct (schnell)&lt;/mat-option&gt;
+                        &lt;mat-option value="mistralai/mistral-nemo"&gt;Mistral Nemo 12B&lt;/mat-option&gt;
+                      &lt;/mat-select&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Fallback Modell (optional)&lt;/mat-label&gt;
+                      &lt;input matInput [(ngModel)]="config.fallbackModel" placeholder="z.B. llama-3.2-3b-instruct"&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Ziel-Latenz (ms)&lt;/mat-label&gt;
+                      &lt;input matInput type="number" [(ngModel)]="config.targetLatencyMs" placeholder="2000"&gt;
+                      &lt;mat-hint&gt;p90 Ziel für Performance-Monitoring&lt;/mat-hint&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Timeout (ms)&lt;/mat-label&gt;
+                      &lt;input matInput type="number" [(ngModel)]="config.timeoutMs" placeholder="30000"&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Max Tokens&lt;/mat-label&gt;
+                      &lt;input matInput type="number" [(ngModel)]="config.maxTokens" placeholder="500"&gt;
+                      &lt;mat-hint&gt;Kleiner = schneller&lt;/mat-hint&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Temperature&lt;/mat-label&gt;
+                      &lt;input matInput type="number" step="0.1" [(ngModel)]="config.temperature" placeholder="0.3"&gt;
+                      &lt;mat-hint&gt;0.1-0.5 empfohlen für strukturierte Outputs&lt;/mat-hint&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Confidence Shortcut&lt;/mat-label&gt;
+                      &lt;input matInput type="number" step="0.05" [(ngModel)]="config.confidenceShortcut" placeholder="0.85"&gt;
+                      &lt;mat-hint&gt;Bei STT-Confidence &gt;= Wert → skip LLM&lt;/mat-hint&gt;
+                    &lt;/mat-form-field&gt;
+                  &lt;/div&gt;
+
+                  &lt;div class="config-toggles"&gt;
+                    &lt;mat-slide-toggle [(ngModel)]="config.useGpu"&gt;
+                      GPU verwenden (wenn verfügbar)
+                    &lt;/mat-slide-toggle&gt;
+
+                    &lt;mat-slide-toggle [(ngModel)]="config.heuristicBypass"&gt;
+                      Heuristik-Bypass aktivieren
+                      &lt;span class="hint"&gt;Versucht LLM zu umgehen bei klaren Eingaben&lt;/span&gt;
+                    &lt;/mat-slide-toggle&gt;
+                  &lt;/div&gt;
+
+                  &lt;div class="actions"&gt;
+                    &lt;button mat-raised-button color="primary" (click)="saveConfig()"&gt;
+                      &lt;mat-icon&gt;save&lt;/mat-icon&gt;
+                      Speichern
+                    &lt;/button&gt;
+                    &lt;button mat-button (click)="loadConfig()"&gt;
+                      &lt;mat-icon&gt;refresh&lt;/mat-icon&gt;
+                      Neu laden
+                    &lt;/button&gt;
+                    &lt;button mat-button color="warn" (click)="testConnection()"&gt;
+                      &lt;mat-icon&gt;network_check&lt;/mat-icon&gt;
+                      Verbindung testen
+                    &lt;/button&gt;
+                  &lt;/div&gt;
+                &lt;/div&gt;
+              &lt;/mat-tab&gt;
+
+              &lt;!-- Tab 2: Statistics --&gt;
+              &lt;mat-tab label="Statistiken"&gt;
+                &lt;div class="tab-content"&gt;
+                  &lt;h3&gt;Performance Übersicht&lt;/h3&gt;
+
+                  &lt;div class="stats-grid" *ngIf="stats"&gt;
+                    &lt;mat-card class="stat-card"&gt;
+                      &lt;mat-card-header&gt;
+                        &lt;mat-card-title&gt;Gesamt-Anfragen&lt;/mat-card-title&gt;
+                      &lt;/mat-card-header&gt;
+                      &lt;mat-card-content&gt;
+                        &lt;div class="stat-value"&gt;{{ stats.summary.totalRequests || 0 }}&lt;/div&gt;
+                      &lt;/mat-card-content&gt;
+                    &lt;/mat-card&gt;
+
+                    &lt;mat-card class="stat-card"&gt;
+                      &lt;mat-card-header&gt;
+                        &lt;mat-card-title&gt;Ø Latenz&lt;/mat-card-title&gt;
+                      &lt;/mat-card-header&gt;
+                      &lt;mat-card-content&gt;
+                        &lt;div class="stat-value"&gt;{{ (stats.summary.avgDuration || 0).toFixed(0) }} ms&lt;/div&gt;
+                        &lt;div class="stat-hint" [class.warn]="stats.summary.avgDuration &gt; config.targetLatencyMs"&gt;
+                          Ziel: {{ config.targetLatencyMs }} ms
+                        &lt;/div&gt;
+                      &lt;/mat-card-content&gt;
+                    &lt;/mat-card&gt;
+
+                    &lt;mat-card class="stat-card"&gt;
+                      &lt;mat-card-header&gt;
+                        &lt;mat-card-title&gt;Ø LLM Zeit&lt;/mat-card-title&gt;
+                      &lt;/mat-card-header&gt;
+                      &lt;mat-card-content&gt;
+                        &lt;div class="stat-value"&gt;{{ (stats.summary.avgLlmTime || 0).toFixed(0) }} ms&lt;/div&gt;
+                      &lt;/mat-card-content&gt;
+                    &lt;/mat-card&gt;
+
+                    &lt;mat-card class="stat-card"&gt;
+                      &lt;mat-card-header&gt;
+                        &lt;mat-card-title&gt;Ø Confidence&lt;/mat-card-title&gt;
+                      &lt;/mat-card-header&gt;
+                      &lt;mat-card-content&gt;
+                        &lt;div class="stat-value"&gt;{{ ((stats.summary.avgConfidence || 0) * 100).toFixed(1) }}%&lt;/div&gt;
+                      &lt;/mat-card-content&gt;
+                    &lt;/mat-card&gt;
+
+                    &lt;mat-card class="stat-card"&gt;
+                      &lt;mat-card-header&gt;
+                        &lt;mat-card-title&gt;Erfolgsrate&lt;/mat-card-title&gt;
+                      &lt;/mat-card-header&gt;
+                      &lt;mat-card-content&gt;
+                        &lt;div class="stat-value"&gt;
+                          {{ ((stats.summary.validCount / stats.summary.totalRequests) * 100).toFixed(1) }}%
+                        &lt;/div&gt;
+                      &lt;/mat-card-content&gt;
+                    &lt;/mat-card&gt;
+
+                    &lt;mat-card class="stat-card"&gt;
+                      &lt;mat-card-header&gt;
+                        &lt;mat-card-title&gt;Fallback genutzt&lt;/mat-card-title&gt;
+                      &lt;/mat-card-header&gt;
+                      &lt;mat-card-content&gt;
+                        &lt;div class="stat-value warn"&gt;{{ stats.summary.fallbackCount || 0 }}&lt;/div&gt;
+                      &lt;/mat-card-content&gt;
+                    &lt;/mat-card&gt;
+                  &lt;/div&gt;
+
+                  &lt;h3&gt;Performance nach Modell&lt;/h3&gt;
+                  &lt;table mat-table [dataSource]="stats?.byModel || []" class="admin-table"&gt;
+                    &lt;ng-container matColumnDef="model"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Modell&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;{{ row._id }}&lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;ng-container matColumnDef="count"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Anfragen&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;{{ row.count }}&lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;ng-container matColumnDef="avgDuration"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Ø Latenz&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;{{ row.avgDuration.toFixed(0) }} ms&lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;ng-container matColumnDef="avgLlmTime"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Ø LLM Zeit&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;{{ row.avgLlmTime.toFixed(0) }} ms&lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;tr mat-header-row *matHeaderRowDef="['model', 'count', 'avgDuration', 'avgLlmTime']"&gt;&lt;/tr&gt;
+                    &lt;tr mat-row *matRowDef="let row; columns: ['model', 'count', 'avgDuration', 'avgLlmTime']"&gt;&lt;/tr&gt;
+                  &lt;/table&gt;
+
+                  &lt;div class="actions"&gt;
+                    &lt;button mat-raised-button (click)="loadStats()"&gt;
+                      &lt;mat-icon&gt;refresh&lt;/mat-icon&gt;
+                      Aktualisieren
+                    &lt;/button&gt;
+                  &lt;/div&gt;
+                &lt;/div&gt;
+              &lt;/mat-tab&gt;
+
+              &lt;!-- Tab 3: Anfragen --&gt;
+              &lt;mat-tab label="Anfragen"&gt;
+                &lt;div class="tab-content"&gt;
+                  &lt;h3&gt;Alle Sprach-Anfragen&lt;/h3&gt;
+
+                  &lt;!-- Filter --&gt;
+                  &lt;div class="filter-row"&gt;
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;User ID&lt;/mat-label&gt;
+                      &lt;input matInput [(ngModel)]="filter.userId" (input)="applyFilter()"&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Terminal ID&lt;/mat-label&gt;
+                      &lt;input matInput [(ngModel)]="filter.terminalId" (input)="applyFilter()"&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Modell&lt;/mat-label&gt;
+                      &lt;mat-select [(ngModel)]="filter.model" (selectionChange)="applyFilter()"&gt;
+                        &lt;mat-option value=""&gt;Alle&lt;/mat-option&gt;
+                        &lt;mat-option value="mistralai/mistral-7b-instruct-v0.3"&gt;Mistral 7B&lt;/mat-option&gt;
+                        &lt;mat-option value="meta-llama/llama-3.1-8b-instruct"&gt;LLaMA 3.1 8B&lt;/mat-option&gt;
+                      &lt;/mat-select&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Kategorie&lt;/mat-label&gt;
+                      &lt;mat-select [(ngModel)]="filter.category" (selectionChange)="applyFilter()"&gt;
+                        &lt;mat-option value=""&gt;Alle&lt;/mat-option&gt;
+                        &lt;mat-option value="home_assistant_command"&gt;HA Command&lt;/mat-option&gt;
+                        &lt;mat-option value="home_assistant_query"&gt;HA Query&lt;/mat-option&gt;
+                        &lt;mat-option value="navigation"&gt;Navigation&lt;/mat-option&gt;
+                        &lt;mat-option value="web_search"&gt;Web Search&lt;/mat-option&gt;
+                        &lt;mat-option value="greeting"&gt;Greeting&lt;/mat-option&gt;
+                        &lt;mat-option value="unknown"&gt;Unknown&lt;/mat-option&gt;
+                      &lt;/mat-select&gt;
+                    &lt;/mat-form-field&gt;
+
+                    &lt;button mat-button (click)="clearFilter()"&gt;
+                      &lt;mat-icon&gt;clear&lt;/mat-icon&gt;
+                      Filter löschen
+                    &lt;/button&gt;
+                  &lt;/div&gt;
+
+                  &lt;!-- Table --&gt;
+                  &lt;table mat-table [dataSource]="transcripts" class="admin-table"&gt;
+                    &lt;ng-container matColumnDef="createdAt"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Zeit&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;{{ row.createdAt | date:'short' }}&lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;ng-container matColumnDef="transcript"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Transkript&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row" class="transcript-cell"&gt;
+                        {{ row.transcript }}
+                        &lt;span class="confidence-badge"&gt;{{ (row.sttConfidence * 100).toFixed(0) }}%&lt;/span&gt;
+                      &lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;ng-container matColumnDef="category"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Kategorie&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;
+                        &lt;span class="category-badge" [attr.data-category]="row.category"&gt;
+                          {{ row.category }}
+                        &lt;/span&gt;
+                      &lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;ng-container matColumnDef="durationMs"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Latenz&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;
+                        &lt;span [class.warn]="row.durationMs &gt; config.targetLatencyMs"&gt;
+                          {{ row.durationMs }} ms
+                        &lt;/span&gt;
+                        &lt;br&gt;
+                        &lt;small *ngIf="row.timings?.llmMs"&gt;LLM: {{ row.timings.llmMs }} ms&lt;/small&gt;
+                      &lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;ng-container matColumnDef="isValid"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Valid&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;
+                        &lt;mat-icon [class.valid]="row.isValid" [class.invalid]="!row.isValid"&gt;
+                          {{ row.isValid ? 'check_circle' : 'cancel' }}
+                        &lt;/mat-icon&gt;
+                      &lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;ng-container matColumnDef="actions"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;Aktionen&lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;
+                        &lt;button mat-icon-button (click)="viewDetails(row)"&gt;
+                          &lt;mat-icon&gt;visibility&lt;/mat-icon&gt;
+                        &lt;/button&gt;
+                      &lt;/td&gt;
+                    &lt;/ng-container&gt;
+
+                    &lt;tr mat-header-row *matHeaderRowDef="['createdAt', 'transcript', 'category', 'durationMs', 'isValid', 'actions']"&gt;&lt;/tr&gt;
+                    &lt;tr mat-row *matRowDef="let row; columns: ['createdAt', 'transcript', 'category', 'durationMs', 'isValid', 'actions']"&gt;&lt;/tr&gt;
+                  &lt;/table&gt;
+
+                  &lt;mat-paginator
+                    [length]="pagination.total"
+                    [pageSize]="pagination.limit"
+                    [pageSizeOptions]="[10, 25, 50, 100]"
+                    (page)="onPageChange($event)"&gt;
+                  &lt;/mat-paginator&gt;
+                &lt;/div&gt;
+              &lt;/mat-tab&gt;
+            &lt;/mat-tab-group&gt;
+          &lt;/mat-card-content&gt;
+        &lt;/mat-card&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
