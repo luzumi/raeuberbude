@@ -160,6 +160,9 @@ export class AdminSpeechAssistantComponent implements OnInit {
   // Use relative URL - will be proxied to backend
   private readonly backendUrl = '';
 
+  // Make Object available in template
+  Object = Object;
+
   constructor(
     private http: HttpClient,
     private dialog: MatDialog,

@@ -2,13 +2,23 @@
       &lt;div class="admin-shell"&gt;
         &lt;mat-card class="admin-card"&gt;
           &lt;mat-card-header&gt;
-            &lt;mat-card-title&gt;
-              &lt;mat-icon&gt;mic&lt;/mat-icon&gt;
-              Sprachassistent Admin
-            &lt;/mat-card-title&gt;
-            &lt;mat-card-subtitle&gt;
-              LLM-Konfiguration, Performance-Monitoring und Anfrage-Log
-            &lt;/mat-card-subtitle&gt;
+            &lt;div class="header-left"&gt;
+              &lt;button mat-icon-button (click)="goBack()" matTooltip="Zurück"&gt;
+                &lt;mat-icon&gt;arrow_back&lt;/mat-icon&gt;
+              &lt;/button&gt;
+              &lt;div class="header-title"&gt;
+                &lt;mat-card-title&gt;
+                  &lt;mat-icon&gt;mic&lt;/mat-icon&gt;
+                  Sprachassistent Admin
+                &lt;/mat-card-title&gt;
+                &lt;mat-card-subtitle&gt;
+                  LLM-Konfiguration, Performance-Monitoring und Anfrage-Log
+                &lt;/mat-card-subtitle&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;button mat-icon-button (click)="close()" class="close-button" matTooltip="Schließen"&gt;
+              &lt;mat-icon&gt;close&lt;/mat-icon&gt;
+            &lt;/button&gt;
           &lt;/mat-card-header&gt;
 
           &lt;mat-card-content&gt;
@@ -36,7 +46,12 @@
 
                     &lt;mat-form-field&gt;
                       &lt;mat-label&gt;Fallback Modell (optional)&lt;/mat-label&gt;
-                      &lt;input matInput [(ngModel)]="config.fallbackModel" placeholder="z.B. llama-3.2-3b-instruct"&gt;
+                      &lt;mat-select [(ngModel)]="config.fallbackModel"&gt;
+                        &lt;mat-option value=""&gt;Kein Fallback&lt;/mat-option&gt;
+                        &lt;mat-option *ngFor="let instance of llmInstances" [value]="instance.model"&gt;
+                          {{ instance.name }} ({{ instance.model }})
+                        &lt;/mat-option&gt;
+                      &lt;/mat-select&gt;
                     &lt;/mat-form-field&gt;
 
                     &lt;mat-form-field&gt;
@@ -80,6 +95,67 @@
                     &lt;/mat-slide-toggle&gt;
                   &lt;/div&gt;
 
+                  &lt;h3&gt;System Prompt&lt;/h3&gt;
+                  &lt;mat-form-field class="full-width"&gt;
+                    &lt;mat-label&gt;System Prompt für aktive LLM-Instanz&lt;/mat-label&gt;
+                    &lt;textarea matInput [(ngModel)]="systemPrompt" rows="10" 
+                              placeholder="System-Prompt wird automatisch geladen..."&gt;&lt;/textarea&gt;
+                    &lt;mat-hint&gt;Anweisungen für das LLM zur Verarbeitung von Sprachbefehlen&lt;/mat-hint&gt;
+                  &lt;/mat-form-field&gt;
+                  &lt;div class="actions"&gt;
+                    &lt;button mat-raised-button color="primary" (click)="saveSystemPrompt()"&gt;
+                      &lt;mat-icon&gt;save&lt;/mat-icon&gt;
+                      System-Prompt Speichern
+                    &lt;/button&gt;
+                    &lt;button mat-button (click)="loadSystemPrompt()"&gt;
+                      &lt;mat-icon&gt;refresh&lt;/mat-icon&gt;
+                      Neu laden
+                    &lt;/button&gt;
+                  &lt;/div&gt;
+
+                  &lt;h3&gt;LLM Instanzen&lt;/h3&gt;
+                  &lt;div class="llm-instances"&gt;
+                    &lt;mat-card *ngFor="let instance of llmInstances" class="llm-instance-card"
+                              [class.active]="instance.isActive"&gt;
+                      &lt;mat-card-header&gt;
+                        &lt;mat-card-title&gt;
+                          {{ instance.name }}
+                          &lt;mat-icon *ngIf="instance.isActive" class="active-icon"&gt;check_circle&lt;/mat-icon&gt;
+                        &lt;/mat-card-title&gt;
+                        &lt;mat-card-subtitle&gt;{{ instance.url }}&lt;/mat-card-subtitle&gt;
+                      &lt;/mat-card-header&gt;
+                      &lt;mat-card-content&gt;
+                        &lt;div class="llm-info"&gt;
+                          &lt;p&gt;&lt;strong&gt;Modell:&lt;/strong&gt; {{ instance.model || 'Unbekannt' }}&lt;/p&gt;
+                          &lt;p&gt;&lt;strong&gt;Status:&lt;/strong&gt; 
+                            &lt;span [class]="'status-' + instance.health?.status"&gt;
+                              {{ instance.health?.status || 'unknown' }}
+                            &lt;/span&gt;
+                          &lt;/p&gt;
+                          &lt;p *ngIf="instance.health?.responseTimeMs"&gt;
+                            &lt;strong&gt;Response Time:&lt;/strong&gt; {{ instance.health.responseTimeMs }}ms
+                          &lt;/p&gt;
+                          &lt;p *ngIf="instance.stats?.totalRequests"&gt;
+                            &lt;strong&gt;Requests:&lt;/strong&gt; {{ instance.stats.totalRequests }}
+                            ({{ instance.stats.successfulRequests }} erfolg / {{ instance.stats.failedRequests }} fehler)
+                          &lt;/p&gt;
+                        &lt;/div&gt;
+                      &lt;/mat-card-content&gt;
+                      &lt;mat-card-actions&gt;
+                        &lt;button mat-button (click)="activateLlm(instance._id!)" 
+                                [disabled]="instance.isActive || !instance.enabled"&gt;
+                          &lt;mat-icon&gt;play_arrow&lt;/mat-icon&gt;
+                          Aktivieren
+                        &lt;/button&gt;
+                        &lt;button mat-button (click)="testLlmConnection(instance._id!)"&gt;
+                          &lt;mat-icon&gt;network_check&lt;/mat-icon&gt;
+                          Testen
+                        &lt;/button&gt;
+                      &lt;/mat-card-actions&gt;
+                    &lt;/mat-card&gt;
+                  &lt;/div&gt;
+
+                  &lt;h3&gt;Legacy Konfiguration&lt;/h3&gt;
                   &lt;div class="actions"&gt;
                     &lt;button mat-raised-button color="primary" (click)="saveConfig()"&gt;
                       &lt;mat-icon&gt;save&lt;/mat-icon&gt;
@@ -88,10 +164,6 @@
                     &lt;button mat-button (click)="loadConfig()"&gt;
                       &lt;mat-icon&gt;refresh&lt;/mat-icon&gt;
                       Neu laden
-                    &lt;/button&gt;
-                    &lt;button mat-button color="warn" (click)="testConnection()"&gt;
-                      &lt;mat-icon&gt;network_check&lt;/mat-icon&gt;
-                      Verbindung testen
                     &lt;/button&gt;
                   &lt;/div&gt;
                 &lt;/div&gt;
@@ -165,6 +237,21 @@
 
                   &lt;h3&gt;Performance nach Modell&lt;/h3&gt;
                   &lt;table mat-table [dataSource]="stats?.byModel || []" class="admin-table"&gt;
+                    &lt;ng-container matColumnDef="select"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;
+                        &lt;mat-checkbox
+                          [checked]="allModelsSelected"
+                          [indeterminate]="someModelsSelected"
+                          (change)="toggleSelectAllModels($event.checked)"&gt;
+                        &lt;/mat-checkbox&gt;
+                      &lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;
+                        &lt;mat-checkbox
+                          [(ngModel)]="selectedModels[row._id]"&gt;
+                        &lt;/mat-checkbox&gt;
+                      &lt;/td&gt;
+                    &lt;/ng-container&gt;
+
                     &lt;ng-container matColumnDef="model"&gt;
                       &lt;th mat-header-cell *matHeaderCellDef&gt;Modell&lt;/th&gt;
                       &lt;td mat-cell *matCellDef="let row"&gt;{{ row._id }}&lt;/td&gt;
@@ -185,8 +272,8 @@
                       &lt;td mat-cell *matCellDef="let row"&gt;{{ row.avgLlmTime.toFixed(0) }} ms&lt;/td&gt;
                     &lt;/ng-container&gt;
 
-                    &lt;tr mat-header-row *matHeaderRowDef="['model', 'count', 'avgDuration', 'avgLlmTime']"&gt;&lt;/tr&gt;
-                    &lt;tr mat-row *matRowDef="let row; columns: ['model', 'count', 'avgDuration', 'avgLlmTime']"&gt;&lt;/tr&gt;
+                    &lt;tr mat-header-row *matHeaderRowDef="['select', 'model', 'count', 'avgDuration', 'avgLlmTime']"&gt;&lt;/tr&gt;
+                    &lt;tr mat-row *matRowDef="let row; columns: ['select', 'model', 'count', 'avgDuration', 'avgLlmTime']"&gt;&lt;/tr&gt;
                   &lt;/table&gt;
 
                   &lt;div class="actions"&gt;
@@ -211,29 +298,35 @@
                     &lt;/mat-form-field&gt;
 
                     &lt;mat-form-field&gt;
-                      &lt;mat-label&gt;Terminal ID&lt;/mat-label&gt;
-                      &lt;input matInput [(ngModel)]="filter.terminalId" (input)="applyFilter()"&gt;
+                      &lt;mat-label&gt;Terminal&lt;/mat-label&gt;
+                      &lt;mat-select [(ngModel)]="filter.terminalId" (selectionChange)="applyFilter()"&gt;
+                        &lt;mat-option value=""&gt;Alle Terminals&lt;/mat-option&gt;
+                        &lt;mat-option *ngFor="let terminal of terminals" [value]="terminal.terminalId || terminal._id"&gt;
+                          {{ terminal.name }} ({{ terminal.terminalId || terminal._id }})
+                        &lt;/mat-option&gt;
+                      &lt;/mat-select&gt;
                     &lt;/mat-form-field&gt;
 
                     &lt;mat-form-field&gt;
                       &lt;mat-label&gt;Modell&lt;/mat-label&gt;
                       &lt;mat-select [(ngModel)]="filter.model" (selectionChange)="applyFilter()"&gt;
-                        &lt;mat-option value=""&gt;Alle&lt;/mat-option&gt;
-                        &lt;mat-option value="mistralai/mistral-7b-instruct-v0.3"&gt;Mistral 7B&lt;/mat-option&gt;
-                        &lt;mat-option value="meta-llama/llama-3.1-8b-instruct"&gt;LLaMA 3.1 8B&lt;/mat-option&gt;
+                        &lt;mat-option value=""&gt;Alle Modelle&lt;/mat-option&gt;
+                        &lt;mat-option *ngFor="let instance of llmInstances" [value]="instance.model"&gt;
+                          {{ instance.model }}
+                        &lt;/mat-option&gt;
+                        &lt;!-- Legacy options for existing data --&gt;
+                        &lt;mat-option value="mistralai/mistral-7b-instruct-v0.3"&gt;Mistral 7B Instruct v0.3&lt;/mat-option&gt;
+                        &lt;mat-option value="meta-llama/llama-3.1-8b-instruct"&gt;LLaMA 3.1 8B Instruct&lt;/mat-option&gt;
                       &lt;/mat-select&gt;
                     &lt;/mat-form-field&gt;
 
                     &lt;mat-form-field&gt;
                       &lt;mat-label&gt;Kategorie&lt;/mat-label&gt;
                       &lt;mat-select [(ngModel)]="filter.category" (selectionChange)="applyFilter()"&gt;
-                        &lt;mat-option value=""&gt;Alle&lt;/mat-option&gt;
-                        &lt;mat-option value="home_assistant_command"&gt;HA Command&lt;/mat-option&gt;
-                        &lt;mat-option value="home_assistant_query"&gt;HA Query&lt;/mat-option&gt;
-                        &lt;mat-option value="navigation"&gt;Navigation&lt;/mat-option&gt;
-                        &lt;mat-option value="web_search"&gt;Web Search&lt;/mat-option&gt;
-                        &lt;mat-option value="greeting"&gt;Greeting&lt;/mat-option&gt;
-                        &lt;mat-option value="unknown"&gt;Unknown&lt;/mat-option&gt;
+                        &lt;mat-option value=""&gt;Alle Kategorien&lt;/mat-option&gt;
+                        &lt;mat-option *ngFor="let category of categories" [value]="category.key"&gt;
+                          {{ category.label }}
+                        &lt;/mat-option&gt;
                       &lt;/mat-select&gt;
                     &lt;/mat-form-field&gt;
 
@@ -243,8 +336,39 @@
                     &lt;/button&gt;
                   &lt;/div&gt;
 
+                  &lt;!-- Bulk Actions --&gt;
+                  &lt;div class="bulk-actions" *ngIf="Object.keys(selectedTranscripts).some(id => selectedTranscripts[id])"&gt;
+                    &lt;mat-form-field&gt;
+                      &lt;mat-label&gt;Kategorie für ausgewählte Einträge&lt;/mat-label&gt;
+                      &lt;mat-select [(ngModel)]="bulkCategory"&gt;
+                        &lt;mat-option *ngFor="let category of categories" [value]="category.key"&gt;
+                          {{ category.label }}
+                        &lt;/mat-option&gt;
+                      &lt;/mat-select&gt;
+                    &lt;/mat-form-field&gt;
+                    &lt;button mat-raised-button color="primary" (click)="bulkUpdateCategories()"&gt;
+                      &lt;mat-icon&gt;update&lt;/mat-icon&gt;
+                      Anwenden
+                    &lt;/button&gt;
+                  &lt;/div&gt;
+
                   &lt;!-- Table --&gt;
                   &lt;table mat-table [dataSource]="transcripts" class="admin-table"&gt;
+                    &lt;ng-container matColumnDef="select"&gt;
+                      &lt;th mat-header-cell *matHeaderCellDef&gt;
+                        &lt;mat-checkbox
+                          [checked]="allTranscriptsSelected"
+                          [indeterminate]="someTranscriptsSelected"
+                          (change)="toggleSelectAll($event.checked)"&gt;
+                        &lt;/mat-checkbox&gt;
+                      &lt;/th&gt;
+                      &lt;td mat-cell *matCellDef="let row"&gt;
+                        &lt;mat-checkbox
+                          [(ngModel)]="selectedTranscripts[row._id]"&gt;
+                        &lt;/mat-checkbox&gt;
+                      &lt;/td&gt;
+                    &lt;/ng-container&gt;
+
                     &lt;ng-container matColumnDef="createdAt"&gt;
                       &lt;th mat-header-cell *matHeaderCellDef&gt;Zeit&lt;/th&gt;
                       &lt;td mat-cell *matCellDef="let row"&gt;{{ row.createdAt | date:'short' }}&lt;/td&gt;
@@ -261,9 +385,13 @@
                     &lt;ng-container matColumnDef="category"&gt;
                       &lt;th mat-header-cell *matHeaderCellDef&gt;Kategorie&lt;/th&gt;
                       &lt;td mat-cell *matCellDef="let row"&gt;
-                        &lt;span class="category-badge" [attr.data-category]="row.category"&gt;
-                          {{ row.category }}
-                        &lt;/span&gt;
+                        &lt;mat-select [(ngModel)]="row.category" 
+                                    (selectionChange)="updateTranscriptCategory(row._id, row.category)"
+                                    class="inline-category-select"&gt;
+                          &lt;mat-option *ngFor="let category of categories" [value]="category.key"&gt;
+                            {{ category.label }}
+                          &lt;/mat-option&gt;
+                        &lt;/mat-select&gt;
                       &lt;/td&gt;
                     &lt;/ng-container&gt;
 
@@ -296,8 +424,8 @@
                       &lt;/td&gt;
                     &lt;/ng-container&gt;
 
-                    &lt;tr mat-header-row *matHeaderRowDef="['createdAt', 'transcript', 'category', 'durationMs', 'isValid', 'actions']"&gt;&lt;/tr&gt;
-                    &lt;tr mat-row *matRowDef="let row; columns: ['createdAt', 'transcript', 'category', 'durationMs', 'isValid', 'actions']"&gt;&lt;/tr&gt;
+                    &lt;tr mat-header-row *matHeaderRowDef="['select', 'createdAt', 'transcript', 'category', 'durationMs', 'isValid', 'actions']"&gt;&lt;/tr&gt;
+                    &lt;tr mat-row *matRowDef="let row; columns: ['select', 'createdAt', 'transcript', 'category', 'durationMs', 'isValid', 'actions']"&gt;&lt;/tr&gt;
                   &lt;/table&gt;
 
                   &lt;mat-paginator
