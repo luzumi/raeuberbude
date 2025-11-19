@@ -69,6 +69,9 @@ export class IntentActionService {
         case 'home_assistant_query':
           return await this.handleHomeAssistantQuery(intent);
 
+        case 'home_assistant_queryautomation':
+          return await this.handleHomeAssistantQueryAutomation(intent);
+
         case 'navigation':
           return await this.handleNavigation(intent);
 
@@ -186,6 +189,30 @@ export class IntentActionService {
             <p>Schlagworte: ${intent.keywords.join(', ')}</p>
             <p class="note">
               ℹ️ Abfrage-Funktion wird implementiert.
+            </p>
+          </div>
+        `,
+        type: 'ha_query'
+      }
+    };
+  }
+
+  /**
+   * Home Assistant Automation Abfragen
+   */
+  private async handleHomeAssistantQueryAutomation(intent: IntentRecognitionResult): Promise<ActionResult> {
+    return {
+      success: true,
+      message: 'HA Automation Abfrage erkannt',
+      showDialog: true,
+      dialogContent: {
+        title: 'Home Assistant Automation',
+        content: `
+          <div class="ha-query-preview">
+            <h3>${intent.summary}</h3>
+            <p>Schlagworte: ${intent.keywords.join(', ')}</p>
+            <p class="note">
+              ℹ️ Automation-Abfrage wird implementiert.
             </p>
           </div>
         `,

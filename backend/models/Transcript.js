@@ -22,7 +22,7 @@ const transcriptSchema = new mongoose.Schema({
   // Intent Recognition
   category: {
     type: String,
-    enum: ['home_assistant_command', 'home_assistant_query', 'navigation', 'web_search', 'greeting', 'general_question', 'unknown'],
+    enum: ['home_assistant_command', 'home_assistant_query', 'home_assistant_queryautomation', 'navigation', 'web_search', 'greeting', 'general_question', 'unknown'],
     index: true
   },
   intent: { type: Object }, // Komplettes Intent-Objekt
