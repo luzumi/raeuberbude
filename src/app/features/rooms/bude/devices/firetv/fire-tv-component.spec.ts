@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { FiretvComponent } from './fire-tv-component';
 import { HomeAssistantService } from '@services/home-assistant/home-assistant.service';
@@ -13,11 +14,12 @@ describe('FiretvComponent', () => {
     entities$ = of([]);
     getStatesWs() { return of([]); }
     callService() { return of({}); }
+    listFireTvCommands() { return of([]); }
   }
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [FiretvComponent],
+      imports: [FiretvComponent, HttpClientTestingModule],
       providers: [{ provide: HomeAssistantService, useClass: HassStub }]
     })
     .compileComponents();
