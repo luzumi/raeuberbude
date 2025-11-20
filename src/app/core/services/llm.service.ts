@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { LlmInstance } from '../models/llm-instance.model';
 import { environment } from '../../../environments/environment';
 import { resolveBackendBase } from '../utils/backend';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -24,33 +25,67 @@ export class LlmService {
     return this.http.post<LlmInstance[]>(`${this.apiUrl}/scan`, {});
   }
 
-  activate(id: string): Observable<LlmInstance> {
-    return this.http.post<LlmInstance>(`${this.apiUrl}/${id}/activate`, {});
-  }
+   /**
+   * Fetch available models from an LLM instance (GET /v1/models)
+   * Returns array of model ids (strings)
+   */
+  getModels(instanceUrl: string): Observable<string[]> {
+     try {
+      const candidates = new Set<string>();
+      // primary replace if typical path is provided
+      if (instanceUrl.includes('/chat/completions')) {
+        candidates.add(instanceUrl.replace('/chat/completions', '/models'));
+      }
+      try {
+        const u = new URL(instanceUrl);
+        candidates.add(`${u.origin}/v1/models`);
+        candidates.add(`${u.origin}/models`);
+      } catch (e) {
+        // ignore url parsing
+      }
 
-  getSystemPrompt(id: string): Observable<{ systemPrompt: string }> {
-    return this.http.get<{ systemPrompt: string }>(`${this.apiUrl}/${id}/system-prompt`);
-  }
+      const tryFetch = (url: string) => this.http.get<any>(url).pipe(
+         map(resp => {
+           if (!resp) return [];
+           // If resp is an array of models
+           if (Array.isArray(resp)) {
+             return resp.map((r: any) => r.id).filter(Boolean);
+           }
 
-  setSystemPrompt(id: string, systemPrompt: string): Observable<LlmInstance> {
-    return this.http.put<LlmInstance>(`${this.apiUrl}/${id}/system-prompt`, { systemPrompt });
-  }
+           // If resp is { object: 'list', data: [...] }
+           if (Array.isArray((resp as any).data)) {
+             return (resp as any).data.map((d: any) => d.id).filter(Boolean);
+           }
 
-  async testConnection(instance: LlmInstance): Promise<boolean> {
-    try {
-      const testUrl = instance.url.replace('/chat/completions', '/models');
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal as any
-      });
-      clearTimeout(timeout);
-      return response.ok;
-    } catch (error) {
-      console.error('Connection test failed:', error);
-      return false;
-    }
-  }
+           // Single model object
+           if ((resp as any).id) {
+             return [ (resp as any).id ];
+           }
+
+           return [];
+         })
+      );
+
+      // Try candidates sequentially until one yields models
+      const obs = new Observable<string[]>(sub => {
+        const urls = Array.from(candidates);
+        let i = 0;
+        const next = () => {
+          if (i >= urls.length) { sub.next([]); sub.complete(); return; }
+          const url = urls[i++];
+          tryFetch(url).subscribe({
+            next: (models: string[]) => {
+              if (models && models.length > 0) { sub.next(models); sub.complete(); }
+              else next();
+             },
+             error: () => next()
+           });
+         };
+         next();
+       });
+       return obs;
+     } catch (e) {
+       return new Observable<string[]>(sub => { sub.next([]); sub.complete(); });
+     }
+   }
 }

@@ -150,6 +150,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
   // Neue Features
   categories: Category[] = [];
   llmInstances: LlmInstance[] = [];
+  uniqueModels: string[] = [];
   systemPrompt = '';
   activeInstance: LlmInstance | null = null;
 
@@ -187,6 +188,8 @@ export class AdminSpeechAssistantComponent implements OnInit {
         this.http.get<LlmConfig>(`${this.backendUrl}/api/llm-config`)
       );
       console.log('Loaded config:', this.config);
+      // After loading config, try to fetch models from the configured LLM
+      this.fetchModelsFromConfig();
     } catch (error) {
       console.error('Failed to load config:', error);
       this.snackBar.open('Fehler beim Laden der Konfiguration', 'OK', { duration: 3000 });
@@ -195,13 +198,35 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
   async saveConfig(): Promise<void> {
     try {
-      await lastValueFrom(
+      const resp: any = await lastValueFrom(
         this.http.post(`${this.backendUrl}/api/llm-config`, this.config)
       );
+      // Backend may return the saved config; if so update local model
+      if (resp && resp.config) {
+        this.config = resp.config as LlmConfig;
+      }
       this.snackBar.open('Konfiguration gespeichert', 'OK', { duration: 3000 });
+      // Refresh models based on saved config
+      await this.fetchModelsFromConfig();
     } catch (error) {
       console.error('Failed to save config:', error);
       this.snackBar.open('Fehler beim Speichern der Konfiguration', 'OK', { duration: 3000 });
+    }
+  }
+
+  /**
+   * Fetch available models directly from configured LLM URL and merge into uniqueModels
+   */
+  private async fetchModelsFromConfig(): Promise<void> {
+    if (!this.config || !this.config.url) return;
+    try {
+      const models = await lastValueFrom(this.llmService.getModels(this.config.url));
+      const set = new Set(this.uniqueModels || []);
+      for (const m of models) set.add(m);
+      this.uniqueModels = Array.from(set).sort();
+      console.log('Fetched models from config url:', this.config.url, this.uniqueModels);
+    } catch (e) {
+      console.warn('Failed to fetch models from configured LLM:', e);
     }
   }
 
@@ -327,12 +352,25 @@ export class AdminSpeechAssistantComponent implements OnInit {
       this.llmInstances = await lastValueFrom(this.llmService.listInstances());
       this.activeInstance = this.llmInstances.find(i => i.isActive) || null;
 
-      if (this.activeInstance && this.activeInstance._id) {
+      // Load system prompt of active instance
+      if (this.activeInstance?._id) {
         const promptResult = await lastValueFrom(
           this.llmService.getSystemPrompt(this.activeInstance._id)
         );
         this.systemPrompt = promptResult.systemPrompt;
       }
+
+      // Query each instance for available models and build unique set
+      const modelSet = new Set<string>();
+      for (const inst of this.llmInstances) {
+        try {
+          const models = await lastValueFrom(this.llmService.getModels(inst.url));
+          for (const m of models) modelSet.add(m);
+        } catch (e) {
+          // ignore individual instance failures
+        }
+      }
+      this.uniqueModels = Array.from(modelSet).sort();
 
       console.log('Loaded LLM instances:', this.llmInstances.length);
     } catch (error) {

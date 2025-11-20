@@ -87,8 +87,8 @@
                 <mat-form-field>
                   <mat-label>Primäres Modell</mat-label>
                   <mat-select [(ngModel)]="config.model">
-                    <mat-option *ngFor="let instance of llmInstances" [value]="instance.model">
-                      {{ instance.model }}
+                    <mat-option *ngFor="let m of uniqueModels" [value]="m">
+                      {{ m }}
                     </mat-option>
                   </mat-select>
                 </mat-form-field>
@@ -97,8 +97,8 @@
                   <mat-label>Fallback Modell</mat-label>
                   <mat-select [(ngModel)]="config.fallbackModel">
                     <mat-option value="">Kein Fallback</mat-option>
-                    <mat-option *ngFor="let instance of llmInstances" [value]="instance.model">
-                      {{ instance.model }}
+                    <mat-option *ngFor="let m of uniqueModels" [value]="m">
+                      {{ m }}
                     </mat-option>
                   </mat-select>
                 </mat-form-field>
@@ -313,8 +313,8 @@
                   <mat-label>Modell</mat-label>
                   <mat-select [(ngModel)]="filter.model" (selectionChange)="applyFilter()">
                     <mat-option value="">Alle</mat-option>
-                    <mat-option *ngFor="let instance of llmInstances" [value]="instance.model">
-                      {{ instance.model }}
+                    <mat-option *ngFor="let m of uniqueModels" [value]="m">
+                      {{ m }}
                     </mat-option>
                   </mat-select>
                 </mat-form-field>
