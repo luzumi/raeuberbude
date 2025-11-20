@@ -1,15 +1,32 @@
 import {HttpClient} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {lastValueFrom} from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Injectable( { providedIn: 'root' } )
 export class TerminalService {
   private readonly apiUrl: string;
 
   constructor(private readonly http: HttpClient) {
-    const host = globalThis?.location?.hostname || 'localhost';
-    const port = 3001; // Standard aus Nest (.env NEST_PORT)
-    this.apiUrl = `http://${ host }:${ port }/api/speech`;
+    // Use configured backend API base URL
+    // If the configured backend host is localhost, and the app runs in a browser on a
+    // different machine (e.g. mobile at 192.168.x.x), substitute the hostname so the
+    // client calls the backend on the same LAN host. This avoids 'localhost' resolving
+    // to the device itself on mobile devices.
+    let base = environment.backendApiUrl || '';
+    try {
+      if (typeof window !== 'undefined' && base) {
+        const parsed = new URL(base);
+        if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+          // keep original port
+          parsed.hostname = window.location.hostname;
+          base = parsed.origin; // protocol + host
+        }
+      }
+    } catch (e) {
+      // ignore and fallback to configured value
+    }
+    this.apiUrl = `${base}/api/speech`;
   }
 
   async ensureTerminal(partial?: { name?: string; type?: string; location?: string; metadata?: any }): Promise<any> {
@@ -57,20 +74,43 @@ export class TerminalService {
 
   async getMyTerminal(): Promise<any> {
     try {
-      return await lastValueFrom(
+      const res = await lastValueFrom(
         this.http.get( `${ this.apiUrl }/terminals/me`, { withCredentials: true } )
       );
+
+      // If server reports no cookie/terminal, attempt localStorage fallback
+      if ( res && (res as any).success === false && !(res as any).data ) {
+        const fallback = this.getTerminalFallback();
+        if ( fallback ) {
+          return { success: true, data: fallback, message: 'Terminal from client fallback' };
+        }
+      }
+
+      return res;
     } catch( e ) {
       // Logging bewusst minimal halten, App-Start nicht blockieren
       console.warn( 'TerminalService.getMyTerminal failed', e );
+
+      // Try fallback before returning failure
+      const fallback = this.getTerminalFallback();
+      if ( fallback ) return { success: true, data: fallback, message: 'Terminal from client fallback (error path)' };
+
       return { success: false, data: null };
     }
   }
 
   async claimTerminal(terminalId: string): Promise<any> {
-    return await lastValueFrom(
+    const res = await lastValueFrom(
       this.http.post( `${ this.apiUrl }/terminals/claim`, { terminalId }, { withCredentials: true } )
     );
+
+    // Store fallback terminal id locally (non-sensitive) so UI can continue if cookie is not set
+    try {
+      const idToStore = (res && (res as any).data && (res as any).data.terminalId) || terminalId;
+      localStorage.setItem('rb_terminal_id_fallback', idToStore);
+    } catch { /* ignore */ }
+
+    return res;
   }
 
   async unclaimTerminal(): Promise<any> {
@@ -121,6 +161,15 @@ export class TerminalService {
     return await lastValueFrom(
       this.http.post( `${ this.apiUrl }/terminals`, payload, { withCredentials: true } )
     );
+  }
+
+  private getTerminalFallback(): any | null {
+    try {
+      const id = localStorage.getItem('rb_terminal_id_fallback');
+      if ( !id ) return null;
+      // Minimal terminal shape expected by UI
+      return { terminalId: id, name: `Client-Fallback (${id})`, type: 'browser', capabilities: { hasMicrophone: true } };
+    } catch { return null; }
   }
 
   private getDeviceType(): string {

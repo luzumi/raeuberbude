@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 import { IntentRecognitionResult, IntentType } from '../models/intent-recognition.model';
+import { environment } from '../../../environments/environment';
+import { resolveBackendBase } from '../utils/backend';
 
 // Declare process for environments where it's available (avoid adding @types/node)
 declare const process: any;
@@ -34,10 +36,10 @@ interface LMStudioResponse {
   providedIn: 'root'
 })
 export class TranscriptionValidatorService {
-  private readonly lmStudioUrl = 'http://192.168.56.1:1234/v1/chat/completions';
-  private readonly model = 'mistralai/mistral-7b-instruct-v0.3';
-  // Use relative URL - will be proxied to backend
-  private readonly backendApiUrl = 'http://192.168.178.25:3001';
+  private readonly lmStudioUrl = environment.llm?.url || 'http://192.168.56.1:1234/v1/chat/completions';
+  private readonly model = environment.llm?.model || 'mistralai/mistral-7b-instruct-v0.3';
+  // Use configured backend API URL
+  private readonly backendApiUrl = resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001');
 
   constructor(private readonly http: HttpClient) {}
 

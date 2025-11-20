@@ -67,6 +67,7 @@ export class IntentActionService {
           return await this.handleHomeAssistantCommand(intent);
 
         case 'home_assistant_query':
+        case 'home_assistant_queryautomation':
           return await this.handleHomeAssistantQuery(intent);
 
         case 'navigation':

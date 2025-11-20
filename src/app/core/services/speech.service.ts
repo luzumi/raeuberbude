@@ -5,6 +5,7 @@ import {IntentActionService} from './intent-action.service';
 import { TtsService } from './tts.service';
 import { TranscriptionValidatorService, ValidationResult } from './transcription-validator.service';
 import { environment } from '../../../environments/environment';
+import { resolveBackendBase } from '../utils/backend';
 
 // Web Speech API interfaces
 declare global {
@@ -55,7 +56,7 @@ export class SpeechService {
   // Use absolute backend URL in production, but when running unit tests (Karma) use relative paths
   private readonly apiUrl = (typeof (globalThis as any).__karma__ !== 'undefined' || !!(globalThis as any).__UNIT_TEST_MODE)
     ? '/api/speech'
-    : `${environment.backendApiUrl}/api/speech`;
+    : `${resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001')}/api/speech`;
   private readonly sessionId: string;
   private readonly terminalId: string;
   private currentUserId: string = 'anonymous'; // Cache for current user ID

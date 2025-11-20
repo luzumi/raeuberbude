@@ -145,6 +145,14 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
       background: #f5f5f5;
     }
 
+    .dialog-content.info {
+      background: #e1f5fe;
+    }
+
+    .dialog-content.error {
+      background: #ffebee;
+    }
+
     /* Content Elemente */
     .dialog-content h3 {
       margin-top: 0;
