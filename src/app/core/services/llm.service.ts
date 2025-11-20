@@ -25,6 +25,10 @@ export class LlmService {
     return this.http.post<LlmInstance[]>(`${this.apiUrl}/scan`, {});
   }
 
+  activate(id: string): Observable<LlmInstance> {
+    return this.http.post<LlmInstance>(`${this.apiUrl}/${id}/activate`, {});
+  }
+
    /**
    * Fetch available models from an LLM instance (GET /v1/models)
    * Returns array of model ids (strings)
@@ -88,4 +92,30 @@ export class LlmService {
        return new Observable<string[]>(sub => { sub.next([]); sub.complete(); });
      }
    }
+
+  getSystemPrompt(id: string): Observable<{ systemPrompt: string }> {
+    return this.http.get<{ systemPrompt: string }>(`${this.apiUrl}/${id}/system-prompt`);
+  }
+
+  setSystemPrompt(id: string, systemPrompt: string): Observable<LlmInstance> {
+    return this.http.put<LlmInstance>(`${this.apiUrl}/${id}/system-prompt`, { systemPrompt });
+  }
+
+  async testConnection(instance: LlmInstance): Promise<boolean> {
+    try {
+      const testUrl = instance.url.replace('/chat/completions', '/models');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal as any
+      });
+      clearTimeout(timeout);
+      return response.ok;
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      return false;
+    }
+  }
 }

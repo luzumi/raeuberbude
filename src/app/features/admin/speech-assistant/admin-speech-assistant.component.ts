@@ -151,6 +151,8 @@ export class AdminSpeechAssistantComponent implements OnInit {
   categories: Category[] = [];
   llmInstances: LlmInstance[] = [];
   uniqueModels: string[] = [];
+  // Map modelId -> { instances: string[], active: boolean }
+  uniqueModelSources: Record<string, { instances: string[]; active: boolean }> = {};
   systemPrompt = '';
   activeInstance: LlmInstance | null = null;
 
@@ -174,22 +176,27 @@ export class AdminSpeechAssistantComponent implements OnInit {
     private readonly router: Router
   ) {}
 
-  ngOnInit(): void {
-    this.loadConfig();
-    this.loadStats();
-    this.loadTranscripts();
-    this.loadCategories();
-    this.loadLlmInstances();
+  async ngOnInit(): Promise<void> {
+    // Ensure config is loaded first so we can fetch models from configured LLM URL
+    await this.loadConfig();
+    await this.loadLlmInstances();
+    // Load the rest
+    await Promise.all([
+      this.loadStats(),
+      this.loadTranscripts(),
+      this.loadCategories()
+    ]);
   }
 
   async loadConfig(): Promise<void> {
     try {
+      const ts = Date.now();
       this.config = await lastValueFrom(
-        this.http.get<LlmConfig>(`${this.backendUrl}/api/llm-config`)
+        this.http.get<LlmConfig>(`${this.backendUrl}/api/llm-config`, { params: { _t: String(ts) } })
       );
       console.log('Loaded config:', this.config);
-      // After loading config, try to fetch models from the configured LLM
-      this.fetchModelsFromConfig();
+      // After loading config, fetch models from the configured LLM and wait for completion
+      await this.fetchModelsFromConfig();
     } catch (error) {
       console.error('Failed to load config:', error);
       this.snackBar.open('Fehler beim Laden der Konfiguration', 'OK', { duration: 3000 });
@@ -208,6 +215,8 @@ export class AdminSpeechAssistantComponent implements OnInit {
       this.snackBar.open('Konfiguration gespeichert', 'OK', { duration: 3000 });
       // Refresh models based on saved config
       await this.fetchModelsFromConfig();
+      // Also refresh instance list so UI shows updated active instances/models
+      await this.loadLlmInstances();
     } catch (error) {
       console.error('Failed to save config:', error);
       this.snackBar.open('Fehler beim Speichern der Konfiguration', 'OK', { duration: 3000 });
@@ -232,11 +241,14 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
   async testConnection(): Promise<void> {
     try {
-      const response = await lastValueFrom(
-        this.http.get<any>(this.config.url.replace('/chat/completions', '/models'))
-      );
-      this.snackBar.open('Verbindung erfolgreich!', 'OK', { duration: 3000 });
-      console.log('Connection test result:', response);
+      const models = await lastValueFrom(this.llmService.getModels(this.config.url));
+      if (models && models.length > 0) {
+        this.snackBar.open('Verbindung erfolgreich! ' + models.length + ' Modelle gefunden', 'OK', { duration: 3000 });
+        console.log('Connection test result (models):', models);
+      } else {
+        this.snackBar.open('Verbindung hergestellt, aber keine Modelle gefunden', 'OK', { duration: 4000 });
+        console.log('Connection test result: no models');
+      }
     } catch (error) {
       console.error('Connection test failed:', error);
       this.snackBar.open('Verbindung fehlgeschlagen!', 'OK', { duration: 5000 });
@@ -349,7 +361,11 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
   async loadLlmInstances(): Promise<void> {
     try {
-      this.llmInstances = await lastValueFrom(this.llmService.listInstances());
+      // Avoid cached 304 responses by adding a cache-buster on the backend call
+      const ts = Date.now();
+      this.llmInstances = await lastValueFrom(
+        this.http.get<LlmInstance[]>(`${this.backendUrl}/api/llm-instances`, { params: { _t: String(ts) } })
+      );
       this.activeInstance = this.llmInstances.find(i => i.isActive) || null;
 
       // Load system prompt of active instance
@@ -360,17 +376,43 @@ export class AdminSpeechAssistantComponent implements OnInit {
         this.systemPrompt = promptResult.systemPrompt;
       }
 
-      // Query each instance for available models and build unique set
-      const modelSet = new Set<string>();
+      // Query each instance for available models and build unique set (merge with any models already from config)
+      const modelSet = new Set<string>(this.uniqueModels || []);
+      // reset sources map
+      this.uniqueModelSources = {};
       for (const inst of this.llmInstances) {
         try {
           const models = await lastValueFrom(this.llmService.getModels(inst.url));
-          for (const m of models) modelSet.add(m);
+          console.log(`Models from instance ${inst.name || inst.url}:`, models);
+          if (!models || models.length === 0) {
+            console.warn(`No models returned from instance ${inst.name || inst.url}`);
+          }
+          for (const m of models || []) {
+            modelSet.add(m);
+            const entry = this.uniqueModelSources[m] || { instances: [], active: false };
+            if (!entry.instances.includes(inst.name || inst.url)) entry.instances.push(inst.name || inst.url);
+            // mark active true if instance is active
+            entry.active = entry.active || !!inst.isActive;
+            this.uniqueModelSources[m] = entry;
+          }
+          // also include the instance.model field if present
+          if (inst.model) {
+            modelSet.add(inst.model);
+            const mm = inst.model;
+            const entry = this.uniqueModelSources[mm] || { instances: [], active: false };
+            if (!entry.instances.includes(inst.name || inst.url)) entry.instances.push(inst.name || inst.url);
+            entry.active = entry.active || !!inst.isActive;
+            this.uniqueModelSources[mm] = entry;
+          }
         } catch (e) {
           // ignore individual instance failures
+          console.warn(`Failed to fetch models from instance ${inst.name || inst.url}:`, e);
         }
       }
-      this.uniqueModels = Array.from(modelSet).sort();
+      this.uniqueModels = Array.from(modelSet).sort((a, b) => a.localeCompare(b));
+
+      console.log('Unique models:', this.uniqueModels);
+      console.log('Unique model sources:', this.uniqueModelSources);
 
       console.log('Loaded LLM instances:', this.llmInstances.length);
     } catch (error) {
