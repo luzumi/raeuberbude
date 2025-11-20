@@ -5,12 +5,12 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 
 // Import models used by the server
-import Log from './models/Log.js';
-import User from './models/User.js';
-import Transcript from './models/Transcript.js'; // Used in API routes below
-import IntentLog from './models/IntentLog.js';
-import Category from './models/Category.js';
-import LlmInstance from './models/LlmInstance.js';
+import Log from '../models/Log.js';
+import User from '../models/User.js';
+import Transcript from '../models/Transcript.js'; // Used in API routes below
+import IntentLog from '../models/IntentLog.js';
+import Category from '../models/Category.js';
+import LlmInstance from '../models/LlmInstance.js';
 
 dotenv.config();
 
