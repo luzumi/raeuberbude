@@ -208,7 +208,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
   async testConnection(): Promise<void> {
     try {
       const response = await lastValueFrom(
-        this.http.post(this.config.url.replace('/chat/completions', '/models'), {})
+        this.http.get<any>(this.config.url.replace('/chat/completions', '/models'))
       );
       this.snackBar.open('Verbindung erfolgreich!', 'OK', { duration: 3000 });
       console.log('Connection test result:', response);
