@@ -132,14 +132,20 @@ export class SpeechController {
       throw new BadRequestException('terminalId is required');
     }
     const existing = await this.terminalsService.findByTerminalId(terminalId);
-    const secure = (process.env.NODE_ENV === 'production');
+    const isProd = (process.env.NODE_ENV === 'production');
     const cookieName = 'rb_terminal_id';
-    res.cookie(cookieName, existing.terminalId, {
+
+    // In development we allow cross-site cookies by setting SameSite=None so browsers accept
+    // the cookie when frontend and backend run on different origins (e.g. 4301 -> 3001).
+    // Note: modern browsers require SameSite=None to be paired with 'Secure' in production/HTTPS.
+    const cookieOptions: any = {
       httpOnly: true,
-      sameSite: 'lax',
-      secure,
+      sameSite: isProd ? 'lax' : 'none',
+      secure: isProd, // keep secure in production
       maxAge: 365 * 24 * 60 * 60 * 1000,
-    });
+    };
+
+    res.cookie(cookieName, existing.terminalId, cookieOptions);
     await this.terminalsService.updateActivity(existing.terminalId);
     return { success: true, data: existing, message: 'Terminal claimed for this device' };
   }
@@ -150,12 +156,13 @@ export class SpeechController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const cookieName = 'rb_terminal_id';
-    const secure = (process.env.NODE_ENV === 'production');
-    res.clearCookie(cookieName, {
+    const isProd = (process.env.NODE_ENV === 'production');
+    const clearOptions: any = {
       httpOnly: true,
-      sameSite: 'lax',
-      secure,
-    });
+      sameSite: isProd ? 'lax' : 'none',
+      secure: isProd,
+    };
+    res.clearCookie(cookieName, clearOptions);
     return { success: true, message: 'Terminal unclaimed for this device' };
   }
 
