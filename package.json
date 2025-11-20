@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --proxy-config proxy.conf.cjs",
-    "start:dev": "npx concurrently \"ng serve --proxy-config proxy.conf.cjs\" \"npm --prefix backend run start\" \"npm --prefix backend/nest-app run start:dev\"",
-    "start:network": "npx concurrently \"npm --prefix backend run start\" \"npm --prefix backend/nest-app run start:dev\" \"npm --prefix .specify/mcp-servers run all\" \"npx ng serve --host=0.0.0.0 --port=4301 --configuration=network --proxy-config proxy.conf.cjs\"",
+    "start": "ng serve",
+    "start:dev": "npx concurrently \"ng serve\" \"npm --prefix backend/nest-app run start:dev\"",
+    "start:network": "npx concurrently \"npm --prefix backend/nest-app run start:dev\" \"npm --prefix .specify/mcp-servers run all\" \"npx ng serve --host=0.0.0.0 --port=4301 --configuration=network\"",
     "start:network:seq": "scripts/start-network-sequential.bat",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
@@ -33,7 +33,8 @@
     "health": "node scripts/health-check.js",
     "check-ports": "scripts/check-ports.bat",
     "restart": "npm stop --if-present && npm start",
-    "start-all": "scripts/start-all-servers.bat"
+    "start-all": "scripts/start-all-servers.bat",
+    "start:backend:legacy": "npm --prefix backend run start"
   },
   "private": true,
   "dependencies": {
