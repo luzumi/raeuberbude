@@ -150,10 +150,37 @@ mat-icon.invalid {
   border-radius: 8px;
   padding: 16px;
   transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+  }
 
   &.active {
     border-color: #4caf50;
     background: rgba(76, 175, 80, 0.05);
+  }
+
+  &.selected {
+    border-color: #2196f3;
+    border-width: 3px;
+    background: rgba(33, 150, 243, 0.08);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+
+    &::before {
+      content: '✓ Ausgewählt';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #2196f3;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75em;
+      font-weight: 600;
+    }
   }
 }
 
@@ -205,6 +232,31 @@ mat-icon.invalid {
   justify-content: flex-end;
 }
 
+/* Load / Eject button styles */
+.load-btn {
+  background: linear-gradient(180deg,#4caf50,#388e3c) !important;
+  color: #fff !important;
+}
+.load-btn:hover {
+  filter: brightness(1.05);
+}
+.load-btn[disabled] {
+  background: rgba(76,175,80,0.4) !important;
+  color: rgba(255,255,255,0.7) !important;
+}
+
+.eject-btn {
+  background: linear-gradient(180deg,#f44336,#d32f2f) !important;
+  color: #fff !important;
+}
+.eject-btn:hover {
+  filter: brightness(1.05);
+}
+.eject-btn[disabled] {
+  background: rgba(244,67,54,0.4) !important;
+  color: rgba(255,255,255,0.7) !important;
+}
+
 .bulk-actions {
   display: flex;
   align-items: center;
@@ -231,4 +283,3 @@ mat-icon.invalid {
 mat-checkbox {
   margin: 0;
 }
-

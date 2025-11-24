@@ -56,31 +56,18 @@ export class LoggingController {
   }
 
   @Get('/llm-config')
-  llmConfig() {
-    return {
-      url: process.env.LLM_URL || 'http://192.168.56.1:1234/v1/chat/completions',
-      model: process.env.LLM_MODEL || 'mistralai/mistral-7b-instruct-v0.3',
-      useGpu: process.env.LLM_USE_GPU === 'true',
-      timeoutMs: parseInt(process.env.LLM_TIMEOUT_MS || '30000'),
-      targetLatencyMs: parseInt(process.env.LLM_TARGET_LATENCY_MS || '2000'),
-      maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '500'),
-      temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.3'),
-      fallbackModel: process.env.LLM_FALLBACK_MODEL || '',
-      confidenceShortcut: parseFloat(process.env.LLM_CONFIDENCE_SHORTCUT || '0.85'),
-      heuristicBypass: process.env.LLM_HEURISTIC_BYPASS === 'true'
-    };
+  async llmConfig() {
+    return this.svc.getLlmConfig();
   }
 
   @Post('/llm-config')
-  saveLlmConfig(@Body() body: any) {
-    // runtime config storage in-memory
-    (global as any).__llmRuntimeConfig = { ...(global as any).__llmRuntimeConfig || {}, ...body };
-    return { success: true, config: (global as any).__llmRuntimeConfig };
+  async saveLlmConfig(@Body() body: any) {
+    return this.svc.saveLlmConfig(body);
   }
 
   @Get('/llm-config/runtime')
-  runtimeConfig() {
-    return (global as any).__llmRuntimeConfig || {};
+  async runtimeConfig() {
+    return this.svc.getRuntimeConfig();
   }
 
   @Get('/intent-logs')
@@ -138,9 +125,24 @@ export class LoggingController {
     return this.svc.cleanupLlmInstances();
   }
 
-  @Post('/llm-instances/:id/activate')
-  activate(@Param('id') id: string) {
-    return this.svc.activateLlmInstance(id);
+  @Post('/llm-instances/:id/load')
+  loadModel(@Param('id') id: string) {
+    return this.svc.loadLlmInstance(id);
+  }
+
+  @Post('/llm-instances/:id/eject')
+  ejectModel(@Param('id') id: string) {
+    return this.svc.ejectLlmInstance(id);
+  }
+
+  @Post('/llm-instances/:id/delete')
+  deleteInstance(@Param('id') id: string) {
+    return this.svc.deleteLlmInstance(id);
+  }
+
+  @Post('/llm-instances/normalize-cleanup')
+  normalizeAndCleanup() {
+    return this.svc.normalizeAndCleanupInstances();
   }
 
   @Get('/llm-instances/:id/system-prompt')
@@ -148,9 +150,23 @@ export class LoggingController {
     return this.svc.getSystemPrompt(id);
   }
 
+  @Get('/llm-instances/:id/model-status')
+  async getModelStatus(@Param('id') id: string) {
+    return this.svc.getModelStatusForInstance(id);
+  }
+
   @Put('/llm-instances/:id/system-prompt')
   updateSystemPrompt(@Param('id') id: string, @Body() body: any) {
     return this.svc.updateSystemPrompt(id, body.systemPrompt);
   }
-}
 
+  @Put('/llm-instances/:id/config')
+  updateInstanceConfig(@Param('id') id: string, @Body() body: any) {
+    return this.svc.updateInstanceConfig(id, body);
+  }
+
+  @Get('/llm-instances/default-prompt')
+  getDefaultPrompt() {
+    return this.svc.getDefaultSystemPrompt();
+  }
+}

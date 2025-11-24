@@ -6,6 +6,7 @@ import { LlmInstance } from './schemas/llminstance.schema';
 import { IntentLog } from './schemas/intentlog.schema';
 import { LoggingController } from './logging.controller';
 import { LoggingService } from './logging.service';
+import { LmStudioMcpService } from '../llm/lm-studio-mcp.service';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { LoggingService } from './logging.service';
     ])
   ],
   controllers: [LoggingController],
-  providers: [LoggingService],
+  providers: [LoggingService, LmStudioMcpService],
   exports: [LoggingService]
 })
 export class LoggingModule {}

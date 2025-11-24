@@ -10,10 +10,10 @@ export const environment = {
   // LLM Configuration
   llm: {
     // LM Studio URL (lokal)
-    url: 'http://192.168.56.1:1234/v1/chat/completions',
+    url: 'http://192.168.56.1:1234',
 
     // Primäres Modell
-    model: 'mistralai/mistral-7b-instruct-v0.3',
+    model: 'mistralai/mistral-7b-bnb-homeassistant',
 
     // Fallback Modell (optional, z.B. LLaMA)
     fallbackModel: '', // z.B. 'meta-llama/llama-3.1-8b-instruct'

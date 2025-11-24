@@ -1,0 +1,3 @@
+# Runtime config - don't commit user settings
+llm-config.json
+

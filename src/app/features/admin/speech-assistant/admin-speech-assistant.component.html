@@ -40,28 +40,43 @@
               <h3>LLM-Instanzen</h3>
               <div class="llm-instances">
                 <div class="instance-card" *ngFor="let instance of llmInstances"
-                     [class.active]="instance.isActive">
+                     [class.active]="instance.isActive"
+                     [class.selected]="activeInstance?._id === instance._id"
+                     (click)="selectInstance(instance)"
+                     title="Klicken um Konfiguration zu laden">
                   <div class="instance-header">
-                    <h4>{{ instance.name }}</h4>
+                    <h4>{{ instance.model }}</h4>
                     <span class="health-badge" [attr.data-health]="instance.health">
                       {{ instance.health }}
                     </span>
                   </div>
                   <div class="instance-details">
                     <p><strong>URL:</strong> {{ instance.url }}</p>
-                    <p><strong>Model:</strong> {{ instance.model }}</p>
+                    <p><strong>Status:</strong> {{ instance.isActive ? 'Geladen ✅' : 'Nicht geladen 🔴' }}</p>
+                    <p *ngIf="instance.config?.temperature"><strong>Temperature:</strong> {{ instance.config?.temperature }}</p>
+                    <p *ngIf="instance.config?.maxTokens"><strong>Max Tokens:</strong> {{ instance.config?.maxTokens }}</p>
                   </div>
-                  <div class="instance-actions">
+                  <div class="instance-actions" (click)="$event.stopPropagation()">
                     <button mat-button (click)="testLlmInstance(instance)"
-                            [disabled]="!instance.enabled">
+                            [disabled]="!instance.enabled"
+                            title="Verbindung zu LM Studio testen">
                       <mat-icon>network_check</mat-icon>
                       Test
                     </button>
-                    <button mat-raised-button color="primary"
-                            (click)="activateLlmInstance(instance)"
-                            [disabled]="instance.isActive || !instance.enabled">
-                      <mat-icon>check_circle</mat-icon>
-                      {{ instance.isActive ? 'Aktiv' : 'Aktivieren' }}
+                    <button mat-raised-button class="load-btn"
+                            *ngIf="!instance.isActive"
+                            (click)="loadLlmInstance(instance)"
+                            [disabled]="!instance.enabled"
+                            title="Modell in LM Studio laden (via MCP)">
+                      <mat-icon>download</mat-icon>
+                      Load
+                    </button>
+                    <button mat-raised-button class="eject-btn"
+                            *ngIf="instance.isActive"
+                            (click)="ejectLlmInstance(instance)"
+                            title="Modell aus LM Studio entladen (via MCP)">
+                      <mat-icon>eject</mat-icon>
+                      Eject
                     </button>
                   </div>
                 </div>
@@ -77,79 +92,41 @@
                 </button>
               </div>
 
-              <h3>LLM Konfiguration</h3>
-              <div class="config-grid">
-                <mat-form-field>
-                  <mat-label>LLM URL</mat-label>
-                  <input matInput [(ngModel)]="config.url" placeholder="http://192.168.56.1:1234/v1/chat/completions">
-                </mat-form-field>
+              <h3 style="display:flex;align-items:center;justify-content:space-between">LLM Konfiguration
+                <button mat-stroked-button (click)="openGlobalConfigDialog()" title="Globale LLM-Einstellungen öffnen">Globale Einstellungen</button>
+              </h3>
 
-                <mat-form-field>
-                  <mat-label>Primäres Modell</mat-label>
-                  <mat-select [(ngModel)]="config.model">
-                    <mat-option *ngFor="let m of uniqueModels" [value]="m">
-                      {{ m }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Fallback Modell</mat-label>
-                  <mat-select [(ngModel)]="config.fallbackModel">
-                    <mat-option value="">Kein Fallback</mat-option>
-                    <mat-option *ngFor="let m of uniqueModels" [value]="m">
-                      {{ m }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Ziel-Latenz (ms)</mat-label>
-                  <input matInput type="number" [(ngModel)]="config.targetLatencyMs" placeholder="2000">
-                  <mat-hint>p90 Ziel für Performance-Monitoring</mat-hint>
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Timeout (ms)</mat-label>
-                  <input matInput type="number" [(ngModel)]="config.timeoutMs" placeholder="30000">
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Max Tokens</mat-label>
-                  <input matInput type="number" [(ngModel)]="config.maxTokens" placeholder="500">
-                  <mat-hint>Kleiner = schneller</mat-hint>
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Temperature</mat-label>
-                  <input matInput type="number" step="0.1" [(ngModel)]="config.temperature" placeholder="0.3">
-                  <mat-hint>0.1-0.5 empfohlen für strukturierte Outputs</mat-hint>
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Confidence Shortcut</mat-label>
-                  <input matInput type="number" step="0.05" [(ngModel)]="config.confidenceShortcut" placeholder="0.85">
-                  <mat-hint>Bei STT-Confidence >= Wert → skip LLM</mat-hint>
-                </mat-form-field>
+              <div class="config-info" *ngIf="activeInstance" style="background: rgba(33, 150, 243, 0.1); border-left: 4px solid #2196f3; padding: 12px; margin-bottom: 16px; border-radius: 4px;">
+                <p style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                  <mat-icon style="color: #2196f3;">info</mat-icon>
+                  <strong>Instanz-spezifische Konfiguration</strong> für <code>{{ activeInstance.model }}</code>
+                </p>
+                <p style="margin: 8px 0 0 32px; font-size: 0.9em; color: #666;">
+                  Änderungen werden nur für diese LLM-Instanz gespeichert. Klicke "Auswahl aufheben" um zur globalen Konfiguration zurückzukehren.
+                </p>
               </div>
 
-              <div class="config-toggles">
-                <mat-slide-toggle [(ngModel)]="config.useGpu">
-                  GPU verwenden (wenn verfügbar)
-                </mat-slide-toggle>
-
-                <mat-slide-toggle [(ngModel)]="config.heuristicBypass">
-                  Heuristik-Bypass aktivieren
-                  <span class="hint">Versucht LLM zu umgehen bei klaren Eingaben</span>
-                </mat-slide-toggle>
+              <div class="config-info" style="background: rgba(250,250,250,0.6); border-left: 4px solid #bdbdbd; padding: 10px; margin-bottom: 12px; border-radius: 4px; display:flex;gap:20px;align-items:center;justify-content:space-between;">
+                <div>
+                  <div style="font-weight:600">Globale Einstellungen (kompakt)</div>
+                  <div style="font-size:0.9em;color:#555;margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;">
+                    <div><strong>URL:</strong> {{ config.url || '—' }}</div>
+                    <div><strong>Modell:</strong> {{ config.model || '—' }}</div>
+                    <div><strong>Fallback:</strong> {{ config.fallbackModel || '—' }}</div>
+                    <div><strong>Ziel-Latenz:</strong> {{ config.targetLatencyMs || '—' }} ms</div>
+                  </div>
+                </div>
+                <div>
+                  <button mat-stroked-button (click)="openGlobalConfigDialog()">Bearbeiten</button>
+                </div>
               </div>
 
               <div class="actions">
                 <button mat-raised-button color="primary" (click)="saveConfig()">
                   <mat-icon>save</mat-icon>
-                  Speichern
+                  {{ activeInstance ? 'Für ' + activeInstance.model + ' speichern' : 'Global speichern' }}
                 </button>
-                <button mat-button (click)="loadConfig()">
+                <button mat-button (click)="loadConfig()" *ngIf="!activeInstance">
                   <mat-icon>refresh</mat-icon>
                   Neu laden
                 </button>

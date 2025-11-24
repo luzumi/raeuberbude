@@ -18,11 +18,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { lastValueFrom } from 'rxjs';
 import { CategoryService } from '../../../core/services/category.service';
 import { LlmService } from '../../../core/services/llm.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { Category } from '../../../core/models/category.model';
 import { LlmInstance } from '../../../core/models/llm-instance.model';
 import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { resolveBackendBase } from '../../../core/utils/backend';
+import { AdminGlobalConfigDialogComponent } from './admin-global-config-dialog.component';
 
 interface LlmConfig {
   url: string;
@@ -112,7 +114,8 @@ interface Stats {
     MatIconModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+
   ],
   templateUrl: './admin-speech-assistant.component.html',
   styleUrls: ['./admin-speech-assistant.component.scss']
@@ -173,8 +176,27 @@ export class AdminSpeechAssistantComponent implements OnInit {
     private readonly snackBar: MatSnackBar,
     private readonly categoryService: CategoryService,
     private readonly llmService: LlmService,
+    private readonly settings: SettingsService,
     private readonly router: Router
   ) {}
+
+  openGlobalConfigDialog = async (): Promise<void> => {
+    try {
+      const dlg = this.dialog.open(AdminGlobalConfigDialogComponent, {
+        width: '820px',
+        data: { config: this.config }
+      });
+
+      const res = await dlg.afterClosed().toPromise();
+      if (res) {
+        // refresh
+        await this.loadConfig();
+        await this.loadLlmInstances();
+      }
+    } catch (e) {
+      console.error('Failed to open global config dialog', e);
+    }
+  }
 
   async ngOnInit(): Promise<void> {
     // Ensure config is loaded first so we can fetch models from configured LLM URL
@@ -190,10 +212,20 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
   async loadConfig(): Promise<void> {
     try {
-      const ts = Date.now();
-      this.config = await lastValueFrom(
-        this.http.get<LlmConfig>(`${this.backendUrl}/api/llm-config`, { params: { _t: String(ts) } })
-      );
+      const cfg = await lastValueFrom(this.settings.load());
+      // Map SettingsService config to component config
+      this.config = {
+        url: cfg.url || '',
+        model: cfg.model || '',
+        useGpu: cfg.useGpu !== undefined ? cfg.useGpu : true,
+        timeoutMs: cfg.timeoutMs || 30000,
+        targetLatencyMs: cfg.targetLatencyMs || 2000,
+        maxTokens: cfg.maxTokens || 500,
+        temperature: cfg.temperature !== undefined ? cfg.temperature : 0.3,
+        fallbackModel: cfg.fallbackModel || '',
+        confidenceShortcut: cfg.confidenceShortcut || 0.85,
+        heuristicBypass: cfg.heuristicBypass !== undefined ? cfg.heuristicBypass : false
+      };
       console.log('Loaded config:', this.config);
       // After loading config, fetch models from the configured LLM and wait for completion
       await this.fetchModelsFromConfig();
@@ -204,22 +236,90 @@ export class AdminSpeechAssistantComponent implements OnInit {
   }
 
   async saveConfig(): Promise<void> {
+    // Wenn eine Instanz ausgewählt ist, speichere instanz-spezifisch
+    if (this.activeInstance?._id) {
+      await this.saveInstanceConfig();
+      return;
+    }
+
+    // Ansonsten globale Config speichern
     try {
-      const resp: any = await lastValueFrom(
-        this.http.post(`${this.backendUrl}/api/llm-config`, this.config)
-      );
-      // Backend may return the saved config; if so update local model
-      if (resp && resp.config) {
-        this.config = resp.config as LlmConfig;
+      await lastValueFrom(this.settings.save(this.config));
+      const updated = this.settings.current;
+      if (updated) {
+        this.config = {
+          url: updated.url || '',
+          model: updated.model || '',
+          useGpu: updated.useGpu !== undefined ? updated.useGpu : true,
+          timeoutMs: updated.timeoutMs || 30000,
+          targetLatencyMs: updated.targetLatencyMs || 2000,
+          maxTokens: updated.maxTokens || 500,
+          temperature: updated.temperature !== undefined ? updated.temperature : 0.3,
+          fallbackModel: updated.fallbackModel || '',
+          confidenceShortcut: updated.confidenceShortcut || 0.85,
+          heuristicBypass: updated.heuristicBypass !== undefined ? updated.heuristicBypass : false
+        };
       }
-      this.snackBar.open('Konfiguration gespeichert', 'OK', { duration: 3000 });
-      // Refresh models based on saved config
+      this.snackBar.open('Globale Konfiguration gespeichert', 'OK', { duration: 3000 });
       await this.fetchModelsFromConfig();
-      // Also refresh instance list so UI shows updated active instances/models
       await this.loadLlmInstances();
     } catch (error) {
       console.error('Failed to save config:', error);
       this.snackBar.open('Fehler beim Speichern der Konfiguration', 'OK', { duration: 3000 });
+    }
+  }
+
+  /**
+   * Speichere die aktuell angezeigte (evtl. instanz-spezifische) Konfiguration als globale Konfiguration
+   * - Nützlich, wenn eine Instanz ausgewählt ist, du aber die Werte global übernehmen willst.
+   */
+  async saveGlobalFromActive(): Promise<void> {
+    try {
+      await lastValueFrom(this.settings.save(this.config));
+      this.snackBar.open('Konfiguration global gespeichert', 'OK', { duration: 3000 });
+      // Refresh settings and instances
+      await this.loadConfig();
+      await this.loadLlmInstances();
+    } catch (error) {
+      console.error('Failed to save global config from active instance:', error);
+      this.snackBar.open('Fehler beim globalen Speichern', 'OK', { duration: 3000 });
+    }
+  }
+
+  async saveInstanceConfig(): Promise<void> {
+    if (!this.activeInstance?._id) {
+      this.snackBar.open('Keine Instanz ausgewählt', 'OK', { duration: 3000 });
+      return;
+    }
+
+    try {
+      // Speichere instanz-spezifische Config
+      const instanceConfig = {
+        temperature: this.config.temperature,
+        maxTokens: this.config.maxTokens,
+        timeoutMs: this.config.timeoutMs,
+        targetLatencyMs: this.config.targetLatencyMs,
+        confidenceShortcut: this.config.confidenceShortcut,
+        useGpu: this.config.useGpu,
+        heuristicBypass: this.config.heuristicBypass,
+        fallbackModel: this.config.fallbackModel
+      };
+
+      await lastValueFrom(
+        this.http.put(`${this.backendUrl}/api/llm-instances/${this.activeInstance._id}/config`, instanceConfig)
+      );
+
+      // Speichere auch System-Prompt
+      await this.saveSystemPrompt();
+
+      this.snackBar.open(`Konfiguration für ${this.activeInstance.model} gespeichert`, 'OK', { duration: 3000 });
+      console.log(`Saved instance-specific config for ${this.activeInstance.model}:`, instanceConfig);
+
+      // Refresh instance list
+      await this.loadLlmInstances();
+    } catch (error) {
+      console.error('Failed to save instance config:', error);
+      this.snackBar.open('Fehler beim Speichern', 'OK', { duration: 3000 });
     }
   }
 
@@ -368,12 +468,23 @@ export class AdminSpeechAssistantComponent implements OnInit {
       );
       this.activeInstance = this.llmInstances.find(i => i.isActive) || null;
 
-      // Load system prompt of active instance
-      if (this.activeInstance?._id) {
-        const promptResult = await lastValueFrom(
-          this.llmService.getSystemPrompt(this.activeInstance._id)
-        );
-        this.systemPrompt = promptResult.systemPrompt;
+      // Load system prompt of first active instance (or first instance if none active)
+      const instanceToLoad = this.llmInstances.find(i => i.isActive) || this.llmInstances[0];
+      if (instanceToLoad?._id) {
+        try {
+          const promptResult = await lastValueFrom(
+            this.llmService.getSystemPrompt(instanceToLoad._id)
+          );
+          this.systemPrompt = promptResult.systemPrompt || '';
+          this.activeInstance = instanceToLoad;
+          console.log(`Loaded system prompt for instance: ${instanceToLoad.model}, length: ${this.systemPrompt.length}`);
+        } catch (e) {
+          console.warn('Failed to load system prompt:', e);
+          this.systemPrompt = '';
+        }
+      } else {
+        this.systemPrompt = '';
+        this.activeInstance = null;
       }
 
       // Query each instance for available models and build unique set (merge with any models already from config)
@@ -448,26 +559,107 @@ export class AdminSpeechAssistantComponent implements OnInit {
     }
   }
 
-  async activateLlmInstance(instance: LlmInstance): Promise<void> {
+  async loadLlmInstance(instance: LlmInstance): Promise<void> {
     if (!instance._id) return;
 
     try {
-      await lastValueFrom(this.llmService.activate(instance._id));
-      this.snackBar.open('LLM-Instanz aktiviert', 'OK', { duration: 3000 });
+      const result = await lastValueFrom(this.llmService.load(instance._id));
+
+      // Check if load was successful
+      if (result.loadResult?.success) {
+        this.snackBar.open(
+          `✅ ${instance.model} geladen!`,
+          'OK',
+          { duration: 3000 }
+        );
+      } else if (result.loadResult?.error && result.loadResult.error.includes('not support')) {
+        this.snackBar.open(
+          `⚠️ ${instance.model} als aktiv markiert (LM Studio load API nicht verfügbar - Modell manuell laden)`,
+          'OK',
+          { duration: 5000 }
+        );
+      } else {
+        this.snackBar.open(
+          `${instance.model} geladen`,
+          'OK',
+          { duration: 3000 }
+        );
+      }
+
       await this.loadLlmInstances();
     } catch (error) {
-      console.error('Failed to activate LLM instance:', error);
-      this.snackBar.open('Aktivierung fehlgeschlagen', 'OK', { duration: 3000 });
+      console.error('Failed to load LLM instance:', error);
+      this.snackBar.open('Laden fehlgeschlagen', 'OK', { duration: 3000 });
+    }
+  }
+
+  async ejectLlmInstance(instance: LlmInstance): Promise<void> {
+    if (!instance._id) return;
+
+    // Bestätigungs-Dialog mit MCP-Eject-Hinweis
+    const confirmed = confirm(
+      `LLM-Modell "${instance.model}" entladen?\n\n` +
+      `✅ Versucht das Modell aus LM Studio zu entladen (via MCP)\n` +
+      `⚠️ Falls MCP-Eject nicht unterstützt wird: Manuell in LM Studio entladen\n\n` +
+      `Fortfahren?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const result = await lastValueFrom(this.llmService.eject(instance._id));
+
+      // Check if eject was successful
+      if (result.ejectResult?.success) {
+        this.snackBar.open(
+          `✅ ${instance.model} aus LM Studio entladen!`,
+          'OK',
+          { duration: 5000 }
+        );
+      } else if (result.ejectResult?.error) {
+        const errorMsg = result.ejectResult.error.includes('not support')
+          ? 'LM Studio API unterstützt Eject nicht - bitte manuell entladen'
+          : result.ejectResult.error;
+        this.snackBar.open(
+          `⚠️ ${instance.model} als inaktiv markiert, aber Eject fehlgeschlagen: ${errorMsg}`,
+          'OK',
+          { duration: 8000 }
+        );
+      } else {
+        this.snackBar.open(
+          `${instance.model} als inaktiv markiert`,
+          'OK',
+          { duration: 5000 }
+        );
+      }
+
+      await this.loadLlmInstances();
+    } catch (error) {
+      console.error('Failed to eject LLM instance:', error);
+      this.snackBar.open('Eject fehlgeschlagen', 'OK', { duration: 3000 });
     }
   }
 
   async testLlmInstance(instance: LlmInstance): Promise<void> {
     try {
-      const success = await this.llmService.testConnection(instance);
-      if (success) {
-        this.snackBar.open('Verbindungstest erfolgreich!', 'OK', { duration: 3000 });
+      const result = await this.llmService.testConnection(instance);
+
+      // result: { loaded: boolean, source?: string, details?: any }
+      if (result.loaded) {
+        this.snackBar.open(
+          `Verbindungstest erfolgreich: Modell ist geladen (${result.source})`,
+          'OK',
+          { duration: 4000 }
+        );
       } else {
-        this.snackBar.open('Verbindungstest fehlgeschlagen', 'OK', { duration: 3000 });
+        const reason = result.details?.error || (result.source === 'http' ? `HTTP ${result.details?.status || 'no response'}` : 'Modell nicht geladen');
+        this.snackBar.open(
+          `Verbindungstest fehlgeschlagen: ${reason}`,
+          'OK',
+          { duration: 6000 }
+        );
       }
     } catch (error) {
       console.error('Connection test failed:', error);
@@ -475,9 +667,57 @@ export class AdminSpeechAssistantComponent implements OnInit {
     }
   }
 
+  async selectInstance(instance: LlmInstance | null): Promise<void> {
+    // Wenn null übergeben wird, Auswahl aufheben und globale Config laden
+    if (!instance) {
+      this.activeInstance = null;
+      await this.loadConfig();
+      this.snackBar.open('Globale Konfiguration geladen', 'OK', { duration: 2000 });
+      return;
+    }
+
+    if (!instance._id) return;
+
+    try {
+      // Lade System-Prompt
+      const promptResult = await lastValueFrom(
+        this.llmService.getSystemPrompt(instance._id)
+      );
+      this.systemPrompt = promptResult.systemPrompt || '';
+      this.activeInstance = instance;
+
+      // Lade instanz-spezifische Config-Werte in die Formular-Felder
+      if (instance.config) {
+        this.config.temperature = instance.config.temperature ?? 0.3;
+        this.config.maxTokens = instance.config.maxTokens ?? 500;
+        this.config.timeoutMs = instance.config.timeoutMs ?? 30000;
+        this.config.targetLatencyMs = instance.config.targetLatencyMs ?? 2000;
+        this.config.confidenceShortcut = instance.config.confidenceShortcut ?? 0.85;
+        this.config.useGpu = instance.config.useGpu ?? true;
+        this.config.heuristicBypass = instance.config.heuristicBypass ?? false;
+        this.config.fallbackModel = instance.config.fallbackModel ?? '';
+      }
+
+      // URL und Model aus Instanz
+      this.config.url = instance.url.replace('/v1/chat/completions', '');
+      this.config.model = instance.model;
+
+      console.log(`Loaded config for ${instance.model}:`, {
+        temperature: this.config.temperature,
+        maxTokens: this.config.maxTokens,
+        promptLength: this.systemPrompt.length
+      });
+
+      this.snackBar.open(`Konfiguration für ${instance.model} geladen`, 'OK', { duration: 2000 });
+    } catch (error) {
+      console.error('Failed to load instance config:', error);
+      this.snackBar.open('Fehler beim Laden der Konfiguration', 'OK', { duration: 3000 });
+    }
+  }
+
   async saveSystemPrompt(): Promise<void> {
     if (!this.activeInstance || !this.activeInstance._id) {
-      this.snackBar.open('Keine aktive LLM-Instanz', 'OK', { duration: 3000 });
+      this.snackBar.open('Keine LLM-Instanz ausgewählt', 'OK', { duration: 3000 });
       return;
     }
 
@@ -485,7 +725,8 @@ export class AdminSpeechAssistantComponent implements OnInit {
       await lastValueFrom(
         this.llmService.setSystemPrompt(this.activeInstance._id, this.systemPrompt)
       );
-      this.snackBar.open('System-Prompt gespeichert', 'OK', { duration: 3000 });
+      this.snackBar.open(`System-Prompt für ${this.activeInstance.model} gespeichert`, 'OK', { duration: 3000 });
+      console.log(`Saved system prompt for ${this.activeInstance.model}: ${this.systemPrompt.length} chars`);
     } catch (error) {
       console.error('Failed to save system prompt:', error);
       this.snackBar.open('Fehler beim Speichern', 'OK', { duration: 3000 });
