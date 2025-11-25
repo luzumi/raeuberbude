@@ -10,6 +10,7 @@ import { VoskProvider } from './stt/vosk.provider';
 import { WhisperProvider } from './stt/whisper.provider';
 import { AudioConverterService } from './stt/audio-converter.service';
 import { HumanInput, HumanInputSchema } from './schemas/human-input.schema';
+import { TestInput, TestInputSchema } from './schemas/test-input.schema';
 import { AppTerminal, AppTerminalSchema } from './schemas/app-terminal.schema';
 import { UserRights, UserRightsSchema } from './schemas/user-rights.schema';
 import { UsersModule } from '../../users/users.module';
@@ -18,6 +19,7 @@ import { UsersModule } from '../../users/users.module';
   imports: [
     MongooseModule.forFeature([
       { name: HumanInput.name, schema: HumanInputSchema },
+      { name: TestInput.name, schema: TestInputSchema },
       { name: AppTerminal.name, schema: AppTerminalSchema },
       { name: UserRights.name, schema: UserRightsSchema },
     ]),

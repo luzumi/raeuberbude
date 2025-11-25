@@ -138,6 +138,10 @@ mat-icon.invalid {
   width: 100%;
 }
 
+.system-prompt-field {
+  background-color: grey;
+}
+
 .llm-instances {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -282,4 +286,39 @@ mat-icon.invalid {
 
 mat-checkbox {
   margin: 0;
+}
+
+// System prompt save icon button styling
+.system-prompt-save {
+  background: #fff !important; /* white background */
+  border-radius: 6px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+  padding: 6px !important;
+  margin-right: 4px !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  color: rgba(0,0,0,0.65) !important;
+}
+
+.system-prompt-save mat-icon {
+  color: #4caf50 !important; /* green icon */
+}
+
+.system-prompt-save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12) !important;
+}
+
+.system-prompt-save[disabled] {
+  opacity: 0.5 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Small tweak: make dialog title area slightly tinted */
+.admin-global-config-dialog .mat-dialog-container .dialog-title {
+  background: rgba(250,240,245,0.6);
+  padding-left: 18px;
+  padding-top: 8px;
+  padding-bottom: 6px;
+  margin: 0 0 6px 0;
 }

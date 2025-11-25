@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { LmStudioMcpService } from '../llm/lm-studio-mcp.service';
+import { LlmClientService } from '../llm/llm-client.service';
 
 @Injectable()
 export class LoggingService {
@@ -75,6 +76,7 @@ SICHERHEIT:
     @InjectModel('LlmInstance') private readonly llmInstanceModel: Model<any>,
     @InjectModel('IntentLog') private readonly intentLogModel: Model<any>,
     private readonly mcpService: LmStudioMcpService,
+    private readonly llmClient: LlmClientService,
   ) {}
 
   async createTranscript(data: any) {
@@ -436,6 +438,41 @@ SICHERHEIT:
   }
 
   /**
+   * Test LLM request with full sampling parameters
+   */
+  async testLlmRequest(prompt?: string, instanceId?: string) {
+    const testPrompt = prompt || 'Schalte das Licht im Wohnzimmer ein';
+
+    this.logger.log(`Testing LLM request with prompt: "${testPrompt}"`);
+
+    try {
+      const response = await this.llmClient.request({
+        messages: [
+          { role: 'system', content: this.DEFAULT_SYSTEM_PROMPT },
+          { role: 'user', content: testPrompt }
+        ],
+        instanceId
+      });
+
+      return {
+        success: true,
+        prompt: testPrompt,
+        response: response.content,
+        model: response.model,
+        durationMs: response.durationMs,
+        usage: response.usage
+      };
+    } catch (error: any) {
+      this.logger.error(`Test LLM request failed:`, error.message);
+      return {
+        success: false,
+        error: error.message,
+        prompt: testPrompt
+      };
+    }
+  }
+
+  /**
    * Get model status for an instance by id.
    * Tries MCP first (preferred), falls back to HTTP /v1/models listing.
    */
@@ -485,7 +522,7 @@ SICHERHEIT:
     return instance;
   }
 
-  async updateInstanceConfig(id: string, config: any) {
+  async updateInstanceConfig(id: string, config: any, autoReload = true) {
     const instance = await this.llmInstanceModel.findByIdAndUpdate(
       id,
       { config: config },
@@ -493,6 +530,43 @@ SICHERHEIT:
     );
     if (!instance) throw new Error('LLM instance not found');
     this.logger.log(`Updated config for instance ${instance.model}:`, config);
+
+    // Wenn die Instanz aktiv ist UND autoReload aktiviert, triggere einen Reload
+    if (instance.isActive && autoReload) {
+      this.logger.log(`Instance ${instance.model} is active, triggering reload...`);
+
+      try {
+        // Versuche MCP reload (eject + load)
+        const modelId = instance.model;
+
+        // 1. Eject
+        try {
+          await this.mcpService.unloadModel(modelId);
+          this.logger.log(`Ejected ${modelId} before reload`);
+        } catch (e) {
+          this.logger.warn(`Eject failed (may not be loaded): ${e.message}`);
+        }
+
+        // 2. Wait a bit
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 3. Load with new config
+        const loadResult = await this.mcpService.loadModel(modelId);
+
+        if (loadResult.success !== false) {
+          this.logger.log(`✅ Successfully reloaded ${modelId} with new config`);
+          instance.health = 'healthy';
+          instance.lastHealthCheck = new Date();
+          await instance.save();
+        } else {
+          this.logger.warn(`⚠️ Reload failed: ${loadResult.error} - Config saved but model may need manual reload`);
+        }
+      } catch (error) {
+        this.logger.error(`Failed to reload model after config update:`, error);
+        // Don't throw - config is saved, reload is just a bonus
+      }
+    }
+
     return instance;
   }
 

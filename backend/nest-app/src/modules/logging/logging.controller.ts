@@ -162,11 +162,17 @@ export class LoggingController {
 
   @Put('/llm-instances/:id/config')
   updateInstanceConfig(@Param('id') id: string, @Body() body: any) {
-    return this.svc.updateInstanceConfig(id, body);
+    const { autoReload, ...config } = body;
+    return this.svc.updateInstanceConfig(id, config, autoReload !== false);
   }
 
   @Get('/llm-instances/default-prompt')
   getDefaultPrompt() {
     return this.svc.getDefaultSystemPrompt();
+  }
+
+  @Post('/llm-instances/test-request')
+  testLlmRequest(@Body() body: { prompt?: string; instanceId?: string }) {
+    return this.svc.testLlmRequest(body.prompt, body.instanceId);
   }
 }

@@ -18,6 +18,8 @@ export interface LlmRuntimeConfig {
   heuristicBypass?: boolean;
   provider?: string;
   apiKey?: string;
+  // Optionaler System-Prompt, wird beim Test/Anfrage als erste System-Nachricht verwendet
+  systemPrompt?: string;
 }
 
 @Injectable({
@@ -25,9 +27,9 @@ export interface LlmRuntimeConfig {
 })
 export class SettingsService {
   private readonly apiUrl: string;
-  private config$ = new BehaviorSubject<LlmRuntimeConfig | null>(null);
+  private readonly config$ = new BehaviorSubject<LlmRuntimeConfig | null>(null);
 
-  constructor(private http: HttpClient) {
+  constructor(private readonly http: HttpClient) {
     const base = resolveBackendBase(environment.backendApiUrl || environment.apiUrl);
     this.apiUrl = `${base}/api`;
   }
@@ -48,7 +50,7 @@ export class SettingsService {
       catchError(err => {
         console.error('Failed to load LLM config, using environment defaults', err);
         // Fallback to environment
-        const fallback = { ...environment.llm };
+        const fallback = { ...environment.llm } as LlmRuntimeConfig;
         this.config$.next(fallback);
         return throwError(() => err);
       })
@@ -130,4 +132,3 @@ export class SettingsService {
     return `${cfg.url}/v1/models`;
   }
 }
-
