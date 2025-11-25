@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "lmStudio": {
+      "command": "cmd",
+      "args": ["/c", "C:\\Users\\corat\\IdeaProjects\\raueberbude\\tools\\lm-mcp-adapter\\mcp-launcher.bat"],
+      "cwd": "C:\\Users\\corat\\IdeaProjects\\raueberbude",
+      "env": {
+        "LM_API_URL": "http://192.168.56.1:1234",
+        "LM_STUDIO_BASE": "http://192.168.56.1:1234",
+        "TCP_PORT": "3002",
+        "USE_CLI": "false",
+        "COMSPEC": "C:\\Windows\\System32\\cmd.exe"
+      }
+    }
+  }
+}

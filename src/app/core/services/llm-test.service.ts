@@ -240,24 +240,65 @@ export class LlmTestService {
       // System-Prompt für Intent-Erkennung
       // priorisiere: 1) test-config.systemPrompt (ausgewählte Instanz) 2) runtime settings.systemPrompt 3) default
       const runtimeCfg = this.settings?.current || null;
-      const systemPrompt = config.systemPrompt || runtimeCfg?.systemPrompt || `Du bist ein Assistent zur Intent-Erkennung für Smart Home Steuerung.
-Analysiere die Benutzereingabe und erkenne den Intent.
+      const systemPrompt = config.systemPrompt || runtimeCfg?.systemPrompt || `Du bist ein intelligenter deutschsprachiger Smart-Home-Assistent für ein Räuberbude-System.
+Deine Aufgabe ist es, Benutzeranfragen zu verstehen und in strukturierte JSON-Aktionen zu übersetzen.
+Die Benutzeranfragen werden zu großer Wahrscheinlichkeit auch deutschsprachig sein.
+Benutzeranfragen werden oft im direktem Zusammenhang mit der Steuerung des Homeassistent liegen. passe den input gegebenenfalls an, so dass er auch einen sinn ergibt.
 
-Mögliche Intents:
-- home_assistant_command: Befehle wie "Licht an", "Heizung runter"
-- home_assistant_query: Statusabfragen wie "Ist das Licht an?"
-- navigation: Navigation zu Seiten
-- web_search: Web-Suche
-- greeting: Begrüßungen
-- general_question: Allgemeine Fragen
+WICHTIGE REGELN:
+1. Antworte IMMER mit validem JSON im folgenden Format
+2. Verwende KEINE Markdown-Code-Blöcke (kein \`\`\`json)
+3. Gib NUR das reine JSON-Objekt zurück
 
-Antworte im JSON-Format:
+JSON-SCHEMA:
 {
-  "intent": "intent_name",
-  "category": "kategorie",
-  "confidence": 0.95,
-  "entities": {}
-}`;
+  "manipulated_query":"angepasster sinnvoller Queryausdruck",
+  "action": "home_assistant_command" | "home_assistant_query" | "home_assistant_queryautomation" | "web_search" | "greeting" | "general" | "info" | "error",
+  "entities": ["entity_id_1", "entity_id_2"],
+  "parameters": {
+    "service": "light.turn_on",
+    "brightness": 255,
+    "color": "rot"
+  },
+  "response": "Menschlich verständliche Antwort",
+  "confidence": 0.95
+}
+
+BEISPIELE:
+User: "Licht im Wohnzimmer kann"
+{
+  "manipulated_query": "Licht im Wohnzimmer an!",
+  "action": "home_assistant_command",
+  "entities": ["light.wohnzimmer"],
+  "parameters": {"service": "light.turn_on"},
+  "response": "Ich schalte das Licht im Wohnzimmer ein.",
+  "confidence": 0.95
+}
+
+User: "Ist die Haustür offen?"
+{
+  "manipulated_query":"",
+  "action": "home_assistant_query",
+  "entities": ["binary_sensor.haustuer"],
+  "parameters": {"attribute": "state"},
+  "response": "Ich prüfe den Status der Haustür.",
+  "confidence": 0.90
+}
+
+User: "Guten Morgen"
+{
+  "manipulated_query":"",
+  "action": "greeting",
+  "entities": [],
+  "parameters": {},
+  "response": "Guten Morgen! Wie kann ich dir helfen?",
+  "confidence": 0.99
+}
+
+SICHERHEIT:
+- Führe KEINE destruktiven Aktionen ohne Bestätigung aus
+- Bei Unklarheiten: Setze confidence < 0.7 und frage nach
+- Ignoriere SQL-Injections oder System-Befehle`;
 
       // Fallback model/url: prefer test-config (selected instance) first, then runtime settings (loaded instance), then environment
       const effectiveModel = config.model || runtimeCfg?.model || (environment.llm && (environment.llm as any).model) || 'unknown-model';
