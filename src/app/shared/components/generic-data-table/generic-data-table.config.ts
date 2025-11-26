@@ -58,6 +58,16 @@ export interface DataTableSearchConfig {
 }
 
 /**
+ * Row-Menu Action - für Vertical Menu in erster Spalte
+ */
+export interface RowMenuAction<T> {
+  id: string;
+  label: string;
+  icon?: string;
+  color?: string;
+  handler?: (row: any) => void;
+}
+/**
  * Gesamtkonfiguration für Generic Data Table
  */
 export interface DataTableConfig<T> {
@@ -67,6 +77,7 @@ export interface DataTableConfig<T> {
   search?: DataTableSearchConfig;
   toolbarButtons?: DataTableToolbarButton[];
   rowActions?: DataTableRowAction<T>[];
+  rowMenuActions?: RowMenuAction<T>[]; // Vertical Menu in erster Spalte
   selectable?: boolean;
   stickyHeader?: boolean;
   loading?: boolean;

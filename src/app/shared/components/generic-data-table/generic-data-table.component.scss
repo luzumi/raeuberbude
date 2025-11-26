@@ -186,6 +186,19 @@
   font-size: 18px;
 }
 
+/* Row Menu */
+.row-menu {
+  display: flex;
+  align-items: center;
+
+  .menu-trigger {
+    padding: 0;
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+  }
+}
+
 /* Row Actions */
 .row-actions {
   display: flex;

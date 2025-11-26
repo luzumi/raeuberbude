@@ -77,58 +77,60 @@ import { HomeAssistantService } from '../../../core/services/homeassistant.servi
     </div>
   `,
   styles: [`
+    @use '../../../../styles/tokens' as t;
+
     .dialog-container {
-      padding: 20px;
+      padding: t.$spacing-4;
       min-width: 500px;
       max-height: 600px;
       overflow: auto;
     }
 
     .detail-header {
-      margin-bottom: 20px;
+      margin-bottom: t.$spacing-4;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      color: t.$text-inverse;
 
       mat-card-title, mat-card-subtitle {
-        color: white;
+        color: t.$text-inverse;
       }
     }
 
     .tab-content {
-      padding: 20px;
+      padding: t.$spacing-4;
     }
 
     .detail-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
+      gap: t.$spacing-3;
     }
 
     .detail-item {
       display: flex;
       flex-direction: column;
-      padding: 12px;
-      background: #f5f5f5;
-      border-radius: 8px;
+      padding: t.$spacing-3;
+      background: t.$color-highlight;
+      border-radius: t.$radius-sm;
 
       .detail-label {
         font-weight: 600;
-        color: #333;
+        color: t.$text-default;
         font-size: 12px;
         text-transform: uppercase;
       }
 
       .detail-value {
-        color: #666;
+        color: t.$text-muted;
         word-break: break-word;
-        margin-top: 4px;
+        margin-top: t.$spacing-1;
       }
     }
 
     .json-display {
-      background: #f5f5f5;
-      padding: 16px;
-      border-radius: 8px;
+      background: t.$gray-100;
+      padding: t.$spacing-3;
+      border-radius: t.$radius-sm;
       overflow: auto;
       max-height: 400px;
       font-size: 12px;
@@ -143,32 +145,32 @@ import { HomeAssistantService } from '../../../core/services/homeassistant.servi
 
     .empty-message {
       text-align: center;
-      padding: 32px;
-      color: #999;
+      padding: t.$spacing-5;
+      color: t.$text-muted;
     }
 
     .history-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: t.$spacing-2;
     }
 
     .history-item {
       display: flex;
-      gap: 16px;
-      padding: 12px;
-      background: #f5f5f5;
-      border-radius: 8px;
-      border-left: 3px solid #667eea;
+      gap: t.$spacing-3;
+      padding: t.$spacing-3;
+      background: t.$gray-100;
+      border-radius: t.$radius-sm;
+      border-left: 3px solid t.$color-primary-dark;
 
       .history-time {
         font-weight: 600;
-        color: #667eea;
+        color: t.$color-primary-dark;
         min-width: 180px;
       }
 
       .history-state {
-        color: #666;
+        color: t.$text-muted;
       }
     }
   `],

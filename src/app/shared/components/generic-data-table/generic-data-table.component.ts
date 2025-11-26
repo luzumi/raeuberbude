@@ -25,6 +25,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatMenuModule } from '@angular/material/menu';
 import {
   DataTableColumn,
   DataTableConfig,
@@ -52,6 +53,7 @@ import {
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatMenuModule,
   ],
   template: `
     <div class="generic-data-table-container">
@@ -102,6 +104,32 @@ import {
           class="data-table"
           [class.sticky-header]="config.stickyHeader"
         >
+          <!-- Row Menu Column (erste Spalte) -->
+          <ng-container matColumnDef="rowMenu" *ngIf="config.rowMenuActions && config.rowMenuActions.length">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-menu">
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="menu"
+                  class="menu-trigger"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button
+                    mat-menu-item
+                    *ngFor="let action of config.rowMenuActions"
+                    (click)="action.handler(row)"
+                  >
+                    <mat-icon *ngIf="action.icon" [color]="action.color">{{ action.icon }}</mat-icon>
+                    <span>{{ action.label }}</span>
+                  </button>
+                </mat-menu>
+              </div>
+            </td>
+          </ng-container>
+
           <!-- Selection Column -->
           <ng-container matColumnDef="select" *ngIf="config.selectable">
             <th mat-header-cell *matHeaderCellDef>
@@ -264,6 +292,11 @@ export class GenericDataTableComponent<T extends Record<string, any>> implements
   private buildDisplayColumns(): void {
     this.displayColumns = this.config.columns || [];
     this.displayedColumns = [];
+
+    // Row Menu als erste Spalte (wenn vorhanden)
+    if (this.config.rowMenuActions && this.config.rowMenuActions.length) {
+      this.displayedColumns.push('rowMenu');
+    }
 
     if (this.config.selectable) {
       this.displayedColumns.push('select');

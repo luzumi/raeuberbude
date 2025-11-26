@@ -104,6 +104,14 @@ export class AdminHomeAssistantComponent implements OnInit {
     });
   }
 
+  /**
+   * Handler für Row-Menu Actions
+   */
+  handleRowMenuAction(actionId: string, row: any): void {
+    console.log(`Row Menu Action: ${actionId}`, row);
+    // Implementierung später
+  }
+
   private initializeTableConfigs(): void {
     // Entities Config
     this.entitiesConfig = {
@@ -166,6 +174,28 @@ export class AdminHomeAssistantComponent implements OnInit {
           tooltip: 'Details anzeigen',
           action: (row: any) => this.showDetails(row),
           color: 'primary',
+        },
+      ],
+      rowMenuActions: [
+        {
+          id: 'edit',
+          label: 'Editieren',
+          icon: 'edit',
+          color: 'primary',
+          handler: (row: any) => this.handleRowMenuAction('edit', row),
+        },
+        {
+          id: 'delete',
+          label: 'Löschen',
+          icon: 'delete',
+          color: 'warn',
+          handler: (row: any) => this.handleRowMenuAction('delete', row),
+        },
+        {
+          id: 'json',
+          label: 'JSON anzeigen',
+          icon: 'code',
+          handler: (row: any) => this.handleRowMenuAction('json', row),
         },
       ],
       stickyHeader: true,
