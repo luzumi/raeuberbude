@@ -156,7 +156,7 @@ SICHERHEIT:
     };
      // Get current runtime config to use as base URL
      const config = await this.getLlmConfig();
-     const baseUrl = config.url || 'http://192.168.56.1:1234';
+     const baseUrl = config.url || 'http://127.0.0.1:1234';
 
     // Normalize base URL
     const normalizedBaseUrl = this.normalizeUrl(baseUrl);

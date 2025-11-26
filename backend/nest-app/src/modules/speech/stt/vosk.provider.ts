@@ -80,10 +80,17 @@ export class VoskProvider implements STTProvider {
         isResolved = true;
         clearTimeout(hardTimeout);
         try { ws.close(); } catch {}
+
+        // WICHTIG: Wenn Text leer ist, reject statt resolve mit leerer Transkription
+        if (!text || !text.trim()) {
+          reject(new Error('Vosk returned empty transcription'));
+          return;
+        }
+
         resolve({
           provider: this.name,
           transcript: text.trim(),
-          confidence: text ? 0.9 : 0,
+          confidence: 0.9,
           durationMs: Date.now() - startTime,
           language: language || 'de-DE',
         });
@@ -129,17 +136,31 @@ export class VoskProvider implements STTProvider {
       ws.on('error', (error) => {
         if (!isResolved) {
           this.logger.error(`Vosk WebSocket error: ${error.message}`);
-          resolveWith(transcript || partial || '');
+          const finalText = transcript || partial || '';
+          if (!finalText) {
+            // WICHTIG: Wenn keine Transkription, reject statt leeren String
+            isResolved = true;
+            clearTimeout(hardTimeout);
+            try { ws.close(); } catch {}
+            reject(new Error(`Vosk WebSocket error: ${error.message}`));
+          } else {
+            resolveWith(finalText);
+          }
         }
       });
 
       ws.on('close', () => {
         if (!isResolved) {
           const finalText = transcript || partial || '';
-          if (!finalText) {
+          if (finalText) {
+            resolveWith(finalText);
+          } else {
             this.logger.error('Vosk connection closed without result');
+            // WICHTIG: Reject statt leeren String
+            isResolved = true;
+            clearTimeout(hardTimeout);
+            reject(new Error('Vosk connection closed without result'));
           }
-          resolveWith(finalText);
         }
       });
     });

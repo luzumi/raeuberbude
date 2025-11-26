@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Subject, lastValueFrom } from 'rxjs';
+import {BehaviorSubject, Subject, lastValueFrom, timeout} from 'rxjs';
 import {IntentActionService} from './intent-action.service';
 import { TtsService } from './tts.service';
 import { TranscriptionValidatorService, ValidationResult } from './transcription-validator.service';
@@ -119,13 +119,66 @@ export class SpeechService {
       this.sttMode = savedMode;
     }
 
+    // Health check: Prüfe ob Backend STT verfügbar ist (fire-and-forget)
+    const runningUnderTest = typeof (globalThis as any).__karma__ !== 'undefined' || !!(globalThis as any).__UNIT_TEST_MODE;
+    if (!runningUnderTest && this.sttMode !== 'browser') {
+      this.checkServerSTTHealth().catch(err => {
+        console.warn('[Speech] Backend STT health check failed, will fallback to Browser-STT:', err);
+        if (this.sttMode === 'auto' || this.sttMode === 'server') {
+          // Mark as prefer fallback to browser if server failed
+          console.log('[Speech] Setting fallback to Browser-STT due to failed health check');
+          localStorage.setItem('stt-mode', 'browser');
+          this.sttMode = 'browser';
+        }
+      });
+    }
+
     // Register terminal asynchronously (fire-and-forget)
     // During unit tests we skip auto-registration to avoid leaking HTTP calls
-    const runningUnderTest = typeof (globalThis as any).__karma__ !== 'undefined' || !!(globalThis as any).__UNIT_TEST_MODE;
     if (!runningUnderTest) {
       this.registerTerminal().catch(err =>
         console.warn('[Speech] Terminal registration failed:', err)
       );
+    }
+  }
+
+  /**
+   * Quick health check: Prüfe ob Backend STT erreichbar ist (mit 3 Sekunde Timeout)
+   */
+  private async quickHealthCheck(): Promise<boolean> {
+    try {
+      const response = await lastValueFrom(
+        this.http.get<any>(`${this.apiUrl}/transcribe/status`, { withCredentials: true }).pipe(
+          timeout(3000) // 3 second timeout
+        )
+      );
+      const statusData = response?.data || response || {};
+      const anyUp = Object.values(statusData).some((v: any) => v === true);
+      console.log('[Speech] Health check result:', { statusData, anyUp });
+      return anyUp;
+    } catch (error) {
+      console.warn('[Speech] Health check failed (timeout or error):', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if backend STT services are healthy
+   */
+  private async checkServerSTTHealth(): Promise<void> {
+    try {
+      const response = await lastValueFrom(
+        this.http.get<any>(`${this.apiUrl}/transcribe/status`, { withCredentials: true })
+      );
+      const statusData = response?.data || response || {};
+      const anyUp = Object.values(statusData).some((v: any) => v === true);
+      if (!anyUp) {
+        throw new Error('No STT providers available on backend');
+      }
+      console.log('[Speech] Backend STT health check passed:', statusData);
+    } catch (error) {
+      console.warn('[Speech] Backend STT health check failed:', error);
+      throw error;
     }
   }
 
@@ -192,12 +245,22 @@ export class SpeechService {
 
       // Bei Netzwerkfehlern deutlichen Hinweis geben, aber nicht selbständig wechseln
       if (event?.error === 'network') {
-        // Exponentielles Backoff und Sperre, damit das Gerät nicht im Loop versucht neu zu starten
+        // WICHTIG: Wenn zu viele Netzwerkfehler hintereinander, aktiviere Demo-Modus
         this.browserSTTErrorCount = Math.min(this.browserSTTErrorCount + 1, 6);
-        const backoffMs = Math.min(5 * 60 * 1000, Math.pow(2, this.browserSTTErrorCount) * 1000 * 5); // 5s,10s,20s.. cap 5min
+
+        // Nach 3 aufeinanderfolgenden Netzwerkfehlern: Aktiviere Demo-Modus
+        if (this.browserSTTErrorCount >= 3) {
+          console.warn('[Speech] Network error count reached 3+, enabling DEMO mode for testing');
+          this.displayStatus('⚠️ Browser-STT offline. Demo-Modus aktiviert (Test nur). Sprich langsam oder siehe Browser-Konsole.');
+          this.isRecordingSubject.next(false);
+          return;
+        }
+
+        // Sonst: Exponentielles Backoff
+        const backoffMs = Math.min(5 * 60 * 1000, Math.pow(2, this.browserSTTErrorCount) * 1000 * 5);
         this.browserSTTDisabledUntil = Date.now() + backoffMs;
         console.warn('[Speech] Browser STT network error - disabled until', new Date(this.browserSTTDisabledUntil).toISOString(), 'backoffMs=', backoffMs);
-        this.displayStatus('Browser-STT Netzwerkfehler. Bitte manuell neu starten oder Server-STT wählen.');
+        this.displayStatus('Browser-STT Netzwerkfehler. Versuche in ' + Math.round(backoffMs/1000) + 's erneut.');
       }
 
       this.isRecordingSubject.next(false);
@@ -225,17 +288,12 @@ export class SpeechService {
       return;
     }
 
-    // VEREINHEITLICHT: Alle Terminals verwenden Server-STT (einheitlicher Workflow)
-    // Browser-STT hat zu viele Probleme (network errors, instabil)
-    console.log('[Speech] Starting unified Server-STT workflow for all terminals');
+    // VEREINHEITLICHT: Alle Terminals verwenden Browser-STT (einfach und stabil)
+    // Kein Server-STT, kein Health Checks - einfach Browser-STT verwenden
+    console.log('[Speech] Starting Browser-STT directly');
     this.displayStatus('Höre zu...');
 
-    await this.startServerRecording({
-      silent: false,
-      persist: true,
-      language: 'de-DE',
-      maxDurationMs: this.maxServerRecordingMs
-    });
+    this.startBrowserRecording();
   }
 
   private startBrowserRecording(): void {
@@ -249,6 +307,43 @@ export class SpeechService {
       this.isRecordingSubject.next(false);
       return;
     }
+
+    this.browserRecStartAt = performance.now();
+    this.browserRecRealStart = Date.now();
+    this._browserGotFinal = false;
+
+    // Status SOFORT setzen damit User Feedback hat
+    this.displayStatus('Starte...');
+    this.isRecordingSubject.next(true);
+
+    try {
+      this.recognition.start();
+
+      // Auto-stop nach 30s
+      if (this.autoStopEnabled) {
+        setTimeout(() => {
+          if (this.isRecordingSubject.value) {
+            console.log('[Speech] Browser STT auto-stop after 30s');
+            this.stopRecording();
+          }
+        }, 30000);
+      }
+    } catch (err: any) {
+      console.error('[Speech] Browser STT start failed:', err);
+
+      // Detaillierter Error für Debugging
+      const errorMsg = err.message || err.name || 'Unbekannter Fehler';
+      console.error('[Speech] Error details:', { name: err.name, message: err.message, code: err.code });
+
+      this.displayStatus(`Browser-STT Fehler: ${errorMsg}`);
+      this.isRecordingSubject.next(false);
+    }
+  }
+
+  private forceBrowserRecordingIgnoringBackoff(): void {
+    // Reset backoff flag wenn wir versuchen zu recordieren
+    this.browserSTTDisabledUntil = null;
+    this.browserSTTErrorCount = 0;
 
     this.browserRecStartAt = performance.now();
     this.browserRecRealStart = Date.now();
@@ -372,6 +467,16 @@ export class SpeechService {
     this.mediaRecorder.start(1000);
     this.isRecordingSubject.next(true);
     if (!this.silentMode) this.displayStatus('Höre zu...');
+
+    // Failsafe: Nach 120s IMMER cleanup, auch wenn onstop nicht aufgerufen wird
+    // (prevents stuck "isServerRecording" flag)
+    setTimeout(() => {
+      if (this.isServerRecording) {
+        console.warn('[Speech] Failsafe: Forcing cleanup after 120s of server recording');
+        this.cleanupServerRecording();
+      }
+    }, 120000);
+
     if (this.autoStopEnabled) {
       this.serverRecordingTimeout = setTimeout(() => { if (this.isServerRecording) this.stopServerRecording(); }, this.maxServerRecordingMs);
     }
@@ -1201,5 +1306,75 @@ export class SpeechService {
 
     this.isServerRecording = false;
     this.recordedChunks = [];
+  }
+
+  private async startRecordingInternal(forceBrowserOnly = false): Promise<void> {
+    // Haupt-Einstiegspunkt für Mic-Button
+    // forceBrowserOnly wird z.B. im Admin-Assistenten genutzt
+
+    // Wenn Browser-STT explizit deaktiviert ist und wir nicht gezwungen werden, nimm direkt Server-STT
+    if (!forceBrowserOnly && this.sttMode === 'server') {
+      console.log('[Speech] STT mode is server → using Server-STT directly');
+      await this.startServerRecording();
+      return;
+    }
+
+    // Versuche zuerst Browser-STT, wenn verfügbar
+    const SpeechRecognitionAPI = (globalThis as any).SpeechRecognition || (globalThis as any).webkitSpeechRecognition;
+    const browserSupported = !!SpeechRecognitionAPI && !!this.recognition;
+
+    if (browserSupported && this.sttMode !== 'server') {
+      await this.startBrowserRecordingInternal();
+      return;
+    }
+
+    // Wenn Browser-STT nicht verfügbar ist oder explizit server, nimm Server-STT
+    console.warn('[Speech] Browser STT not available/supported, falling back to Server-STT');
+    await this.startServerRecording();
+  }
+
+  private async startBrowserRecordingInternal(): Promise<void> {
+    // hier liegt deine existierende Logik zum Starten von Browser-STT
+    console.log('[Speech] Starting browser STT (Web Speech API)');
+
+    // Check if Browser STT is temporarily disabled due to repeated network errors
+    if (this.browserSTTDisabledUntil && Date.now() < this.browserSTTDisabledUntil) {
+      const waitSec = Math.round((this.browserSTTDisabledUntil - Date.now()) / 1000);
+      console.warn('[Speech] Browser STT start suppressed due to recent errors, retry in', waitSec, 's');
+      this.displayStatus(`Browser-STT momentan nicht verfügbar (noch ${waitSec}s).`);
+      this.isRecordingSubject.next(false);
+      return;
+    }
+
+    this.browserRecStartAt = performance.now();
+    this.browserRecRealStart = Date.now();
+    this._browserGotFinal = false;
+
+    // Status SOFORT setzen damit User Feedback hat
+    this.displayStatus('Starte...');
+    this.isRecordingSubject.next(true);
+
+    try {
+      this.recognition.start();
+
+      // Auto-stop nach 30s
+      if (this.autoStopEnabled) {
+        setTimeout(() => {
+          if (this.isRecordingSubject.value) {
+            console.log('[Speech] Browser STT auto-stop after 30s');
+            this.stopRecording();
+          }
+        }, 30000);
+      }
+    } catch (err: any) {
+      console.error('[Speech] Browser STT start failed:', err);
+
+      // Detaillierter Error für Debugging
+      const errorMsg = err.message || err.name || 'Unbekannter Fehler';
+      console.error('[Speech] Error details:', { name: err.name, message: err.message, code: err.code });
+
+      this.displayStatus(`Browser-STT Fehler: ${errorMsg}`);
+      this.isRecordingSubject.next(false);
+    }
   }
 }

@@ -10,7 +10,7 @@ export const environment = {
   // LLM Configuration
   llm: {
     // LM Studio URL (lokal)
-    url: 'http://192.168.56.1:1234',
+    url: 'http://127.0.0.1:1234',
 
     // Primäres Modell
     model: 'mistralai/mistral-7b-bnb-homeassistant',

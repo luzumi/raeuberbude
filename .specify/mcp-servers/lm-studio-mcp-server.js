@@ -11,7 +11,7 @@
  */
 
 // LM Studio base URL from environment or default
-const LM_STUDIO_URL = process.env.LM_STUDIO_URL || 'http://192.168.56.1:1234';
+const LM_STUDIO_URL = process.env.LM_STUDIO_URL || 'http://127.0.0.1:1234';
 
 // Normalize URL (remove trailing slash)
 const BASE_URL = LM_STUDIO_URL.replace(/\/$/, '');
