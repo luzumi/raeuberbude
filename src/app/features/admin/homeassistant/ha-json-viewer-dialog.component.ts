@@ -68,20 +68,20 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
     .json-header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #243a73;
+      color: t.$text-inverse;
       border-radius: 0;
       margin: 0;
       padding: t.$spacing-3;
 
       mat-card-title {
-        color: #243a73;
+        color: t.$text-inverse;
         margin: 0;
         font-size: 18px;
         font-weight: 600;
       }
 
       mat-card-subtitle {
-        color: rgba(36, 58, 115, 0.54);
+        color: rgba(255, 255, 255, 0.8);
         margin-top: t.$spacing-1;
         font-size: 12px;
       }

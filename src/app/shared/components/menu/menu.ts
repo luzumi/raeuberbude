@@ -26,18 +26,16 @@ import { MatButtonModule } from '@angular/material/button';
                 <h3>Allgemein</h3>
                 <div class="group">
                   <button mat-raised-button color="primary" (click)="switchTerminal()" class="rb-hover-shader">Terminal wechseln</button>
-                  <a routerLink="/terminal-setup" mat-stroked-button>Terminal einrichten</a>
+                  <a routerLink="/admin/terminals" mat-stroked-button >Terminals</a>
+                  <a routerLink="/admin/users" mat-stroked-button >Benutzer</a>
+                  <a routerLink="/admin/rechte" mat-stroked-button >Rechte</a>
+                  <a routerLink="/admin/rollen" mat-stroked-button >Rollen</a>
                 </div>
               </mat-card>
 
               <mat-card class="admin-card admin-section-card">
                 <h3>Administration</h3>
                 <nav class="admin-nav">
-                  <a routerLink="/admin/users" mat-stroked-button>Benutzer</a>
-                  <a routerLink="/admin/terminals" mat-stroked-button>Terminals</a>
-                  <a routerLink="/admin/bereiche" mat-stroked-button>Bereiche</a>
-                  <a routerLink="/admin/rechte" mat-stroked-button>Rechte</a>
-                  <a routerLink="/admin/rollen" mat-stroked-button>Rollen</a>
                   <a routerLink="/admin/homeassistant" mat-stroked-button>
                     <mat-icon>home</mat-icon>
                     Homeassistent

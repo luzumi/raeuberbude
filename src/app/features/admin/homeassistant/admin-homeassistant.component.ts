@@ -1,27 +1,22 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { MatCardModule } from '@angular/material/card';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { firstValueFrom } from 'rxjs';
-import { HeaderComponent } from '@shared/components/header/header.component';
-import { GenericDataTableComponent } from '@shared/components/generic-data-table/generic-data-table.component';
-import {
-  DataTableColumn,
-  DataTableConfig,
-  DataTableToolbarButton,
-} from '@shared/components/generic-data-table/generic-data-table.config';
-import { HomeAssistantService } from '../../../core/services/homeassistant.service';
-import { HaDetailDialogComponent } from './ha-detail-dialog.component';
-import { HaStatisticsDialogComponent } from './ha-statistics-dialog.component';
-import { HaJsonViewerDialogComponent } from './ha-json-viewer-dialog.component';
+import {CommonModule} from '@angular/common';
+import {Component, OnInit} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatDialog, MatDialogModule} from '@angular/material/dialog';
+import {MatIconModule} from '@angular/material/icon';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
+import {MatTabsModule} from '@angular/material/tabs';
+import {GenericDataTableComponent} from '@shared/components/generic-data-table/generic-data-table.component';
+import {DataTableConfig,} from '@shared/components/generic-data-table/generic-data-table.config';
+import {HeaderComponent} from '@shared/components/header/header.component';
+import {firstValueFrom} from 'rxjs';
+import {HomeAssistantService} from '../../../core/services/homeassistant.service';
+import {HaDetailDialogComponent} from './ha-detail-dialog.component';
+import {HaJsonViewerDialogComponent} from './ha-json-viewer-dialog.component';
+import {HaStatisticsDialogComponent} from './ha-statistics-dialog.component';
 
-@Component({
+@Component( {
   selector: 'app-admin-homeassistant',
   standalone: true,
   imports: [
@@ -38,7 +33,7 @@ import { HaJsonViewerDialogComponent } from './ha-json-viewer-dialog.component';
   ],
   templateUrl: './admin-homeassistant.component.html',
   styleUrls: ['./admin-homeassistant.component.scss'],
-})
+} )
 export class AdminHomeAssistantComponent implements OnInit {
   selectedTabIndex = 0;
 
@@ -87,40 +82,40 @@ export class AdminHomeAssistantComponent implements OnInit {
    * Dialog für Details anzeigen
    */
   showDetails(row: any): void {
-    this.dialog.open(HaDetailDialogComponent, {
+    this.dialog.open( HaDetailDialogComponent, {
       data: row,
       width: '600px',
       maxHeight: '90vh',
-    });
+    } );
   }
 
   /**
    * Dialog für Statistiken anzeigen
    */
   showStatistics(type: string): void {
-    this.dialog.open(HaStatisticsDialogComponent, {
+    this.dialog.open( HaStatisticsDialogComponent, {
       data: { type },
       width: '500px',
       maxHeight: '90vh',
-    });
+    } );
   }
 
   /**
    * Handler für Row-Menu Actions
    */
   handleRowMenuAction(actionId: string, row: any): void {
-    switch (actionId) {
+    switch ( actionId ) {
       case 'json':
-        this.showJsonViewer(row);
+        this.showJsonViewer( row );
         break;
       case 'edit':
-        console.log('Edit action - später implementiert', row);
+        console.log( 'Edit action - später implementiert', row );
         break;
       case 'delete':
-        console.log('Delete action - später implementiert', row);
+        console.log( 'Delete action - später implementiert', row );
         break;
       default:
-        console.log(`Unknown action: ${actionId}`, row);
+        console.log( `Unknown action: ${ actionId }`, row );
     }
   }
 
@@ -128,12 +123,12 @@ export class AdminHomeAssistantComponent implements OnInit {
    * JSON-Viewer Dialog öffnen
    */
   showJsonViewer(data: any): void {
-    this.dialog.open(HaJsonViewerDialogComponent, {
+    this.dialog.open( HaJsonViewerDialogComponent, {
       data: { data, title: data.entityId || data.name || data.deviceId || data.id || 'JSON' },
       width: '800px',
       maxHeight: '90vh',
       panelClass: 'json-viewer-dialog',
-    });
+    } );
   }
 
   private initializeTableConfigs(): void {
@@ -170,7 +165,7 @@ export class AdminHomeAssistantComponent implements OnInit {
         {
           label: 'Statistiken',
           icon: 'assessment',
-          action: () => this.showStatistics('Entities'),
+          action: () => this.showStatistics( 'Entities' ),
           tooltip: 'Statistiken anzeigen',
         },
         {
@@ -182,13 +177,13 @@ export class AdminHomeAssistantComponent implements OnInit {
         {
           label: 'Export JSON',
           icon: 'file_download',
-          action: () => this.exportAsJson(this.entities, 'entities'),
+          action: () => this.exportAsJson( this.entities, 'entities' ),
           tooltip: 'Als JSON exportieren',
         },
         {
           label: 'Export CSV',
           icon: 'table_chart',
-          action: () => this.exportAsCsv(this.entities, 'entities'),
+          action: () => this.exportAsCsv( this.entities, 'entities' ),
           tooltip: 'Als CSV exportieren',
         },
       ],
@@ -196,7 +191,7 @@ export class AdminHomeAssistantComponent implements OnInit {
         {
           icon: 'info',
           tooltip: 'Details anzeigen',
-          action: (row: any) => this.showDetails(row),
+          action: (row: any) => this.showDetails( row ),
           color: 'primary',
         },
       ],
@@ -206,20 +201,20 @@ export class AdminHomeAssistantComponent implements OnInit {
           label: 'Editieren',
           icon: 'edit',
           color: 'primary',
-          handler: (row: any) => this.handleRowMenuAction('edit', row),
+          handler: (row: any) => this.handleRowMenuAction( 'edit', row ),
         },
         {
           id: 'delete',
           label: 'Löschen',
           icon: 'delete',
           color: 'warn',
-          handler: (row: any) => this.handleRowMenuAction('delete', row),
+          handler: (row: any) => this.handleRowMenuAction( 'delete', row ),
         },
         {
           id: 'json',
           label: 'JSON anzeigen',
           icon: 'code',
-          handler: (row: any) => this.handleRowMenuAction('json', row),
+          handler: (row: any) => this.handleRowMenuAction( 'json', row ),
         },
       ],
       stickyHeader: true,
@@ -259,8 +254,16 @@ export class AdminHomeAssistantComponent implements OnInit {
         {
           icon: 'info',
           tooltip: 'Details anzeigen',
-          action: (row: any) => this.showDetails(row),
+          action: (row: any) => this.showDetails( row ),
           color: 'primary',
+        },
+      ],
+      rowMenuActions: [
+        {
+          id: 'json',
+          label: 'JSON anzeigen',
+          icon: 'code',
+          handler: (row: any) => this.handleRowMenuAction( 'json', row ),
         },
       ],
       stickyHeader: true,
@@ -299,8 +302,16 @@ export class AdminHomeAssistantComponent implements OnInit {
         {
           icon: 'info',
           tooltip: 'Details anzeigen',
-          action: (row: any) => this.showDetails(row),
+          action: (row: any) => this.showDetails( row ),
           color: 'primary',
+        },
+      ],
+      rowMenuActions: [
+        {
+          id: 'json',
+          label: 'JSON anzeigen',
+          icon: 'code',
+          handler: (row: any) => this.handleRowMenuAction( 'json', row ),
         },
       ],
       stickyHeader: true,
@@ -340,8 +351,16 @@ export class AdminHomeAssistantComponent implements OnInit {
         {
           icon: 'info',
           tooltip: 'Details anzeigen',
-          action: (row: any) => this.showDetails(row),
+          action: (row: any) => this.showDetails( row ),
           color: 'primary',
+        },
+      ],
+      rowMenuActions: [
+        {
+          id: 'json',
+          label: 'JSON anzeigen',
+          icon: 'code',
+          handler: (row: any) => this.handleRowMenuAction( 'json', row ),
         },
       ],
       stickyHeader: true,
@@ -372,6 +391,22 @@ export class AdminHomeAssistantComponent implements OnInit {
           icon: 'refresh',
           action: () => this.loadPersons(),
           tooltip: 'Daten neu laden',
+        },
+      ],
+      rowActions: [
+        {
+          icon: 'info',
+          tooltip: 'Details anzeigen',
+          action: (row: any) => this.showDetails( row ),
+          color: 'primary',
+        },
+      ],
+      rowMenuActions: [
+        {
+          id: 'json',
+          label: 'JSON anzeigen',
+          icon: 'code',
+          handler: (row: any) => this.handleRowMenuAction( 'json', row ),
         },
       ],
       stickyHeader: true,
@@ -412,8 +447,16 @@ export class AdminHomeAssistantComponent implements OnInit {
         {
           icon: 'info',
           tooltip: 'Details anzeigen',
-          action: (row: any) => this.showDetails(row),
+          action: (row: any) => this.showDetails( row ),
           color: 'primary',
+        },
+      ],
+      rowMenuActions: [
+        {
+          id: 'json',
+          label: 'JSON anzeigen',
+          icon: 'code',
+          handler: (row: any) => this.handleRowMenuAction( 'json', row ),
         },
       ],
       stickyHeader: true,
@@ -454,8 +497,16 @@ export class AdminHomeAssistantComponent implements OnInit {
         {
           icon: 'info',
           tooltip: 'Details anzeigen',
-          action: (row: any) => this.showDetails(row),
+          action: (row: any) => this.showDetails( row ),
           color: 'primary',
+        },
+      ],
+      rowMenuActions: [
+        {
+          id: 'json',
+          label: 'JSON anzeigen',
+          icon: 'code',
+          handler: (row: any) => this.handleRowMenuAction( 'json', row ),
         },
       ],
       stickyHeader: true,
@@ -494,8 +545,16 @@ export class AdminHomeAssistantComponent implements OnInit {
         {
           icon: 'info',
           tooltip: 'Details anzeigen',
-          action: (row: any) => this.showDetails(row),
+          action: (row: any) => this.showDetails( row ),
           color: 'primary',
+        },
+      ],
+      rowMenuActions: [
+        {
+          id: 'json',
+          label: 'JSON anzeigen',
+          icon: 'code',
+          handler: (row: any) => this.handleRowMenuAction( 'json', row ),
         },
       ],
       stickyHeader: true,
@@ -503,9 +562,8 @@ export class AdminHomeAssistantComponent implements OnInit {
     };
   }
 
-
   private async loadAllData(): Promise<void> {
-    await Promise.all([
+    await Promise.all( [
       this.loadEntities(),
       this.loadDevices(),
       this.loadAreas(),
@@ -514,20 +572,20 @@ export class AdminHomeAssistantComponent implements OnInit {
       this.loadZones(),
       this.loadMediaPlayers(),
       this.loadServices(),
-    ]);
+    ] );
   }
 
   private async loadEntities(): Promise<void> {
     this.loadingEntities = true;
     try {
-      this.entities = await firstValueFrom(this.haService.getAllEntities());
+      this.entities = await firstValueFrom( this.haService.getAllEntities() );
       // Spread-Operator erzwingt Change Detection in der Table
       this.entitiesConfig.data = [...this.entities];
-      console.log(JSON.stringify(this.entitiesConfig))
-      this.showMessage('Entities geladen', 'success');
-    } catch (error) {
-      console.error('Fehler beim Laden von Entities:', error);
-      this.showMessage('Fehler beim Laden von Entities', 'error');
+      console.log( JSON.stringify( this.entitiesConfig ) )
+      this.showMessage( 'Entities geladen', 'success' );
+    } catch( error ) {
+      console.error( 'Fehler beim Laden von Entities:', error );
+      this.showMessage( 'Fehler beim Laden von Entities', 'error' );
     } finally {
       this.loadingEntities = false;
     }
@@ -536,12 +594,12 @@ export class AdminHomeAssistantComponent implements OnInit {
   private async loadDevices(): Promise<void> {
     this.loadingDevices = true;
     try {
-      this.devices = await firstValueFrom(this.haService.getAllDevices());
+      this.devices = await firstValueFrom( this.haService.getAllDevices() );
       this.devicesConfig.data = [...this.devices];
-      this.showMessage('Devices geladen', 'success');
-    } catch (error) {
-      console.error('Fehler beim Laden von Devices:', error);
-      this.showMessage('Fehler beim Laden von Devices', 'error');
+      this.showMessage( 'Devices geladen', 'success' );
+    } catch( error ) {
+      console.error( 'Fehler beim Laden von Devices:', error );
+      this.showMessage( 'Fehler beim Laden von Devices', 'error' );
     } finally {
       this.loadingDevices = false;
     }
@@ -550,12 +608,12 @@ export class AdminHomeAssistantComponent implements OnInit {
   private async loadAreas(): Promise<void> {
     this.loadingAreas = true;
     try {
-      this.areas = await firstValueFrom(this.haService.getAllAreas());
+      this.areas = await firstValueFrom( this.haService.getAllAreas() );
       this.areasConfig.data = [...this.areas];
-      this.showMessage('Areas geladen', 'success');
-    } catch (error) {
-      console.error('Fehler beim Laden von Areas:', error);
-      this.showMessage('Fehler beim Laden von Areas', 'error');
+      this.showMessage( 'Areas geladen', 'success' );
+    } catch( error ) {
+      console.error( 'Fehler beim Laden von Areas:', error );
+      this.showMessage( 'Fehler beim Laden von Areas', 'error' );
     } finally {
       this.loadingAreas = false;
     }
@@ -564,12 +622,12 @@ export class AdminHomeAssistantComponent implements OnInit {
   private async loadAutomations(): Promise<void> {
     this.loadingAutomations = true;
     try {
-      this.automations = await firstValueFrom(this.haService.getAllAutomations());
+      this.automations = await firstValueFrom( this.haService.getAllAutomations() );
       this.automationsConfig.data = [...this.automations];
-      this.showMessage('Automations geladen', 'success');
-    } catch (error) {
-      console.error('Fehler beim Laden von Automations:', error);
-      this.showMessage('Fehler beim Laden von Automations', 'error');
+      this.showMessage( 'Automations geladen', 'success' );
+    } catch( error ) {
+      console.error( 'Fehler beim Laden von Automations:', error );
+      this.showMessage( 'Fehler beim Laden von Automations', 'error' );
     } finally {
       this.loadingAutomations = false;
     }
@@ -578,16 +636,16 @@ export class AdminHomeAssistantComponent implements OnInit {
   private async loadPersons(): Promise<void> {
     this.loadingPersons = true;
     try {
-      this.persons = await firstValueFrom(this.haService.getAllPersons());
+      this.persons = await firstValueFrom( this.haService.getAllPersons() );
       this.personsConfig.data = [...this.persons];
-      this.showMessage('Persons geladen', 'success');
-    } catch (error: any) {
-      console.error('Fehler beim Laden von Persons:', error);
-      if (error.status === 404) {
+      this.showMessage( 'Persons geladen', 'success' );
+    } catch( error: any ) {
+      console.error( 'Fehler beim Laden von Persons:', error );
+      if ( error.status === 404 ) {
         this.persons = [];
-        this.showMessage('Persons-API nicht verfügbar', 'info');
+        this.showMessage( 'Persons-API nicht verfügbar', 'info' );
       } else {
-        this.showMessage('Fehler beim Laden von Persons', 'error');
+        this.showMessage( 'Fehler beim Laden von Persons', 'error' );
       }
     } finally {
       this.loadingPersons = false;
@@ -597,16 +655,16 @@ export class AdminHomeAssistantComponent implements OnInit {
   private async loadZones(): Promise<void> {
     this.loadingZones = true;
     try {
-      this.zones = await firstValueFrom(this.haService.getAllZones());
+      this.zones = await firstValueFrom( this.haService.getAllZones() );
       this.zonesConfig.data = [...this.zones];
-      this.showMessage('Zones geladen', 'success');
-    } catch (error: any) {
-      console.error('Fehler beim Laden von Zones:', error);
-      if (error.status === 404) {
+      this.showMessage( 'Zones geladen', 'success' );
+    } catch( error: any ) {
+      console.error( 'Fehler beim Laden von Zones:', error );
+      if ( error.status === 404 ) {
         this.zones = [];
-        this.showMessage('Zones-API nicht verfügbar', 'info');
+        this.showMessage( 'Zones-API nicht verfügbar', 'info' );
       } else {
-        this.showMessage('Fehler beim Laden von Zones', 'error');
+        this.showMessage( 'Fehler beim Laden von Zones', 'error' );
       }
     } finally {
       this.loadingZones = false;
@@ -616,16 +674,16 @@ export class AdminHomeAssistantComponent implements OnInit {
   private async loadMediaPlayers(): Promise<void> {
     this.loadingMediaPlayers = true;
     try {
-      this.mediaPlayers = await firstValueFrom(this.haService.getAllMediaPlayers());
+      this.mediaPlayers = await firstValueFrom( this.haService.getAllMediaPlayers() );
       this.mediaPlayersConfig.data = [...this.mediaPlayers];
-      this.showMessage('Media Players geladen', 'success');
-    } catch (error: any) {
-      console.error('Fehler beim Laden von Media Players:', error);
-      if (error.status === 404) {
+      this.showMessage( 'Media Players geladen', 'success' );
+    } catch( error: any ) {
+      console.error( 'Fehler beim Laden von Media Players:', error );
+      if ( error.status === 404 ) {
         this.mediaPlayers = [];
-        this.showMessage('Media Players-API nicht verfügbar', 'info');
+        this.showMessage( 'Media Players-API nicht verfügbar', 'info' );
       } else {
-        this.showMessage('Fehler beim Laden von Media Players', 'error');
+        this.showMessage( 'Fehler beim Laden von Media Players', 'error' );
       }
     } finally {
       this.loadingMediaPlayers = false;
@@ -635,16 +693,16 @@ export class AdminHomeAssistantComponent implements OnInit {
   private async loadServices(): Promise<void> {
     this.loadingServices = true;
     try {
-      this.services = await firstValueFrom(this.haService.getAllServices());
+      this.services = await firstValueFrom( this.haService.getAllServices() );
       this.servicesConfig.data = [...this.services];
-      this.showMessage('Services geladen', 'success');
-    } catch (error: any) {
-      console.error('Fehler beim Laden von Services:', error);
-      if (error.status === 404) {
+      this.showMessage( 'Services geladen', 'success' );
+    } catch( error: any ) {
+      console.error( 'Fehler beim Laden von Services:', error );
+      if ( error.status === 404 ) {
         this.services = [];
-        this.showMessage('Services-API nicht verfügbar', 'info');
+        this.showMessage( 'Services-API nicht verfügbar', 'info' );
       } else {
-        this.showMessage('Fehler beim Laden von Services', 'error');
+        this.showMessage( 'Fehler beim Laden von Services', 'error' );
       }
     } finally {
       this.loadingServices = false;
@@ -653,71 +711,78 @@ export class AdminHomeAssistantComponent implements OnInit {
 
   async reimportData(): Promise<void> {
     try {
-      await firstValueFrom(this.haService.reimportData());
-      this.showMessage('Daten werden importiert...', 'success');
+      await firstValueFrom( this.haService.reimportData() );
+      this.showMessage( 'Daten werden importiert...', 'success' );
       // Neuladen nach kurzem Delay
-      setTimeout(() => this.loadAllData(), 1000);
-    } catch (error) {
-      console.error('Fehler beim Importieren:', error);
-      this.showMessage('Fehler beim Importieren', 'error');
+      setTimeout( () => this.loadAllData(), 1000 );
+    } catch( error ) {
+      console.error( 'Fehler beim Importieren:', error );
+      this.showMessage( 'Fehler beim Importieren', 'error' );
     }
   }
 
   exportAsJson(data: any[], filename: string): void {
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const jsonString = JSON.stringify( data, null, 2 );
+    const blob = new Blob( [jsonString], { type: 'application/json' } );
+    const url = window.URL.createObjectURL( blob );
+    const link = document.createElement( 'a' );
     link.href = url;
-    link.download = `${filename}-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `${ filename }-${ new Date().toISOString().split( 'T' )[0] }.json`;
     link.click();
-    window.URL.revokeObjectURL(url);
+    window.URL.revokeObjectURL( url );
   }
 
   exportAsCsv(data: any[], filename: string): void {
-    if (!data || data.length === 0) {
-      this.showMessage('Keine Daten zum Exportieren', 'info');
+    if ( !data || data.length === 0 ) {
+      this.showMessage( 'Keine Daten zum Exportieren', 'info' );
       return;
     }
 
     // Get all unique keys from objects
-    const keys = Array.from(
-      new Set(data.flatMap((obj) => Object.keys(obj)))
-    );
+    const keys = Array.from( new Set( data.flatMap( (obj) => Object.keys( obj ) ) ) );
 
     // Create CSV header
-    const header = keys.join(',');
+    const header = keys.join( ',' );
 
     // Create CSV rows
-    const rows = data.map((obj) =>
-      keys.map((key) => {
-        const value = obj[key];
-        if (value === null || value === undefined) {
-          return '';
+    const rows = data.map( (obj) =>
+      keys.map( (key) => {
+        let value = obj[key];
+        if ( value === null || value === undefined ) return '';
+        if ( typeof value === 'object' ) {
+          try {
+            value = JSON.stringify( value );
+          } catch {
+            value = String( value );
+          }
         }
-        // Quote string values that contain commas
-        if (typeof value === 'string' && value.includes(',')) {
-          return `"${value.replace(/"/g, '""')}"`;
+        let cell = String( value ).replace( /"/g, '""' );
+        if ( cell.includes( ',' ) || cell.includes( '\n' ) || cell.includes( '"' ) ) {
+          cell = `"${ cell }"`;
         }
-        return String(value);
-      }).join(',')
+        return cell;
+      } ).join( ',' )
     );
 
-    const csvContent = [header, ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const csvContent = [header, ...rows].join( '\n' );
+    const blob = new Blob( [csvContent], { type: 'text/csv;charset=utf-8;' } );
+    const url = window.URL.createObjectURL( blob );
+    const link = document.createElement( 'a' );
     link.href = url;
-    link.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `${ filename }-${ new Date().toISOString().split( 'T' )[0] }.csv`;
+    document.body.appendChild( link );
     link.click();
-    window.URL.revokeObjectURL(url);
+    document.body.removeChild( link );
+    window.URL.revokeObjectURL( url );
   }
 
-  private showMessage(message: string, type: 'success' | 'error' | 'info'): void {
-    this.snackBar.open(message, 'Schließen', {
+
+  private showMessage(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
+    const panelClass =
+      type === 'success' ? 'snack-success' : type === 'error' ? 'snack-error' : 'snack-info';
+    this.snackBar.open( message, 'Schließen', {
       duration: 3000,
-      panelClass: [`snackbar-${type}`],
-    });
-  }
+      panelClass,
+    } );
+  };
 }
-
