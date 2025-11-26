@@ -1,0 +1,73 @@
+<app-header></app-header>
+<div class="admin-page">
+  <div class="admin-shell">
+    <mat-card class="admin-card admin-header-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>home</mat-icon>
+          Home Assistant Datenbank
+        </mat-card-title>
+        <mat-card-subtitle>Verwaltung und Übersicht aller HA-Daten</mat-card-subtitle>
+      </mat-card-header>
+    </mat-card>
+
+    <mat-tab-group [selectedIndex]="selectedTabIndex" (selectedIndexChange)="selectedTabIndex = $event">
+      <!-- Entities Tab -->
+      <mat-tab label="Entities">
+        <div class="admin-tab-content">
+          <app-generic-data-table [config]="entitiesConfig"></app-generic-data-table>
+        </div>
+      </mat-tab>
+
+      <!-- Devices Tab -->
+      <mat-tab label="Devices">
+        <div class="admin-tab-content">
+          <app-generic-data-table [config]="devicesConfig"></app-generic-data-table>
+        </div>
+      </mat-tab>
+
+      <!-- Areas Tab -->
+      <mat-tab label="Areas">
+        <div class="admin-tab-content">
+          <app-generic-data-table [config]="areasConfig"></app-generic-data-table>
+        </div>
+      </mat-tab>
+
+      <!-- Automations Tab -->
+      <mat-tab label="Automations">
+        <div class="admin-tab-content">
+          <app-generic-data-table [config]="automationsConfig"></app-generic-data-table>
+        </div>
+      </mat-tab>
+
+      <!-- Persons Tab -->
+      <mat-tab label="Persons">
+        <div class="admin-tab-content">
+          <app-generic-data-table [config]="personsConfig"></app-generic-data-table>
+        </div>
+      </mat-tab>
+
+      <!-- Zones Tab -->
+      <mat-tab label="Zones">
+        <div class="admin-tab-content">
+          <app-generic-data-table [config]="zonesConfig"></app-generic-data-table>
+        </div>
+      </mat-tab>
+
+      <!-- Media Players Tab -->
+      <mat-tab label="Media Players">
+        <div class="admin-tab-content">
+          <app-generic-data-table [config]="mediaPlayersConfig"></app-generic-data-table>
+        </div>
+      </mat-tab>
+
+      <!-- Services Tab -->
+      <mat-tab label="Services">
+        <div class="admin-tab-content">
+          <app-generic-data-table [config]="servicesConfig"></app-generic-data-table>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>
+

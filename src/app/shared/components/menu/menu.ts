@@ -38,6 +38,10 @@ import { MatButtonModule } from '@angular/material/button';
                   <a routerLink="/admin/bereiche" mat-stroked-button>Bereiche</a>
                   <a routerLink="/admin/rechte" mat-stroked-button>Rechte</a>
                   <a routerLink="/admin/rollen" mat-stroked-button>Rollen</a>
+                  <a routerLink="/admin/homeassistant" mat-stroked-button>
+                    <mat-icon>home</mat-icon>
+                    Homeassistent
+                  </a>
                   <a routerLink="/admin/speech-assistant" mat-stroked-button>
                     <mat-icon>mic</mat-icon>
                     Sprachassistent

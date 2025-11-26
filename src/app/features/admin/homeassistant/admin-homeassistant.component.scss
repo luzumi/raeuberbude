@@ -1,0 +1,99 @@
+@use '../../../../styles/tokens' as t;
+
+/* Konsistentes Admin-Layout */
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #fafafa;
+}
+
+.admin-shell {
+  flex: 1;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.admin-card {
+  margin-bottom: 16px;
+
+  &.admin-header-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+
+    mat-card-header {
+      margin: 0;
+    }
+
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: white;
+      margin: 0;
+
+      mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    mat-card-subtitle {
+      color: rgba(white, 0.8);
+      margin: 8px 0 0 0;
+    }
+  }
+}
+
+.admin-tab-content {
+  padding: 20px;
+  min-height: 500px;
+}
+
+/* Tab-Styling */
+::ng-deep .mat-mdc-tab-group {
+  .mat-mdc-tab-labels {
+    background-color: #f5f5f5;
+    border-bottom: 2px solid #e0e0e0;
+  }
+
+  .mat-mdc-tab-header-pagination-chevron {
+    border-color: #666;
+  }
+
+  .mdc-tab__text-label {
+    font-weight: 500;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-shell {
+    padding: 12px;
+  }
+
+  .admin-card {
+    margin-bottom: 12px;
+
+    &.admin-header-card {
+      mat-card-title {
+        font-size: 18px;
+
+        mat-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+      }
+    }
+  }
+
+  .admin-tab-content {
+    padding: 12px;
+    min-height: 300px;
+  }
+}
+

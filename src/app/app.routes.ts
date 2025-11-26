@@ -10,6 +10,7 @@ import { UserProfileComponent } from '@components/user-profile/user-profile.comp
 import { TerminalSetupComponent } from './features/terminal/terminal-setup.component';
 import { RightsManagementComponent } from './features/admin/rights-management/rights-management.component';
 import { AdminUsersComponent } from './features/admin/users/admin-users.component';
+import { AdminHomeAssistantComponent } from './features/admin/homeassistant/admin-homeassistant.component';
 
 export const routes: Routes = [
   {
@@ -56,6 +57,7 @@ export const routes: Routes = [
       { path: 'users', component: AdminUsersComponent },
       { path: 'bereiche', component: AdminAreasComponent },
       { path: 'rollen', component: AdminRolesComponent },
+      { path: 'homeassistant', component: AdminHomeAssistantComponent },
       {
         path: 'speech-assistant',
         loadComponent: () => import('./features/admin/speech-assistant/admin-speech-assistant.component').then(m => m.AdminSpeechAssistantComponent)
