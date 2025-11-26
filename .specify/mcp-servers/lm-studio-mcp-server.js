@@ -18,13 +18,28 @@ const BASE_URL = LM_STUDIO_URL.replace(/\/$/, '');
 
 let requestId = 0;
 
+// Fetch function - will be initialized to either global fetch or node-fetch
+let fetchFn = null;
+async function ensureFetch() {
+  if (typeof globalThis.fetch === 'function') {
+    fetchFn = globalThis.fetch.bind(globalThis);
+    return;
+  }
+  try {
+    const mod = await import('node-fetch');
+    fetchFn = mod.default || mod;
+  } catch (err) {
+    console.error('Error: fetch not available and node-fetch could not be imported. Please run: npm install node-fetch');
+    process.exit(1);
+  }
+}
+
 /**
  * Fetch models from LM Studio
  */
 async function listModels() {
   try {
-    const fetch = (await import('node-fetch')).default;
-    const response = await fetch(`${BASE_URL}/v1/models`, {
+    const response = await fetchFn(`${BASE_URL}/v1/models`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -224,8 +239,7 @@ async function getModelStatus(modelId) {
  */
 async function chat(modelId, messages, options = {}) {
   try {
-    const fetch = (await import('node-fetch')).default;
-    const response = await fetch(`${BASE_URL}/v1/chat/completions`, {
+    const response = await fetchFn(`${BASE_URL}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -254,6 +268,91 @@ async function chat(modelId, messages, options = {}) {
  */
 async function handleRequest(request) {
   const { method, params, id } = request;
+
+  // Handle MCP protocol initialization
+  if (method === 'initialize') {
+    return {
+      jsonrpc: '2.0',
+      id,
+      result: {
+        protocolVersion: '2024-11-05',
+        capabilities: {
+          tools: {}
+        },
+        serverInfo: {
+          name: 'raueberbude-llm',
+          version: '1.0.0'
+        }
+      }
+    };
+  }
+
+  // Handle tools/list request
+  if (method === 'tools/list') {
+    return {
+      jsonrpc: '2.0',
+      id,
+      result: {
+        tools: [
+          {
+            name: 'list_models',
+            description: 'List all loaded models in LM Studio',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              required: []
+            }
+          },
+          {
+            name: 'load_model',
+            description: 'Load a model into LM Studio using CLI (lms load)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                modelId: { type: 'string', description: 'Model ID or path to load' }
+              },
+              required: ['modelId']
+            }
+          },
+          {
+            name: 'unload_model',
+            description: 'Unload (eject) a model from LM Studio using CLI (lms unload)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                modelId: { type: 'string', description: 'Model ID to unload' }
+              },
+              required: ['modelId']
+            }
+          },
+          {
+            name: 'get_model_status',
+            description: 'Get status of a specific model (check if loaded)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                modelId: { type: 'string', description: 'Model ID to check' }
+              },
+              required: ['modelId']
+            }
+          },
+          {
+            name: 'chat',
+            description: 'Send a chat request to a loaded model',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                modelId: { type: 'string', description: 'Model ID' },
+                messages: { type: 'array', description: 'Chat messages' },
+                options: { type: 'object', description: 'Optional parameters' }
+              },
+              required: ['modelId', 'messages']
+            }
+          }
+        ]
+      }
+    };
+  }
 
   if (method !== 'tools/call') {
     return {
@@ -353,14 +452,9 @@ async function main() {
   });
 }
 
-// Check if node-fetch is available
+// Check fetch availability and start main
 (async () => {
-  try {
-    await import('node-fetch');
-    main();
-  } catch (error) {
-    console.error('Error: node-fetch not found. Please run: npm install node-fetch');
-    process.exit(1);
-  }
+  await ensureFetch();
+  main();
 })();
 

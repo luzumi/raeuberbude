@@ -48,16 +48,32 @@ export class LlmService {
   getModels(instanceUrl: string): Observable<string[]> {
      try {
       const candidates = new Set<string>();
+
+      // Normalize URL: remove trailing slashes
+      let normalizedUrl = instanceUrl.trim().replace(/\/+$/, '');
+
       // primary replace if typical path is provided
-      if (instanceUrl.includes('/chat/completions')) {
-        candidates.add(instanceUrl.replace('/chat/completions', '/models'));
+      if (normalizedUrl.includes('/chat/completions')) {
+        candidates.add(normalizedUrl.replace('/chat/completions', '/models'));
+        candidates.add(normalizedUrl.replace('/v1/chat/completions', '/v1/models'));
       }
+
       try {
-        const u = new URL(instanceUrl);
+        const u = new URL(normalizedUrl);
+        // LM Studio standard endpoints
         candidates.add(`${u.origin}/v1/models`);
         candidates.add(`${u.origin}/models`);
+
+        // If URL has a path, try adding /models to the path
+        if (u.pathname && u.pathname !== '/') {
+          const basePath = u.pathname.replace(/\/+$/, '');
+          candidates.add(`${u.origin}${basePath}/v1/models`);
+          candidates.add(`${u.origin}${basePath}/models`);
+        }
       } catch (e) {
-        // ignore url parsing
+        // If URL parsing fails, try simple concatenation
+        candidates.add(`${normalizedUrl}/v1/models`);
+        candidates.add(`${normalizedUrl}/models`);
       }
 
       const tryFetch = (url: string) => this.http.get<any>(url).pipe(
