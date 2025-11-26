@@ -228,7 +228,12 @@ import {
 export class GenericDataTableComponent<T extends Record<string, any>> implements OnInit {
   @Input() set config(value: DataTableConfig<T>) {
     this._config = value;
-    this.initializeDataSource();
+    // Wichtig: DataSource mit neuen Daten aktualisieren
+    if (this.dataSource) {
+      this.dataSource.data = value.data || [];
+    } else {
+      this.initializeDataSource();
+    }
     this.buildDisplayColumns();
     this.cdr.markForCheck();
   }
@@ -255,7 +260,7 @@ export class GenericDataTableComponent<T extends Record<string, any>> implements
   }
 
   private initializeDataSource(): void {
-    this.dataSource = new MatTableDataSource(this.config.data || []);
+    this.dataSource = new MatTableDataSource(this._config?.data || []);
   }
 
   private buildDisplayColumns(): void {

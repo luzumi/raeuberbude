@@ -117,6 +117,7 @@ export class AdminHomeAssistantComponent implements OnInit {
         { field: 'areaId', header: 'Area ID', sortable: true },
         { field: 'updatedAt', header: 'Aktualisiert', type: 'date', sortable: true },
       ],
+      //
       data: this.entities,
       pagination: {
         enabled: true,
@@ -468,6 +469,7 @@ export class AdminHomeAssistantComponent implements OnInit {
       this.entities = await firstValueFrom(this.haService.getAllEntities());
       // Spread-Operator erzwingt Change Detection in der Table
       this.entitiesConfig.data = [...this.entities];
+      console.log(JSON.stringify(this.entitiesConfig))
       this.showMessage('Entities geladen', 'success');
     } catch (error) {
       console.error('Fehler beim Laden von Entities:', error);
