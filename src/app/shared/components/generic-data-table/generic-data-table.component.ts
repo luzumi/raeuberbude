@@ -5,8 +5,8 @@ import {
   EventEmitter,
   ViewChild,
   OnInit,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
+  OnChanges,
+  SimpleChanges,
   TemplateRef,
   ContentChildren,
   QueryList,
@@ -54,7 +54,6 @@ import {
     MatDatepickerModule,
     MatNativeDateModule,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="generic-data-table-container">
       <!-- Toolbar -->
@@ -225,22 +224,8 @@ import {
   `,
   styleUrls: ['./generic-data-table.component.scss'],
 })
-export class GenericDataTableComponent<T extends Record<string, any>> implements OnInit {
-  @Input() set config(value: DataTableConfig<T>) {
-    this._config = value;
-    // Wichtig: DataSource mit neuen Daten aktualisieren
-    if (this.dataSource) {
-      this.dataSource.data = value.data || [];
-    } else {
-      this.initializeDataSource();
-    }
-    this.buildDisplayColumns();
-    this.cdr.markForCheck();
-  }
-  get config(): DataTableConfig<T> {
-    return this._config;
-  }
-  private _config!: DataTableConfig<T>;
+export class GenericDataTableComponent<T extends Record<string, any>> implements OnInit, OnChanges {
+  @Input() config!: DataTableConfig<T>;
 
   @Output() rowSelected = new EventEmitter<T[]>();
   @Output() rowActionTriggered = new EventEmitter<{ action: string; row: T }>();
@@ -253,14 +238,23 @@ export class GenericDataTableComponent<T extends Record<string, any>> implements
   allSelected = false;
   selectedRows = new Set<T>();
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor() {}
 
   ngOnInit(): void {
-    // Initialization erfolgt jetzt im setter des @Input config
+    this.initializeDataSource();
+    this.buildDisplayColumns();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['config'] && this.dataSource) {
+      // Wenn config sich ändert und DataSource existiert, Daten aktualisieren
+      this.dataSource.data = this.config.data || [];
+      this.buildDisplayColumns();
+    }
   }
 
   private initializeDataSource(): void {
-    this.dataSource = new MatTableDataSource(this._config?.data || []);
+    this.dataSource = new MatTableDataSource(this.config.data || []);
   }
 
   private buildDisplayColumns(): void {
