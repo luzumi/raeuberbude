@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -15,14 +15,19 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { lastValueFrom } from 'rxjs';
 import { CategoryService } from '../../../core/services/category.service';
 import { LlmService } from '../../../core/services/llm.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { Category } from '../../../core/models/category.model';
 import { LlmInstance } from '../../../core/models/llm-instance.model';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { resolveBackendBase } from '../../../core/utils/backend';
+import { AdminGlobalConfigDialogComponent } from './admin-global-config-dialog.component';
+import { AdminLlmConfigComponent } from './admin-llm-config.component';
+import { FrontendLoggingService } from '../../../core/services/frontend-logging.service';
 
 interface LlmConfig {
   url: string;
@@ -35,6 +40,21 @@ interface LlmConfig {
   fallbackModel: string;
   confidenceShortcut: number;
   heuristicBypass: boolean;
+  systemPrompt?: string; // allow instance/system prompt to be attached to config
+  // LM-Studio specific sampling fields
+  topK?: number;
+  topP?: number;
+  repeatPenalty?: number;
+  minPSampling?: number;
+  // LM-Studio specific performance fields
+  contextLength?: number;
+  evalBatchSize?: number;
+  cpuThreads?: number;
+  gpuOffload?: boolean;
+  keepModelInMemory?: boolean;
+  flashAttention?: boolean;
+  kCacheQuant?: boolean;
+  vCacheQuant?: boolean;
 }
 
 interface Transcript {
@@ -102,6 +122,7 @@ interface Stats {
     FormsModule,
     MatCardModule,
     MatButtonModule,
+    MatExpansionModule,
     MatTabsModule,
     MatTableModule,
     MatInputModule,
@@ -112,7 +133,8 @@ interface Stats {
     MatIconModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    AdminLlmConfigComponent,
   ],
   templateUrl: './admin-speech-assistant.component.html',
   styleUrls: ['./admin-speech-assistant.component.scss']
@@ -164,6 +186,12 @@ export class AdminSpeechAssistantComponent implements OnInit {
   selectedTranscripts = new Set<string>();
   bulkCategory = '';
 
+  /** Aktiver Tab-Index, wird in der URL mitgeführt, damit Back/Reload den Tab erhalten */
+  activeTabIndex = 0;
+
+  /** Flag für Test-Button (Sprach-Test) – Implementierung folgt später */
+  isTesting = false;
+
   // Use configured backend base URL (resolve localhost -> runtime hostname for LAN devices)
   private readonly backendUrl = resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001');
 
@@ -173,10 +201,37 @@ export class AdminSpeechAssistantComponent implements OnInit {
     private readonly snackBar: MatSnackBar,
     private readonly categoryService: CategoryService,
     private readonly llmService: LlmService,
-    private readonly router: Router
+    private readonly settings: SettingsService,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute,
+    @Inject(FrontendLoggingService) private readonly frontendLogger: FrontendLoggingService
   ) {}
 
+  openGlobalConfigDialog = async (): Promise<void> => {
+    try {
+      const dlg = this.dialog.open(AdminGlobalConfigDialogComponent, {
+        width: '820px',
+        panelClass: 'admin-global-config-dialog',
+        disableClose: false,
+        data: { config: this.config, models: Array.from(this.uniqueModels || []) }
+      });
+
+      const res = await dlg.afterClosed().toPromise();
+      if (res) {
+        // refresh
+        await this.loadConfig();
+        await this.loadLlmInstances();
+      }
+    } catch (e) {
+      console.error('Failed to open global config dialog', e);
+    }
+  }
+
   async ngOnInit(): Promise<void> {
+    // Tab-Index aus QueryParams lesen (fallback 0)
+    const tabFromUrl = Number(this.route.snapshot.queryParamMap.get('tab'));
+    this.activeTabIndex = Number.isFinite(tabFromUrl) && tabFromUrl >= 0 ? tabFromUrl : 0;
+
     // Ensure config is loaded first so we can fetch models from configured LLM URL
     await this.loadConfig();
     await this.loadLlmInstances();
@@ -188,13 +243,47 @@ export class AdminSpeechAssistantComponent implements OnInit {
     ]);
   }
 
+  onTabChange(index: number): void {
+    this.activeTabIndex = index;
+    // Tab-Index in URL speichern, damit Back/Reload denselben Tab öffnet
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: index },
+      queryParamsHandling: 'merge'
+    });
+  }
+
   async loadConfig(): Promise<void> {
     try {
-      const ts = Date.now();
-      this.config = await lastValueFrom(
-        this.http.get<LlmConfig>(`${this.backendUrl}/api/llm-config`, { params: { _t: String(ts) } })
-      );
+      const cfg = await lastValueFrom(this.settings.load());
+      // Map SettingsService config to component config
+      this.config = {
+        url: cfg.url || '',
+        model: cfg.model || '',
+        useGpu: cfg.useGpu !== undefined ? cfg.useGpu : true,
+        timeoutMs: cfg.timeoutMs || 30000,
+        targetLatencyMs: cfg.targetLatencyMs || 2000,
+        maxTokens: cfg.maxTokens || 500,
+        temperature: cfg.temperature !== undefined ? cfg.temperature : 0.3,
+        fallbackModel: cfg.fallbackModel || '',
+        confidenceShortcut: cfg.confidenceShortcut || 0.85,
+        heuristicBypass: cfg.heuristicBypass !== undefined ? cfg.heuristicBypass : false,
+        // Erweiterte LM-Studio Sampling-Einstellungen
+        topK: (cfg as any).topK ?? 40,
+        topP: (cfg as any).topP ?? 0.95,
+        repeatPenalty: (cfg as any).repeatPenalty ?? 1.0,
+        minPSampling: (cfg as any).minPSampling ?? 0.05,
+        contextLength: (cfg as any).contextLength ?? 4096,
+        evalBatchSize: (cfg as any).evalBatchSize ?? 512,
+        cpuThreads: (cfg as any).cpuThreads ?? 6,
+        gpuOffload: (cfg as any).gpuOffload ?? false,
+        keepModelInMemory: (cfg as any).keepModelInMemory ?? true,
+        flashAttention: (cfg as any).flashAttention ?? false,
+        kCacheQuant: (cfg as any).kCacheQuant ?? false,
+        vCacheQuant: (cfg as any).vCacheQuant ?? false
+      };
       console.log('Loaded config:', this.config);
+      this.frontendLogger.info('AdminSpeech', 'Loaded config', { config: this.config });
       // After loading config, fetch models from the configured LLM and wait for completion
       await this.fetchModelsFromConfig();
     } catch (error) {
@@ -203,23 +292,78 @@ export class AdminSpeechAssistantComponent implements OnInit {
     }
   }
 
-  async saveConfig(): Promise<void> {
+  async saveInstanceConfig(): Promise<void> {
+    if (!this.activeInstance?._id) {
+      this.snackBar.open('Keine Instanz ausgewählt', 'OK', { duration: 3000 });
+      return;
+    }
+
     try {
-      const resp: any = await lastValueFrom(
-        this.http.post(`${this.backendUrl}/api/llm-config`, this.config)
+      // Speichere instanz-spezifische Config mit autoReload
+      const instanceConfig = {
+        temperature: this.config.temperature,
+        maxTokens: this.config.maxTokens,
+        timeoutMs: this.config.timeoutMs,
+        targetLatencyMs: this.config.targetLatencyMs,
+        confidenceShortcut: this.config.confidenceShortcut,
+        useGpu: this.config.useGpu,
+        heuristicBypass: this.config.heuristicBypass,
+        fallbackModel: this.config.fallbackModel,
+        // Erweiterte LM-Studio-Einstellungen
+        topK: (this.config as any).topK,
+        topP: (this.config as any).topP,
+        repeatPenalty: (this.config as any).repeatPenalty,
+        minPSampling: (this.config as any).minPSampling,
+        contextLength: (this.config as any).contextLength,
+        evalBatchSize: (this.config as any).evalBatchSize,
+        cpuThreads: (this.config as any).cpuThreads,
+        gpuOffload: (this.config as any).gpuOffload,
+        keepModelInMemory: (this.config as any).keepModelInMemory,
+        flashAttention: (this.config as any).flashAttention,
+        kCacheQuant: (this.config as any).kCacheQuant,
+        vCacheQuant: (this.config as any).vCacheQuant,
+        // AutoReload: true wenn Instanz aktiv ist, damit Änderungen sofort wirken
+        autoReload: true
+      };
+
+      // Zeige Hinweis, dass Modell neu geladen wird
+      const snackBarRef = this.snackBar.open(
+        `💾 Speichere Konfiguration...${this.activeInstance.isActive ? ' Modell wird neu geladen...' : ''}`,
+        '',
+        { duration: 0 }
       );
-      // Backend may return the saved config; if so update local model
-      if (resp && resp.config) {
-        this.config = resp.config as LlmConfig;
+
+      await lastValueFrom(
+        this.http.put(`${this.backendUrl}/api/llm-instances/${this.activeInstance._id}/config`, instanceConfig)
+      );
+
+      // Speichere auch System-Prompt
+      await this.saveSystemPrompt();
+
+      snackBarRef.dismiss();
+
+      if (this.activeInstance.isActive) {
+        this.snackBar.open(
+          `✅ Konfiguration gespeichert und Modell neu geladen!`,
+          'OK',
+          { duration: 5000 }
+        );
+      } else {
+        this.snackBar.open(
+          `Konfiguration für ${this.activeInstance.model} gespeichert`,
+          'OK',
+          { duration: 3000 }
+        );
       }
-      this.snackBar.open('Konfiguration gespeichert', 'OK', { duration: 3000 });
-      // Refresh models based on saved config
-      await this.fetchModelsFromConfig();
-      // Also refresh instance list so UI shows updated active instances/models
+
+      console.log(`Saved instance-specific config for ${this.activeInstance.model}:`, instanceConfig);
+      this.frontendLogger.info('AdminSpeech', 'Saved instance-specific config', { instance: this.activeInstance?._id, model: this.activeInstance?.model, config: instanceConfig });
+
+      // Refresh instance list
       await this.loadLlmInstances();
     } catch (error) {
-      console.error('Failed to save config:', error);
-      this.snackBar.open('Fehler beim Speichern der Konfiguration', 'OK', { duration: 3000 });
+      console.error('Failed to save instance config:', error);
+      this.snackBar.open('Fehler beim Speichern', 'OK', { duration: 3000 });
     }
   }
 
@@ -230,28 +374,14 @@ export class AdminSpeechAssistantComponent implements OnInit {
     if (!this.config || !this.config.url) return;
     try {
       const models = await lastValueFrom(this.llmService.getModels(this.config.url));
+      this.frontendLogger.debug('AdminSpeech', 'fetchModelsFromConfig', { url: this.config.url, models });
       const set = new Set(this.uniqueModels || []);
       for (const m of models) set.add(m);
       this.uniqueModels = Array.from(set).sort();
       console.log('Fetched models from config url:', this.config.url, this.uniqueModels);
     } catch (e) {
       console.warn('Failed to fetch models from configured LLM:', e);
-    }
-  }
-
-  async testConnection(): Promise<void> {
-    try {
-      const models = await lastValueFrom(this.llmService.getModels(this.config.url));
-      if (models && models.length > 0) {
-        this.snackBar.open('Verbindung erfolgreich! ' + models.length + ' Modelle gefunden', 'OK', { duration: 3000 });
-        console.log('Connection test result (models):', models);
-      } else {
-        this.snackBar.open('Verbindung hergestellt, aber keine Modelle gefunden', 'OK', { duration: 4000 });
-        console.log('Connection test result: no models');
-      }
-    } catch (error) {
-      console.error('Connection test failed:', error);
-      this.snackBar.open('Verbindung fehlgeschlagen!', 'OK', { duration: 5000 });
+      this.frontendLogger.warn('AdminSpeech', 'Failed to fetch models from configured LLM (inner)', { url: this.config.url, error: e });
     }
   }
 
@@ -368,12 +498,31 @@ export class AdminSpeechAssistantComponent implements OnInit {
       );
       this.activeInstance = this.llmInstances.find(i => i.isActive) || null;
 
-      // Load system prompt of active instance
-      if (this.activeInstance?._id) {
-        const promptResult = await lastValueFrom(
-          this.llmService.getSystemPrompt(this.activeInstance._id)
-        );
-        this.systemPrompt = promptResult.systemPrompt;
+      // Load system prompt of first active instance (or first instance if none active)
+      const instanceToLoad = this.llmInstances.find(i => i.isActive) || this.llmInstances[0];
+      if (instanceToLoad?._id) {
+        try {
+          const promptResult = await lastValueFrom(
+            this.llmService.getSystemPrompt(instanceToLoad._id)
+          );
+          this.systemPrompt = promptResult.systemPrompt || '';
+          this.activeInstance = instanceToLoad;
+
+          // WICHTIG: Setze config.url und config.model, damit Test die richtige Instanz verwendet!
+          this.config.url = instanceToLoad.url.replace('/v1/chat/completions', '');
+          this.config.model = instanceToLoad.model;
+          this.config.systemPrompt = this.systemPrompt;
+
+          // Replace config reference so child OnChanges is triggered
+          this.config = { ...this.config };
+          console.log(`Loaded system prompt for instance: ${instanceToLoad.model}, length: ${this.systemPrompt.length}`);
+        } catch (e) {
+          console.warn('Failed to load system prompt:', e);
+          this.systemPrompt = '';
+        }
+      } else {
+        this.systemPrompt = '';
+        this.activeInstance = null;
       }
 
       // Query each instance for available models and build unique set (merge with any models already from config)
@@ -413,10 +562,13 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
       console.log('Unique models:', this.uniqueModels);
       console.log('Unique model sources:', this.uniqueModelSources);
+      this.frontendLogger.debug('AdminSpeech', 'Model discovery', { uniqueModels: this.uniqueModels, uniqueModelSources: this.uniqueModelSources });
 
       console.log('Loaded LLM instances:', this.llmInstances.length);
+      this.frontendLogger.info('AdminSpeech', 'Finished populating model discovery', { instances: this.llmInstances.length });
     } catch (error) {
       console.error('Failed to load LLM instances:', error);
+      this.frontendLogger.error('AdminSpeech', 'Failed to load LLM instances (outer)', error);
     }
   }
 
@@ -448,36 +600,193 @@ export class AdminSpeechAssistantComponent implements OnInit {
     }
   }
 
-  async activateLlmInstance(instance: LlmInstance): Promise<void> {
+  async loadLlmInstance(instance: LlmInstance): Promise<void> {
     if (!instance._id) return;
 
     try {
-      await lastValueFrom(this.llmService.activate(instance._id));
-      this.snackBar.open('LLM-Instanz aktiviert', 'OK', { duration: 3000 });
+      const result = await lastValueFrom(this.llmService.load(instance._id));
+
+      // Check if load was successful
+      if (result.loadResult?.success) {
+        this.snackBar.open(
+          `✅ ${instance.model} geladen!`,
+          'OK',
+          { duration: 3000 }
+        );
+      } else if (result.loadResult?.error && result.loadResult.error.includes('not support')) {
+        this.snackBar.open(
+          `⚠️ ${instance.model} als aktiv markiert (LM Studio load API nicht verfügbar - Modell manuell laden)`,
+          'OK',
+          { duration: 5000 }
+        );
+      } else {
+        this.snackBar.open(
+          `${instance.model} geladen`,
+          'OK',
+          { duration: 3000 }
+        );
+      }
+
       await this.loadLlmInstances();
     } catch (error) {
-      console.error('Failed to activate LLM instance:', error);
-      this.snackBar.open('Aktivierung fehlgeschlagen', 'OK', { duration: 3000 });
+      console.error('Failed to load LLM instance:', error);
+      this.snackBar.open('Laden fehlgeschlagen', 'OK', { duration: 3000 });
+    }
+  }
+
+  async ejectLlmInstance(instance: LlmInstance): Promise<void> {
+    if (!instance._id) return;
+
+    // Bestätigungs-Dialog mit MCP-Eject-Hinweis
+    const confirmed = confirm(
+      `LLM-Modell "${instance.model}" entladen?\n\n` +
+      `✅ Versucht das Modell aus LM Studio zu entladen (via MCP)\n` +
+      `⚠️ Falls MCP-Eject nicht unterstützt wird: Manuell in LM Studio entladen\n\n` +
+      `Fortfahren?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const result = await lastValueFrom(this.llmService.eject(instance._id));
+
+      // Check if eject was successful
+      if (result.ejectResult?.success) {
+        this.snackBar.open(
+          `✅ ${instance.model} aus LM Studio entladen!`,
+          'OK',
+          { duration: 5000 }
+        );
+      } else if (result.ejectResult?.error) {
+        const errorMsg = result.ejectResult.error.includes('not support')
+          ? 'LM Studio API unterstützt Eject nicht - bitte manuell entladen'
+          : result.ejectResult.error;
+        this.snackBar.open(
+          `⚠️ ${instance.model} als inaktiv markiert, aber Eject fehlgeschlagen: ${errorMsg}`,
+          'OK',
+          { duration: 8000 }
+        );
+      } else {
+        this.snackBar.open(
+          `${instance.model} als inaktiv markiert`,
+          'OK',
+          { duration: 5000 }
+        );
+      }
+
+      await this.loadLlmInstances();
+    } catch (error) {
+      console.error('Failed to eject LLM instance:', error);
+      this.snackBar.open('Eject fehlgeschlagen', 'OK', { duration: 3000 });
     }
   }
 
   async testLlmInstance(instance: LlmInstance): Promise<void> {
     try {
-      const success = await this.llmService.testConnection(instance);
-      if (success) {
-        this.snackBar.open('Verbindungstest erfolgreich!', 'OK', { duration: 3000 });
+      const result = await this.llmService.testConnection(instance);
+      this.frontendLogger.info('AdminSpeech', 'testLlmInstance result', { instanceId: instance._id, result });
+
+      // result: { loaded: boolean, source?: string, details?: any }
+      if (result.loaded) {
+        this.snackBar.open(
+          `Verbindungstest erfolgreich: Modell ist geladen (${result.source})`,
+          'OK',
+          { duration: 4000 }
+        );
       } else {
-        this.snackBar.open('Verbindungstest fehlgeschlagen', 'OK', { duration: 3000 });
+        const reason = result.details?.error || (result.source === 'http' ? `HTTP ${result.details?.status || 'no response'}` : 'Modell nicht geladen');
+        this.snackBar.open(
+          `Verbindungstest fehlgeschlagen: ${reason}`,
+          'OK',
+          { duration: 6000 }
+        );
       }
     } catch (error) {
       console.error('Connection test failed:', error);
+      this.frontendLogger.error('AdminSpeech', 'Connection test failed', { instanceId: instance._id, error });
       this.snackBar.open('Verbindungstest fehlgeschlagen', 'OK', { duration: 3000 });
+    }
+  }
+
+  async selectInstance(instance: LlmInstance | null): Promise<void> {
+    console.log('[AdminSpeech] 🔵 selectInstance called with:', instance?.model || 'null');
+    console.log('[AdminSpeech] 📋 Current config BEFORE select:', { url: this.config.url, model: this.config.model });
+
+    // Wenn null übergeben wird, Auswahl aufheben und globale Config laden
+    if (!instance) {
+      this.activeInstance = null;
+      await this.loadConfig();
+      this.snackBar.open('Globale Konfiguration geladen', 'OK', { duration: 2000 });
+      return;
+    }
+
+    if (!instance._id) return;
+
+    try {
+      // Lade System-Prompt
+      const promptResult = await lastValueFrom(
+        this.llmService.getSystemPrompt(instance._id)
+      );
+      this.systemPrompt = promptResult.systemPrompt || '';
+      this.activeInstance = instance;
+
+      // Lade instanz-spezifische Config-Werte in die Formular-Felder
+      if (instance.config) {
+        this.config.temperature = instance.config.temperature ?? 0.3;
+        this.config.maxTokens = instance.config.maxTokens ?? 500;
+        this.config.timeoutMs = instance.config.timeoutMs ?? 30000;
+        this.config.targetLatencyMs = instance.config.targetLatencyMs ?? 2000;
+        this.config.confidenceShortcut = instance.config.confidenceShortcut ?? 0.85;
+        this.config.useGpu = instance.config.useGpu ?? true;
+        this.config.heuristicBypass = instance.config.heuristicBypass ?? false;
+        this.config.fallbackModel = instance.config.fallbackModel ?? '';
+
+        // Erweiterte LM-Studio Sampling-Einstellungen
+        (this.config as any).topK = instance.config.topK ?? 40;
+        (this.config as any).topP = instance.config.topP ?? 0.95;
+        (this.config as any).repeatPenalty = instance.config.repeatPenalty ?? 1.0;
+        (this.config as any).minPSampling = instance.config.minPSampling ?? 0.05;
+        (this.config as any).contextLength = instance.config.contextLength ?? 4096;
+        (this.config as any).evalBatchSize = instance.config.evalBatchSize ?? 512;
+        (this.config as any).cpuThreads = instance.config.cpuThreads ?? 6;
+        (this.config as any).gpuOffload = instance.config.gpuOffload ?? false;
+        (this.config as any).keepModelInMemory = instance.config.keepModelInMemory ?? true;
+        (this.config as any).flashAttention = instance.config.flashAttention ?? false;
+        (this.config as any).kCacheQuant = instance.config.kCacheQuant ?? false;
+        (this.config as any).vCacheQuant = instance.config.vCacheQuant ?? false;
+      }
+
+      // URL und Model aus Instanz
+      this.config.url = instance.url.replace('/v1/chat/completions', '');
+      this.config.model = instance.model;
+      // Ensure the instance's system prompt is passed to the test component
+      this.config.systemPrompt = this.systemPrompt || this.config.systemPrompt;
+      // Replace config reference to trigger OnChanges in AdminLlmConfigComponent
+      this.config = { ...this.config };
+
+      console.log('[AdminSpeech] ✅ selectInstance completed for:', instance.model);
+      console.log('[AdminSpeech] 📋 Final config AFTER select:', {
+        url: this.config.url,
+        model: this.config.model,
+        systemPrompt: this.config.systemPrompt?.substring(0, 50) + '...',
+        temperature: this.config.temperature,
+        maxTokens: this.config.maxTokens
+      });
+      this.frontendLogger.info('AdminSpeech', 'selectInstance completed', { instanceId: instance._id, model: instance.model, config: this.config });
+
+      this.snackBar.open(`Konfiguration für ${instance.model} geladen`, 'OK', { duration: 2000 });
+    } catch (error) {
+      console.error('Failed to load instance config:', error);
+      this.frontendLogger.error('AdminSpeech', 'Failed to load instance config', { instanceId: instance._id, error });
+      this.snackBar.open('Fehler beim Laden der Konfiguration', 'OK', { duration: 3000 });
     }
   }
 
   async saveSystemPrompt(): Promise<void> {
     if (!this.activeInstance || !this.activeInstance._id) {
-      this.snackBar.open('Keine aktive LLM-Instanz', 'OK', { duration: 3000 });
+      this.snackBar.open('Keine LLM-Instanz ausgewählt', 'OK', { duration: 3000 });
       return;
     }
 
@@ -485,9 +794,15 @@ export class AdminSpeechAssistantComponent implements OnInit {
       await lastValueFrom(
         this.llmService.setSystemPrompt(this.activeInstance._id, this.systemPrompt)
       );
-      this.snackBar.open('System-Prompt gespeichert', 'OK', { duration: 3000 });
+      // Also keep config in sync so tests pick up the saved prompt immediately
+      this.config.systemPrompt = this.systemPrompt;
+      this.config = { ...this.config };
+      this.snackBar.open(`System-Prompt für ${this.activeInstance.model} gespeichert`, 'OK', { duration: 3000 });
+      console.log(`Saved system prompt for ${this.activeInstance.model}: ${this.systemPrompt.length} chars`);
+      this.frontendLogger.info('AdminSpeech', 'Saved system prompt', { instance: this.activeInstance?._id, length: this.systemPrompt.length });
     } catch (error) {
       console.error('Failed to save system prompt:', error);
+      this.frontendLogger.error('AdminSpeech', 'Failed to save system prompt', { instance: this.activeInstance?._id, error });
       this.snackBar.open('Fehler beim Speichern', 'OK', { duration: 3000 });
     }
   }
@@ -611,6 +926,55 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
   closeView(): void {
     this.router.navigate(['/']);
+  }
+
+  // Übernehme die aktuell geladene Instanz-Konfiguration als globale Defaults
+  async applyInstanceToGlobal(): Promise<void> {
+    if (!this.activeInstance) {
+      this.snackBar.open('Keine LLM-Instanz ausgewählt', 'OK', { duration: 3000 });
+      return;
+    }
+
+    const confirmed = confirm(
+      `Die Einstellungen von ${this.activeInstance.model} als globale Defaults für alle LLMs übernehmen?\n\n` +
+      `Temperature: ${this.config.temperature}\nMax Tokens: ${this.config.maxTokens}\nConfidence: ${this.config.confidenceShortcut}\n\n` +
+      `Fortfahren?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const current = { ...(this.settings.current || {}) } as any;
+      // Übertrage die instanz-spezifischen Werte in die globalen Einstellungen
+      current.temperature = this.config.temperature;
+      current.maxTokens = this.config.maxTokens;
+      current.confidenceShortcut = this.config.confidenceShortcut;
+      current.timeoutMs = this.config.timeoutMs;
+      current.targetLatencyMs = this.config.targetLatencyMs;
+      current.useGpu = this.config.useGpu;
+      // Zusätzlich: erweiterte LM-Studio Einstellungen
+      current.topK = (this.config as any).topK;
+      current.topP = (this.config as any).topP;
+      current.repeatPenalty = (this.config as any).repeatPenalty;
+      current.minPSampling = (this.config as any).minPSampling;
+      current.contextLength = (this.config as any).contextLength;
+      current.evalBatchSize = (this.config as any).evalBatchSize;
+      current.cpuThreads = (this.config as any).cpuThreads;
+      current.gpuOffload = (this.config as any).gpuOffload;
+      current.keepModelInMemory = (this.config as any).keepModelInMemory;
+      current.flashAttention = (this.config as any).flashAttention;
+      current.kCacheQuant = (this.config as any).kCacheQuant;
+      current.vCacheQuant = (this.config as any).vCacheQuant;
+
+      await lastValueFrom(this.settings.save(current));
+      this.snackBar.open('LLM-Einstellungen als global übernommen', 'OK', { duration: 3000 });
+      // reload global config and instances to reflect changes
+      await this.loadConfig();
+      await this.loadLlmInstances();
+    } catch (error) {
+      console.error('Failed to apply instance to global config:', error);
+      this.snackBar.open('Fehler beim Übernehmen', 'OK', { duration: 3000 });
+    }
   }
 
   // Helper to safely coerce values to numbers for the template

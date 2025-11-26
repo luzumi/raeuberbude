@@ -36,10 +36,25 @@ interface LMStudioResponse {
   providedIn: 'root'
 })
 export class TranscriptionValidatorService {
-  private readonly lmStudioUrl = environment.llm?.url || 'http://192.168.56.1:1234/v1/chat/completions';
+  private readonly lmStudioUrl = this.normalizeLMStudioUrl(environment.llm?.url || 'http://192.168.56.1:1234');
   private readonly model = environment.llm?.model || 'mistralai/mistral-7b-instruct-v0.3';
   // Use configured backend API URL
   private readonly backendApiUrl = resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001');
+
+  /**
+   * Normalize LM Studio URL by ensuring /v1/chat/completions endpoint
+   */
+  private normalizeLMStudioUrl(url: string): string {
+    // Remove trailing slash
+    url = url.replace(/\/+$/, '');
+
+    // Add /v1/chat/completions if not present
+    if (!url.endsWith('/v1/chat/completions')) {
+      url = url + '/v1/chat/completions';
+    }
+
+    return url;
+  }
 
   constructor(private readonly http: HttpClient) {}
 
@@ -514,6 +529,18 @@ Validiere diese Spracheingabe.`;
 
       const networkMs = timerNetwork();
       console.log(`[Validation] LLM network + inference time: ${networkMs}ms`);
+
+      // Debug: Log full response structure
+      console.log('[Validation] LLM raw response:', JSON.stringify(response, null, 2));
+
+      // Defensive check for response structure
+      if (!response || typeof response !== 'object') {
+        throw new Error('Invalid LLM response: not an object');
+      }
+
+      if (!Array.isArray(response.choices) || response.choices.length === 0) {
+        throw new Error('Invalid LLM response: no choices array');
+      }
 
       const content = response.choices[0]?.message?.content;
       if (!content) {

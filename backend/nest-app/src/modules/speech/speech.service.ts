@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ObjectId } from 'mongodb';
 import { HumanInput, HumanInputDocument } from './schemas/human-input.schema';
+import { TestInput, TestInputDocument } from './schemas/test-input.schema';
 import { CreateHumanInputDto } from './dto/create-human-input.dto';
 import { UpdateHumanInputDto } from './dto/update-human-input.dto';
 
@@ -13,6 +14,8 @@ export class SpeechService {
   constructor(
     @InjectModel(HumanInput.name)
     private readonly humanInputModel: Model<HumanInputDocument>,
+    @InjectModel(TestInput.name)
+    private readonly testInputModel: Model<TestInputDocument>,
   ) {}
 
   async create(createDto: CreateHumanInputDto): Promise<HumanInput> {
@@ -257,5 +260,69 @@ export class SpeechService {
         }
       );
     }
+  }
+
+  // Test Input Methods
+  async saveTestInput(data: {
+    transcript: string;
+    audioData: string;
+    mimeType: string;
+    metadata?: any;
+  }): Promise<TestInput> {
+    try {
+      const testInput = new this.testInputModel({
+        transcript: data.transcript,
+        audioData: data.audioData,
+        mimeType: data.mimeType,
+        metadata: data.metadata || {},
+      });
+
+      const saved = await testInput.save();
+      this.logger.log(`Saved test input: ${String(saved._id)}`);
+      return saved;
+    } catch (error) {
+      this.logger.error('Failed to save test input:', error);
+      throw new BadRequestException('Failed to save test input');
+    }
+  }
+
+  async getTestInputs(): Promise<TestInput[]> {
+    try {
+      return await this.testInputModel
+        .find()
+        .sort({ createdAt: -1 })
+        .exec();
+    } catch (error) {
+      this.logger.error('Failed to get test inputs:', error);
+      throw new BadRequestException('Failed to get test inputs');
+    }
+  }
+
+  async getTestInput(id: string): Promise<TestInput> {
+    if (!ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid ID format');
+    }
+
+    const testInput = await this.testInputModel.findById(id).exec();
+
+    if (!testInput) {
+      throw new NotFoundException(`Test input with ID ${id} not found`);
+    }
+
+    return testInput;
+  }
+
+  async deleteTestInput(id: string): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid ID format');
+    }
+
+    const result = await this.testInputModel.deleteOne({ _id: id }).exec();
+
+    if (result.deletedCount === 0) {
+      throw new NotFoundException(`Test input with ID ${id} not found`);
+    }
+
+    this.logger.log(`Deleted test input: ${id}`);
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface TranscriptionRequest {
   audioBlob: Blob;
@@ -26,7 +27,7 @@ export interface TranscriptionResult {
   providedIn: 'root'
 })
 export class SpeechTranscriptionService {
-  private readonly apiUrl = '/api/speech';
+  private readonly apiUrl = `${environment.backendApiUrl}/api/speech`;
 
   constructor(private readonly http: HttpClient) {}
 

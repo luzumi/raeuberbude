@@ -20,48 +20,59 @@
       </mat-card-header>
 
       <mat-card-content>
-        <mat-tab-group>
+        <mat-tab-group [(selectedIndex)]="activeTabIndex" (selectedIndexChange)="onTabChange($event)">
           <!-- Tab 1: Modelle & Konfiguration -->
           <mat-tab label="Modelle & Env">
             <div class="tab-content">
-              <h3>System-Prompt</h3>
-              <mat-form-field class="full-width">
-                <mat-label>System-Prompt für LLM</mat-label>
-                <textarea matInput [(ngModel)]="systemPrompt" rows="12"></textarea>
-                <mat-hint>Definiert das Verhalten des LLM</mat-hint>
-              </mat-form-field>
-              <div class="actions">
-                <button mat-raised-button color="primary" (click)="saveSystemPrompt()">
-                  <mat-icon>save</mat-icon>
-                  System-Prompt speichern
+              <!-- Obere Button-Reihe (Tabs-artig), aktuell nur Global -->
+              <div class="main-mode-buttons">
+                <button mat-stroked-button color="primary" class="active" (click)="openGlobalConfigDialog()">
+                  Globale Einstellungen
                 </button>
+                <!-- Platzhalter für zukünftige Buttons, z.B. Debug / Advanced -->
               </div>
 
+              <!-- Abschnitt: LLM-Instanzen -->
               <h3>LLM-Instanzen</h3>
               <div class="llm-instances">
                 <div class="instance-card" *ngFor="let instance of llmInstances"
-                     [class.active]="instance.isActive">
+                     [class.active]="instance.isActive"
+                     [class.selected]="activeInstance?._id === instance._id"
+                     (click)="selectInstance(instance)"
+                     title="Klicken um Konfiguration zu laden">
                   <div class="instance-header">
-                    <h4>{{ instance.name }}</h4>
+                    <h4>{{ instance.model }}</h4>
                     <span class="health-badge" [attr.data-health]="instance.health">
                       {{ instance.health }}
                     </span>
                   </div>
                   <div class="instance-details">
                     <p><strong>URL:</strong> {{ instance.url }}</p>
-                    <p><strong>Model:</strong> {{ instance.model }}</p>
+                    <p><strong>Status:</strong> {{ instance.isActive ? 'Geladen ✅' : 'Nicht geladen 🔴' }}</p>
+                    <p *ngIf="instance.config?.temperature"><strong>Temperature:</strong> {{ instance.config?.temperature }}</p>
+                    <p *ngIf="instance.config?.maxTokens"><strong>Max Tokens:</strong> {{ instance.config?.maxTokens }}</p>
                   </div>
-                  <div class="instance-actions">
+                  <div class="instance-actions" (click)="$event.stopPropagation()">
                     <button mat-button (click)="testLlmInstance(instance)"
-                            [disabled]="!instance.enabled">
+                            [disabled]="!instance.enabled"
+                            title="Verbindung zu LM Studio testen">
                       <mat-icon>network_check</mat-icon>
                       Test
                     </button>
-                    <button mat-raised-button color="primary"
-                            (click)="activateLlmInstance(instance)"
-                            [disabled]="instance.isActive || !instance.enabled">
-                      <mat-icon>check_circle</mat-icon>
-                      {{ instance.isActive ? 'Aktiv' : 'Aktivieren' }}
+                    <button mat-raised-button class="load-btn"
+                            *ngIf="!instance.isActive"
+                            (click)="loadLlmInstance(instance)"
+                            [disabled]="!instance.enabled"
+                            title="Modell in LM Studio laden (via MCP)">
+                      <mat-icon>download</mat-icon>
+                      Load
+                    </button>
+                    <button mat-raised-button class="eject-btn"
+                            *ngIf="instance.isActive"
+                            (click)="ejectLlmInstance(instance)"
+                            title="Modell aus LM Studio entladen (via MCP)">
+                      <mat-icon>eject</mat-icon>
+                      Eject
                     </button>
                   </div>
                 </div>
@@ -77,91 +88,51 @@
                 </button>
               </div>
 
+              <!-- Abschnitt: System-Prompt (instanz-spezifisch) -->
+              <mat-accordion>
+                <h3>System-Prompt</h3>
+
+                <mat-expansion-panel [expanded]="false">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>Details für...</mat-panel-title>
+                    <mat-panel-description *ngIf="activeInstance">{{ activeInstance.model.toUpperCase() }}</mat-panel-description>
+                  </mat-expansion-panel-header>
+
+                  <mat-form-field class="full-width">
+                    <mat-label>System-Prompt für LLM</mat-label>
+                    <!-- Reduced rows so it takes less space when expanded -->
+                    <textarea matInput [(ngModel)]="systemPrompt" rows="6"></textarea>
+                    <mat-hint>Definiert das Verhalten des LLM für die ausgewählte Instanz</mat-hint>
+                    <!-- Dezenter Save-Button im Form-Field Fußbereich -->
+                    <button mat-icon-button matSuffix class="system-prompt-save" (click)="saveSystemPrompt()" [disabled]="!activeInstance" aria-label="System-Prompt speichern" title="System-Prompt speichern">
+                      <mat-icon>save</mat-icon>
+                    </button>
+                  </mat-form-field>
+                </mat-expansion-panel>
+              </mat-accordion>
+
+              <!-- Abschnitt: LLM Konfiguration (nur LLM-/instanz-spezifische Felder) -->
               <h3>LLM Konfiguration</h3>
-              <div class="config-grid">
-                <mat-form-field>
-                  <mat-label>LLM URL</mat-label>
-                  <input matInput [(ngModel)]="config.url" placeholder="http://192.168.56.1:1234/v1/chat/completions">
-                </mat-form-field>
 
-                <mat-form-field>
-                  <mat-label>Primäres Modell</mat-label>
-                  <mat-select [(ngModel)]="config.model">
-                    <mat-option *ngFor="let m of uniqueModels" [value]="m">
-                      {{ m }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
+              <app-admin-llm-config
+                [config]="config"
+                [hasInstance]="!!activeInstance"
+                (configChange)="config = $event"
+                (saveInstance)="saveInstanceConfig()"
+                (applyGlobal)="applyInstanceToGlobal()"
+              ></app-admin-llm-config>
 
-                <mat-form-field>
-                  <mat-label>Fallback Modell</mat-label>
-                  <mat-select [(ngModel)]="config.fallbackModel">
-                    <mat-option value="">Kein Fallback</mat-option>
-                    <mat-option *ngFor="let m of uniqueModels" [value]="m">
-                      {{ m }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Ziel-Latenz (ms)</mat-label>
-                  <input matInput type="number" [(ngModel)]="config.targetLatencyMs" placeholder="2000">
-                  <mat-hint>p90 Ziel für Performance-Monitoring</mat-hint>
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Timeout (ms)</mat-label>
-                  <input matInput type="number" [(ngModel)]="config.timeoutMs" placeholder="30000">
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Max Tokens</mat-label>
-                  <input matInput type="number" [(ngModel)]="config.maxTokens" placeholder="500">
-                  <mat-hint>Kleiner = schneller</mat-hint>
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Temperature</mat-label>
-                  <input matInput type="number" step="0.1" [(ngModel)]="config.temperature" placeholder="0.3">
-                  <mat-hint>0.1-0.5 empfohlen für strukturierte Outputs</mat-hint>
-                </mat-form-field>
-
-                <mat-form-field>
-                  <mat-label>Confidence Shortcut</mat-label>
-                  <input matInput type="number" step="0.05" [(ngModel)]="config.confidenceShortcut" placeholder="0.85">
-                  <mat-hint>Bei STT-Confidence >= Wert → skip LLM</mat-hint>
-                </mat-form-field>
-              </div>
-
-              <div class="config-toggles">
-                <mat-slide-toggle [(ngModel)]="config.useGpu">
-                  GPU verwenden (wenn verfügbar)
-                </mat-slide-toggle>
-
-                <mat-slide-toggle [(ngModel)]="config.heuristicBypass">
-                  Heuristik-Bypass aktivieren
-                  <span class="hint">Versucht LLM zu umgehen bei klaren Eingaben</span>
-                </mat-slide-toggle>
-              </div>
-
-              <div class="actions">
-                <button mat-raised-button color="primary" (click)="saveConfig()">
-                  <mat-icon>save</mat-icon>
-                  Speichern
-                </button>
-                <button mat-button (click)="loadConfig()">
-                  <mat-icon>refresh</mat-icon>
-                  Neu laden
-                </button>
-                <button mat-button color="warn" (click)="testConnection()">
-                  <mat-icon>network_check</mat-icon>
-                  Verbindung testen
-                </button>
-              </div>
+              <ng-template #noInstanceHint>
+                <div class="config-info" style="background: rgba(255,255,255,0.8); border-left: 4px solid #e0e0e0; padding: 12px; margin-top: 8px; border-radius: 4px;">
+                  <p style="margin: 0;">
+                    Es ist keine LLM-Instanz ausgewählt. Wähle eine Instanz aus, um die LLM-spezifischen Einstellungen anzupassen.
+                  </p>
+                </div>
+              </ng-template>
             </div>
           </mat-tab>
 
-          <!-- Tab 2: Statistics -->
+          <!-- Tab 2: Statistiken -->
           <mat-tab label="Statistiken">
             <div class="tab-content">
               <h3>Performance Übersicht</h3>

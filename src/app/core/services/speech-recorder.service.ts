@@ -25,6 +25,7 @@ export class SpeechRecorderService {
   private recordingTimeout: any = null;
   private recordingStartTime = 0;
   private readonly isRecordingSubject = new BehaviorSubject<boolean>(false);
+  private lastRecordingResult: RecordingResult | null = null;
 
   isRecording$ = this.isRecordingSubject.asObservable();
 
@@ -62,6 +63,12 @@ export class SpeechRecorderService {
 
   async stopRecording(): Promise<RecordingResult> {
     if (!this.mediaRecorder || !this.isRecordingSubject.value) {
+      // If already stopped, return the last result if available
+      if (this.lastRecordingResult) {
+        const result = this.lastRecordingResult;
+        this.lastRecordingResult = null;
+        return result;
+      }
       throw new Error('Not recording');
     }
 
@@ -77,13 +84,18 @@ export class SpeechRecorderService {
         const durationMs = Date.now() - this.recordingStartTime;
         const audioBlob = new Blob(this.recordedChunks, { type: mimeType });
 
-        this.cleanup();
-
-        resolve({
+        const result: RecordingResult = {
           audioBlob,
           mimeType,
           durationMs
-        });
+        };
+
+        // Store result for potential later retrieval
+        this.lastRecordingResult = result;
+
+        this.cleanup();
+
+        resolve(result);
       };
 
       this.mediaRecorder.onerror = (event: any) => {
@@ -99,6 +111,15 @@ export class SpeechRecorderService {
         reject(error);
       }
     });
+  }
+
+  /**
+   * Get the last recording result (useful when recording was stopped automatically)
+   */
+  getLastRecordingResult(): RecordingResult | null {
+    const result = this.lastRecordingResult;
+    this.lastRecordingResult = null; // Clear after retrieval
+    return result;
   }
 
   private cleanup(): void {
