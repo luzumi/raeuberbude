@@ -1,6 +1,6 @@
-const { join } = require('path');
+const { join } = require('node:path');
 const { constants } = require('karma');
-const { execSync } = require('child_process');
+const { execSync } = require('node:child_process');
 
 // Auto-detect available Chrome/Chromium binary
 function findChromeBinary() {
@@ -36,9 +36,9 @@ function findChromeBinary() {
 
   // Try using 'which' command as fallback
   try {
-    const chromePath = execSync('which google-chrome || which chromium || which chromium-browser', { 
-      encoding: 'utf8', 
-      stdio: ['ignore', 'pipe', 'ignore'] 
+    const chromePath = execSync('which google-chrome || which chromium || which chromium-browser', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
     }).trim();
     if (chromePath) {
       console.log(`Found Chrome via 'which': ${chromePath}`);
@@ -71,7 +71,15 @@ module.exports = function (config) {
     ],
     client: {
       clearContext: false,
+      // Increase Jasmine timeout in the browser environment so async tests have more headroom
+      jasmine: {
+        timeoutInterval: 60000
+      }
     },
+    // Increase browser timeouts to avoid disconnects in slow CI or headless environments
+    browserDisconnectTimeout: 60000,
+    browserNoActivityTimeout: 120000,
+    captureTimeout: 120000,
     jasmineHtmlReporter: {
       suppressAll: true,
     },

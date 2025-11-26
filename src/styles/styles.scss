@@ -46,3 +46,21 @@ body {
 .mat-mdc-card {
   background: #fff !important;
 }
+
+// Styling für Admin Global Config Dialog Panel
+.admin-global-config-dialog .mat-mdc-dialog-container, .admin-global-config-dialog .mat-dialog-container {
+  max-width: 880px !important;
+  width: 92vw !important;
+  border-radius: 12px !important;
+  /* remove padding here to avoid double scrollbars; inner .dialog-content handles padding */
+  padding: 0 !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25) !important;
+  background: #fff !important;
+  overflow: hidden !important;
+}
+
+@media (min-width: 900px) {
+  .admin-global-config-dialog .mat-mdc-dialog-container, .admin-global-config-dialog .mat-dialog-container {
+    width: 820px !important;
+  }
+}

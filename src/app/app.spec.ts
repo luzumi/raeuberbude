@@ -3,6 +3,8 @@ import { AppComponent } from './app';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AuthService } from '@services/auth.service';
 import { ConfigService } from '@services/config-service';
+import { HttpClientTestingModule,  } from '@angular/common/http/testing';
+import { HttpClient } from '@angular/common/http';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -10,6 +12,7 @@ describe('AppComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         RouterTestingModule,
+        HttpClientTestingModule,
         AppComponent,
       ],
       providers: [
@@ -19,6 +22,20 @@ describe('AppComponent', () => {
             load: jasmine.createSpy('load').and.returnValue(Promise.resolve()),
           },
         },
+        {
+          provide: AuthService,
+          useValue: {
+            isLoggedIn: () => false,
+            getToken: () => null
+          }
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            get: () => ({ toPromise: () => Promise.resolve(null) }),
+            post: () => ({ toPromise: () => Promise.resolve(null) })
+          }
+        }
       ],
     }).compileComponents();
   });

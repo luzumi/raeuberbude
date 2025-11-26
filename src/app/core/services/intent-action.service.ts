@@ -3,6 +3,8 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { IntentRecognitionResult } from '../models/intent-recognition.model';
 import { Subject } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { resolveBackendBase } from '../utils/backend';
 
 export interface ActionResult {
   success: boolean;
@@ -25,11 +27,15 @@ export interface ActionResult {
 export class IntentActionService {
   private readonly actionResultSubject = new Subject<ActionResult>();
   actionResult$ = this.actionResultSubject.asObservable();
+  private readonly apiBase: string;
 
   constructor(
     private readonly router: Router,
     private readonly http: HttpClient
-  ) {}
+  ) {
+    const base = resolveBackendBase(environment.backendApiUrl || environment.apiUrl);
+    this.apiBase = base;
+  }
 
   /**
    * Zeigt sofort Loading-Dialog an (vor Intent-Verarbeitung)
@@ -67,6 +73,9 @@ export class IntentActionService {
           return await this.handleHomeAssistantCommand(intent);
 
         case 'home_assistant_query':
+          return await this.handleHomeAssistantQueryAutomation(intent);
+
+        case 'home_assistant_queryautomation':
           return await this.handleHomeAssistantQuery(intent);
 
         case 'navigation':
@@ -166,6 +175,13 @@ export class IntentActionService {
         type: 'ha_command'
       }
     };
+  }
+
+  /**
+   * Home Assistant Automationsanfrage
+   */
+  private async handleHomeAssistantQueryAutomation(intent: IntentRecognitionResult): Promise<ActionResult> {
+    return await this.handleHomeAssistantQuery(intent);
   }
 
   /**
@@ -376,11 +392,10 @@ export class IntentActionService {
 
     // Optional: An Backend-API senden für persistentes Logging (falls verfügbar)
     try {
-      await this.http.post('/api/intent-logs', logEntry).toPromise();
+      await this.http.post(`${this.apiBase}/api/intent-logs`, logEntry).toPromise();
     } catch (err) {
       // Endpoint noch nicht implementiert - ignorieren
       console.debug('[IntentAction] Intent logging endpoint not available yet');
     }
   }
 }
-

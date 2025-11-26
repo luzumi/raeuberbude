@@ -1,0 +1,415 @@
+<div class="admin-page">
+  <div class="admin-shell">
+    <mat-card class="admin-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>mic</mat-icon>
+          Sprachassistent Admin
+        </mat-card-title>
+        <mat-card-subtitle>
+          LLM-Konfiguration, Performance-Monitoring und Anfrage-Log
+        </mat-card-subtitle>
+        <div class="header-actions">
+          <button mat-icon-button (click)="goBack()" title="Zurück">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <button mat-icon-button (click)="closeView()" title="Schließen">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+        <mat-tab-group [(selectedIndex)]="activeTabIndex" (selectedIndexChange)="onTabChange($event)">
+          <!-- Tab 1: Modelle & Konfiguration -->
+          <mat-tab label="Modelle & Env">
+            <div class="tab-content">
+              <!-- Obere Button-Reihe (Tabs-artig), aktuell nur Global -->
+              <div class="main-mode-buttons">
+                <button mat-stroked-button color="primary" class="active" (click)="openGlobalConfigDialog()">
+                  Globale Einstellungen
+                </button>
+                <!-- Platzhalter für zukünftige Buttons, z.B. Debug / Advanced -->
+              </div>
+
+              <!-- Abschnitt: LLM-Instanzen -->
+              <h3>LLM-Instanzen</h3>
+              <div class="llm-instances">
+                <div class="instance-card" *ngFor="let instance of llmInstances"
+                     [class.active]="instance.isActive"
+                     [class.selected]="activeInstance?._id === instance._id"
+                     (click)="selectInstance(instance)"
+                     title="Klicken um Konfiguration zu laden">
+                  <div class="instance-header">
+                    <h4>{{ instance.model }}</h4>
+                    <span class="health-badge" [attr.data-health]="instance.health">
+                      {{ instance.health }}
+                    </span>
+                  </div>
+                  <div class="instance-details">
+                    <p><strong>URL:</strong> {{ instance.url }}</p>
+                    <p><strong>Status:</strong> {{ instance.isActive ? 'Geladen ✅' : 'Nicht geladen 🔴' }}</p>
+                    <p *ngIf="instance.config?.temperature"><strong>Temperature:</strong> {{ instance.config?.temperature }}</p>
+                    <p *ngIf="instance.config?.maxTokens"><strong>Max Tokens:</strong> {{ instance.config?.maxTokens }}</p>
+                  </div>
+                  <div class="instance-actions" (click)="$event.stopPropagation()">
+                    <button mat-button (click)="testLlmInstance(instance)"
+                            [disabled]="!instance.enabled"
+                            title="Verbindung zu LM Studio testen">
+                      <mat-icon>network_check</mat-icon>
+                      Test
+                    </button>
+                    <button mat-raised-button class="load-btn"
+                            *ngIf="!instance.isActive"
+                            (click)="loadLlmInstance(instance)"
+                            [disabled]="!instance.enabled"
+                            title="Modell in LM Studio laden (via MCP)">
+                      <mat-icon>download</mat-icon>
+                      Load
+                    </button>
+                    <button mat-raised-button class="eject-btn"
+                            *ngIf="instance.isActive"
+                            (click)="ejectLlmInstance(instance)"
+                            title="Modell aus LM Studio entladen (via MCP)">
+                      <mat-icon>eject</mat-icon>
+                      Eject
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="actions">
+                <button mat-button (click)="scanLlmInstances()">
+                  <mat-icon>refresh</mat-icon>
+                  LLM-Instanzen scannen
+                </button>
+                <button mat-button color="warn" (click)="cleanupDuplicates()">
+                  <mat-icon>delete_sweep</mat-icon>
+                  Duplikate entfernen
+                </button>
+              </div>
+
+              <!-- Abschnitt: System-Prompt (instanz-spezifisch) -->
+              <mat-accordion>
+                <h3>System-Prompt</h3>
+
+                <mat-expansion-panel [expanded]="false">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>Details für...</mat-panel-title>
+                    <mat-panel-description *ngIf="activeInstance">{{ activeInstance.model.toUpperCase() }}</mat-panel-description>
+                  </mat-expansion-panel-header>
+
+                  <mat-form-field class="full-width">
+                    <mat-label>System-Prompt für LLM</mat-label>
+                    <!-- Reduced rows so it takes less space when expanded -->
+                    <textarea matInput [(ngModel)]="systemPrompt" rows="6"></textarea>
+                    <mat-hint>Definiert das Verhalten des LLM für die ausgewählte Instanz</mat-hint>
+                    <!-- Dezenter Save-Button im Form-Field Fußbereich -->
+                    <button mat-icon-button matSuffix class="system-prompt-save" (click)="saveSystemPrompt()" [disabled]="!activeInstance" aria-label="System-Prompt speichern" title="System-Prompt speichern">
+                      <mat-icon>save</mat-icon>
+                    </button>
+                  </mat-form-field>
+                </mat-expansion-panel>
+              </mat-accordion>
+
+              <!-- Abschnitt: LLM Konfiguration (nur LLM-/instanz-spezifische Felder) -->
+              <h3>LLM Konfiguration</h3>
+
+              <app-admin-llm-config
+                [config]="config"
+                [hasInstance]="!!activeInstance"
+                (configChange)="config = $event"
+                (saveInstance)="saveInstanceConfig()"
+                (applyGlobal)="applyInstanceToGlobal()"
+              ></app-admin-llm-config>
+
+              <ng-template #noInstanceHint>
+                <div class="config-info" style="background: rgba(255,255,255,0.8); border-left: 4px solid #e0e0e0; padding: 12px; margin-top: 8px; border-radius: 4px;">
+                  <p style="margin: 0;">
+                    Es ist keine LLM-Instanz ausgewählt. Wähle eine Instanz aus, um die LLM-spezifischen Einstellungen anzupassen.
+                  </p>
+                </div>
+              </ng-template>
+            </div>
+          </mat-tab>
+
+          <!-- Tab 2: Statistiken -->
+          <mat-tab label="Statistiken">
+            <div class="tab-content">
+              <h3>Performance Übersicht</h3>
+
+              <div class="stats-grid" *ngIf="stats">
+                <mat-card class="stat-card">
+                  <mat-card-header>
+                    <mat-card-title>Gesamt-Anfragen</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="stat-value">{{ stats.summary.totalRequests || 0 }}</div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="stat-card">
+                  <mat-card-header>
+                    <mat-card-title>Ø Latenz</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="stat-value">{{ (num(stats?.summary?.avgDuration) || 0) | number:'1.0-0' }} ms</div>
+                    <div class="stat-hint" [class.warn]="num(stats?.summary?.avgDuration) > config.targetLatencyMs">
+                      Ziel: {{ config.targetLatencyMs }} ms
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="stat-card">
+                  <mat-card-header>
+                    <mat-card-title>Ø LLM Zeit</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="stat-value">{{ (num(stats?.summary?.avgLlmTime) || 0) | number:'1.0-0' }} ms</div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="stat-card">
+                  <mat-card-header>
+                    <mat-card-title>Ø Confidence</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="stat-value">{{ ((num(stats?.summary?.avgConfidence) || 0) * 100) | number:'1.1-1' }}%</div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="stat-card">
+                  <mat-card-header>
+                    <mat-card-title>Erfolgsrate</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="stat-value">
+                      {{ ( num(stats?.summary?.totalRequests) ? (num(stats?.summary?.validCount) / num(stats?.summary?.totalRequests) * 100) : 0 ) | number:'1.1-1' }}%
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="stat-card">
+                  <mat-card-header>
+                    <mat-card-title>Fallback genutzt</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="stat-value warn">{{ stats.summary.fallbackCount || 0 }}</div>
+                  </mat-card-content>
+                </mat-card>
+              </div>
+
+              <h3>Performance nach Modell</h3>
+              <table mat-table [dataSource]="filteredModelStats" class="admin-table">
+                <ng-container matColumnDef="checkbox">
+                  <th mat-header-cell *matHeaderCellDef>
+                    <mat-checkbox
+                      [checked]="allModelsSelected"
+                      (change)="toggleAllModels()">
+                    </mat-checkbox>
+                  </th>
+                  <td mat-cell *matCellDef="let row">
+                    <mat-checkbox
+                      [checked]="isModelSelected(row._id)"
+                      (change)="toggleModel(row._id)">
+                    </mat-checkbox>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="model">
+                  <th mat-header-cell *matHeaderCellDef>Modell</th>
+                  <td mat-cell *matCellDef="let row">{{ row._id }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="count">
+                  <th mat-header-cell *matHeaderCellDef>Anfragen</th>
+                  <td mat-cell *matCellDef="let row">{{ (num(row.count) || 0) }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="avgDuration">
+                  <th mat-header-cell *matHeaderCellDef>Ø Latenz</th>
+                  <td mat-cell *matCellDef="let row">{{ (num(row.avgDuration) || 0) | number:'1.0-0' }} ms</td>
+                </ng-container>
+
+                <ng-container matColumnDef="avgLlmTime">
+                  <th mat-header-cell *matHeaderCellDef>Ø LLM Zeit</th>
+                  <td mat-cell *matCellDef="let row">{{ (num(row.avgLlmTime) || 0) | number:'1.0-0' }} ms</td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="['checkbox', 'model', 'count', 'avgDuration', 'avgLlmTime']"></tr>
+                <tr mat-row *matRowDef="let row; columns: ['checkbox', 'model', 'count', 'avgDuration', 'avgLlmTime']"></tr>
+              </table>
+
+              <div class="actions">
+                <button mat-raised-button (click)="loadStats()">
+                  <mat-icon>refresh</mat-icon>
+                  Aktualisieren
+                </button>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Tab 3: Anfragen -->
+          <mat-tab label="Anfragen">
+            <div class="tab-content">
+              <div class="tab-header">
+                <h3>Alle Sprach-Anfragen</h3>
+                <div class="header-actions">
+                  <button mat-icon-button (click)="goBack()" title="Zurück">
+                    <mat-icon>arrow_back</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="closeView()" title="Schließen">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Filter -->
+              <div class="filter-row">
+                <mat-form-field>
+                  <mat-label>User ID</mat-label>
+                  <input matInput [(ngModel)]="filter.userId" (input)="applyFilter()">
+                </mat-form-field>
+
+                <mat-form-field>
+                  <mat-label>Terminal</mat-label>
+                  <mat-select [(ngModel)]="filter.terminalId" (selectionChange)="applyFilter()">
+                    <mat-option value="">Alle</mat-option>
+                    <mat-option *ngFor="let t of transcripts" [value]="t.terminalId">
+                      {{ t.terminalId ? t.terminalId : 'Kein Terminal' }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field>
+                  <mat-label>Modell</mat-label>
+                  <mat-select [(ngModel)]="filter.model" (selectionChange)="applyFilter()">
+                    <mat-option value="">Alle</mat-option>
+                    <mat-option *ngFor="let m of uniqueModels" [value]="m">
+                      {{ m }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field>
+                  <mat-label>Kategorie</mat-label>
+                  <mat-select [(ngModel)]="filter.category" (selectionChange)="applyFilter()">
+                    <mat-option value="">Alle</mat-option>
+                    <mat-option *ngFor="let cat of categories" [value]="cat.key">
+                      {{ cat.label }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <button mat-button (click)="clearFilter()">
+                  <mat-icon>clear</mat-icon>
+                  Filter löschen
+                </button>
+              </div>
+
+              <!-- Bulk Actions -->
+              <div class="bulk-actions" *ngIf="selectedTranscripts.size > 0">
+                <span class="selection-count">{{ selectedTranscripts.size }} ausgewählt</span>
+                <mat-form-field>
+                  <mat-label>Kategorie zuweisen</mat-label>
+                  <mat-select [(ngModel)]="bulkCategory">
+                    <mat-option *ngFor="let cat of categories" [value]="cat.key">
+                      {{ cat.label }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <button mat-raised-button color="primary" (click)="applyBulkCategory()">
+                  <mat-icon>done_all</mat-icon>
+                  Anwenden auf ausgewählte
+                </button>
+              </div>
+
+              <!-- Table -->
+              <table mat-table [dataSource]="transcripts" class="admin-table">
+                <ng-container matColumnDef="checkbox">
+                  <th mat-header-cell *matHeaderCellDef>
+                    <mat-checkbox
+                      [checked]="allTranscriptsSelected"
+                      (change)="toggleAllTranscripts()">
+                    </mat-checkbox>
+                  </th>
+                  <td mat-cell *matCellDef="let row">
+                    <mat-checkbox
+                      [checked]="isTranscriptSelected(row._id)"
+                      (change)="toggleTranscript(row._id)">
+                    </mat-checkbox>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="createdAt">
+                  <th mat-header-cell *matHeaderCellDef>Zeit</th>
+                  <td mat-cell *matCellDef="let row">{{ row.createdAt | date:'short' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="transcript">
+                  <th mat-header-cell *matHeaderCellDef>Transkript</th>
+                  <td mat-cell *matCellDef="let row" class="transcript-cell">
+                    {{ row.transcript }}
+                    <span class="confidence-badge">{{ ((num(row.sttConfidence || row.confidence) || 0) * 100) | number:'1.0-0' }}%</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="category">
+                  <th mat-header-cell *matHeaderCellDef>Kategorie</th>
+                  <td mat-cell *matCellDef="let row">
+                    <mat-form-field class="inline-select">
+                      <mat-select [(ngModel)]="row.category"
+                                  (selectionChange)="updateTranscriptCategory(row, row.category)">
+                        <mat-option *ngFor="let cat of categories" [value]="cat.key">
+                          {{ cat.label }}
+                        </mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="durationMs">
+                  <th mat-header-cell *matHeaderCellDef>Latenz</th>
+                  <td mat-cell *matCellDef="let row">
+                    <span [class.warn]="num(row.durationMs) > config.targetLatencyMs">
+                      {{ (num(row.durationMs) || 0) | number:'1.0-0' }} ms
+                    </span>
+                    <br>
+                    <small *ngIf="row.timings?.llmMs">LLM: {{ row.timings.llmMs }} ms</small>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="isValid">
+                  <th mat-header-cell *matHeaderCellDef>Valid</th>
+                  <td mat-cell *matCellDef="let row">
+                    <mat-icon [class.valid]="row.isValid" [class.invalid]="!row.isValid">
+                      {{ row.isValid ? 'check_circle' : 'cancel' }}
+                    </mat-icon>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>Aktionen</th>
+                  <td mat-cell *matCellDef="let row">
+                    <button mat-icon-button (click)="viewDetails(row)">
+                      <mat-icon>visibility</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="['checkbox', 'createdAt', 'transcript', 'category', 'durationMs', 'isValid', 'actions']"></tr>
+                <tr mat-row *matRowDef="let row; columns: ['checkbox', 'createdAt', 'transcript', 'category', 'durationMs', 'isValid', 'actions']"></tr>
+              </table>
+
+              <mat-paginator
+                [length]="pagination.total"
+                [pageSize]="pagination.limit"
+                [pageSizeOptions]="[10, 25, 50, 100]"
+                (page)="onPageChange($event)">
+              </mat-paginator>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

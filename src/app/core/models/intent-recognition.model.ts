@@ -2,6 +2,7 @@
 export type IntentType =
   | 'home_assistant_command'    // HA Befehle: "Mach Licht aus"
   | 'home_assistant_query'      // HA Abfragen: "Ist das Licht an?"
+  | 'home_assistant_queryautomation'      // HA Automations-Anfragen: "Wenn das Licht um 7 in der Küche an ist, schalte den Fernseher an!"
   | 'navigation'                // App-Navigation: "Zeige Samsung TV"
   | 'web_search'                // Internet-Suche: "Wie hat Werder gespielt?"
   | 'greeting'                  // Begrüßung: "Hallo"

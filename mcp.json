@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "lmStudio": {
+      "command": "node",
+      "args": [
+        ".specify/mcp-servers/lm-studio-mcp-server.js"
+      ],
+      "env": {
+        "LM_STUDIO_URL": "http://127.0.0.1:1234"
+      }
+    }
+  }
+}

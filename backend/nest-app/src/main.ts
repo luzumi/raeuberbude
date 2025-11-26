@@ -38,9 +38,9 @@ async function bootstrap() {
     app.enableCors({ origin: true, credentials: true });
   }
   const port = Number.parseInt(config.get<string>('NEST_PORT') || '3001', 10);
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   // eslint-disable-next-line no-console
-  console.log(`NestJS API listening on http://localhost:${port}`);
+  console.log(`NestJS API listening on port ${port} (accessible from network)`);
 }
 
 bootstrap().then();

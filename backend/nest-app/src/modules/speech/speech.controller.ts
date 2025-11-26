@@ -75,7 +75,7 @@ export class SpeechController {
       try {
         const termDoc = await this.terminalsService.findByTerminalId(cookieTerminalId);
         if (termDoc?._id) {
-          createDto.terminalId = String(termDoc._id);
+          createDto.terminalId = termDoc._id.toString();
           publicTerminalIdForActivity = termDoc.terminalId;
         }
       } catch { /* Terminal nicht gefunden – ignorieren */ }
@@ -88,8 +88,9 @@ export class SpeechController {
       } else if (cookieTerminalId) {
         await this.terminalsService.updateActivity(cookieTerminalId);
       }
-    } catch (e) {
-      this.logger.warn('updateActivity failed', (e as any)?.message || e);
+    } catch (e: unknown) {
+      const error = e as Error;
+      this.logger.warn('updateActivity failed', error?.message || e);
     }
 
     const input = await this.speechService.create(createDto);
@@ -132,14 +133,20 @@ export class SpeechController {
       throw new BadRequestException('terminalId is required');
     }
     const existing = await this.terminalsService.findByTerminalId(terminalId);
-    const secure = (process.env.NODE_ENV === 'production');
+    const isProd = (process.env.NODE_ENV === 'production');
     const cookieName = 'rb_terminal_id';
-    res.cookie(cookieName, existing.terminalId, {
+
+    // In development we allow cross-site cookies by setting SameSite=None so browsers accept
+    // the cookie when frontend and backend run on different origins (e.g. 4301 -> 3001).
+    // Note: modern browsers require SameSite=None to be paired with 'Secure' in production/HTTPS.
+    const cookieOptions: any = {
       httpOnly: true,
-      sameSite: 'lax',
-      secure,
+      sameSite: isProd ? 'lax' : 'none',
+      secure: isProd, // keep secure in production
       maxAge: 365 * 24 * 60 * 60 * 1000,
-    });
+    };
+
+    res.cookie(cookieName, existing.terminalId, cookieOptions);
     await this.terminalsService.updateActivity(existing.terminalId);
     return { success: true, data: existing, message: 'Terminal claimed for this device' };
   }
@@ -150,12 +157,13 @@ export class SpeechController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const cookieName = 'rb_terminal_id';
-    const secure = (process.env.NODE_ENV === 'production');
-    res.clearCookie(cookieName, {
+    const isProd = (process.env.NODE_ENV === 'production');
+    const clearOptions: any = {
       httpOnly: true,
-      sameSite: 'lax',
-      secure,
-    });
+      sameSite: isProd ? 'lax' : 'none',
+      secure: isProd,
+    };
+    res.clearCookie(cookieName, clearOptions);
     return { success: true, message: 'Terminal unclaimed for this device' };
   }
 
@@ -169,16 +177,8 @@ export class SpeechController {
   @ApiQuery({ name: 'endDate', required: false })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'skip', required: false, type: Number })
-  async getInputs(
-    @Query('userId') userId?: string,
-    @Query('terminalId') terminalId?: string,
-    @Query('status') status?: string,
-    @Query('inputType') inputType?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('limit') limit?: number,
-    @Query('skip') skip?: number,
-  ) {
+  async getInputs(@Query() query: Record<string, any>) {
+    const { userId, terminalId, status, inputType, startDate, endDate, limit, skip } = query;
     const filters = { userId, terminalId, status, inputType, startDate, endDate };
     const options = { limit, skip };
 
@@ -320,8 +320,9 @@ export class SpeechController {
           audioDurationMs: validation.duration,
         },
       };
-    } catch (error) {
-      const msg = (error as any)?.message || '';
+    } catch (error: unknown) {
+      const err = error as Error;
+      const msg = err?.message || '';
 
       // Spezielle Behandlung: Alle Provider down
       if (msg.includes('All STT providers failed')) {
@@ -339,7 +340,8 @@ export class SpeechController {
         throw error; // unverändert weiterreichen
       }
 
-      this.logger.error(`Transcription failed: ${msg}`, (error as any)?.stack);
+      const errorObj = error as Error;
+      this.logger.error(`Transcription failed: ${msg}`, errorObj?.stack);
 
       // Service temporär nicht erreichbar / Timeout
       if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('unavailable')) {
@@ -434,23 +436,24 @@ export class SpeechController {
     try {
       const cookieName = 'rb_terminal_id';
       let termId = (req as any)?.cookies?.[cookieName] as string | undefined;
-      if (!termId) {
-        termId = randomUUID();
-        const secure = (process.env.NODE_ENV === 'production');
-        res.cookie(cookieName, termId, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure,
-          maxAge: 365 * 24 * 60 * 60 * 1000, // 1 Jahr
-        });
-      } else {
-        // Refresh cookie expiration
-        const secure = (process.env.NODE_ENV === 'production');
+      const secure = (process.env.NODE_ENV === 'production');
+
+      if (termId) {
+        // Refresh cookie expiration for existing terminal
         res.cookie(cookieName, termId, {
           httpOnly: true,
           sameSite: 'lax',
           secure,
           maxAge: 365 * 24 * 60 * 60 * 1000,
+        });
+      } else {
+        // Create new terminal ID
+        termId = randomUUID();
+        res.cookie(cookieName, termId, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure,
+          maxAge: 365 * 24 * 60 * 60 * 1000, // 1 Jahr
         });
       }
 
@@ -670,73 +673,73 @@ export class SpeechController {
     };
   }
 
-  @Put('rights/user/:userId/permission/grant')
-  @ApiOperation({ summary: 'Grant permission to user' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async grantPermission(
-    @Param('userId') userId: string,
-    @Body('permission') permission: string,
-  ) {
-    const rights = await this.rightsService.grantPermission(userId, permission);
+  // ============ Test Inputs Endpoints ============
 
-    return {
-      success: true,
-      data: rights,
-      message: `Permission ${permission} granted`,
-    };
+  @Post('test-inputs')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Save a test input for later reuse' })
+  async saveTestInput(@Body() data: {
+    transcript: string;
+    audioData: string;
+    mimeType: string;
+    metadata?: any;
+  }) {
+    try {
+      const result = await this.speechService.saveTestInput(data);
+      return {
+        success: true,
+        data: result,
+        message: 'Test input saved successfully',
+      };
+    } catch (error) {
+      this.logger.error('Failed to save test input:', error);
+      throw new InternalServerErrorException('Failed to save test input');
+    }
   }
 
-  @Put('rights/user/:userId/permission/revoke')
-  @ApiOperation({ summary: 'Revoke permission from user' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async revokePermission(
-    @Param('userId') userId: string,
-    @Body('permission') permission: string,
-  ) {
-    const rights = await this.rightsService.revokePermission(userId, permission);
-
-    return {
-      success: true,
-      data: rights,
-      message: `Permission ${permission} revoked`,
-    };
+  @Get('test-inputs')
+  @ApiOperation({ summary: 'Get all saved test inputs' })
+  async getTestInputs() {
+    try {
+      const inputs = await this.speechService.getTestInputs();
+      return {
+        success: true,
+        data: inputs,
+        count: inputs.length,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get test inputs:', error);
+      throw new InternalServerErrorException('Failed to get test inputs');
+    }
   }
 
-  @Put('rights/user/:userId/suspend')
-  @ApiOperation({ summary: 'Suspend user' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async suspendUser(
-    @Param('userId') userId: string,
-    @Body('reason') reason?: string,
-  ) {
-    const rights = await this.rightsService.suspendUser(userId, reason);
-
-    return {
-      success: true,
-      data: rights,
-      message: 'User suspended',
-    };
+  @Get('test-inputs/:id')
+  @ApiOperation({ summary: 'Get a specific test input by ID' })
+  @ApiParam({ name: 'id', description: 'Test Input ID' })
+  async getTestInput(@Param('id') id: string) {
+    try {
+      const input = await this.speechService.getTestInput(id);
+      return {
+        success: true,
+        data: input,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get test input:', error);
+      throw new InternalServerErrorException('Failed to get test input');
+    }
   }
 
-  @Put('rights/user/:userId/activate')
-  @ApiOperation({ summary: 'Activate user' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async activateUser(@Param('userId') userId: string) {
-    const rights = await this.rightsService.activateUser(userId);
-
-    return {
-      success: true,
-      data: rights,
-      message: 'User activated',
-    };
-  }
-
-  @Delete('rights/user/:userId')
+  @Delete('test-inputs/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete user rights' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async deleteRights(@Param('userId') userId: string) {
-    await this.rightsService.delete(userId);
+  @ApiOperation({ summary: 'Delete a test input' })
+  @ApiParam({ name: 'id', description: 'Test Input ID' })
+  async deleteTestInput(@Param('id') id: string) {
+    try {
+      await this.speechService.deleteTestInput(id);
+    } catch (error) {
+      this.logger.error('Failed to delete test input:', error);
+      throw new InternalServerErrorException('Failed to delete test input');
+    }
   }
 
   @Get('rights/check/:userId/:permission')

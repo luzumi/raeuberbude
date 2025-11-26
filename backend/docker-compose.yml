@@ -44,6 +44,17 @@ services:
     environment:
       MONGO_URI: "mongodb://${MONGO_INITDB_ROOT_USERNAME:-rb_root}:${MONGO_INITDB_ROOT_PASSWORD:-rb_secret}@mongo:27017/${MONGO_INITDB_DATABASE:-raueberbude}?authSource=admin"
       PORT: "3000"
+      # LLM Configuration
+      LLM_URL: "${LLM_URL:-http://192.168.56.1:1234/v1/chat/completions}"
+      LLM_MODEL: "${LLM_MODEL:-mistralai/mistral-7b-instruct-v0.3}"
+      LLM_FALLBACK_MODEL: "${LLM_FALLBACK_MODEL:-}"
+      LLM_USE_GPU: "${LLM_USE_GPU:-true}"
+      LLM_TIMEOUT_MS: "${LLM_TIMEOUT_MS:-30000}"
+      LLM_TARGET_LATENCY_MS: "${LLM_TARGET_LATENCY_MS:-2000}"
+      LLM_MAX_TOKENS: "${LLM_MAX_TOKENS:-500}"
+      LLM_TEMPERATURE: "${LLM_TEMPERATURE:-0.3}"
+      LLM_CONFIDENCE_SHORTCUT: "${LLM_CONFIDENCE_SHORTCUT:-0.85}"
+      LLM_HEURISTIC_BYPASS: "${LLM_HEURISTIC_BYPASS:-false}"
     depends_on:
       mongo:
         condition: service_healthy

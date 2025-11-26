@@ -6,6 +6,7 @@ import { HealthModule } from './health/health.module';
 import { HomeAssistantModule } from './modules/homeassistant/homeassistant.module';
 import { SpeechModule } from './modules/speech/speech.module';
 import { BootstrapService } from './bootstrap/bootstrap.service';
+import { LoggingModule } from './modules/logging/logging.module';
 
 function buildMongoUri(config: ConfigService): string {
   const direct = config.get<string>('MONGO_URI');
@@ -45,6 +46,8 @@ function buildMongoUri(config: ConfigService): string {
     HealthModule,
     HomeAssistantModule,
     SpeechModule,
+    // Logging module: ersetzt das separate backend/server.js
+    LoggingModule,
   ],
   providers: [BootstrapService],
 })

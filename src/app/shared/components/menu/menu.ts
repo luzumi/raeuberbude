@@ -1,5 +1,6 @@
 // Verschoben aus den Control-Features in den Shared-Bereich
 import {Component, Input} from '@angular/core';
+import {MatIconModule} from '@angular/material/icon';
 import { Router, RouterLink } from '@angular/router';
 import {Location} from '@angular/common';
 import {HeaderComponent} from '@shared/components/header/header.component';
@@ -10,7 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 @Component({
   selector: 'app-menu',
   standalone: true,
-  imports: [RouterLink, HeaderComponent, MatCardModule, MatButtonModule],
+  imports: [RouterLink, HeaderComponent, MatCardModule, MatButtonModule, MatIconModule],
   template: `
     <app-header></app-header>
     <div class="admin-page">
@@ -37,6 +38,10 @@ import { MatButtonModule } from '@angular/material/button';
                   <a routerLink="/admin/bereiche" mat-stroked-button>Bereiche</a>
                   <a routerLink="/admin/rechte" mat-stroked-button>Rechte</a>
                   <a routerLink="/admin/rollen" mat-stroked-button>Rollen</a>
+                  <a routerLink="/admin/speech-assistant" mat-stroked-button>
+                    <mat-icon>mic</mat-icon>
+                    Sprachassistent
+                  </a>
                 </nav>
               </mat-card>
             </div>

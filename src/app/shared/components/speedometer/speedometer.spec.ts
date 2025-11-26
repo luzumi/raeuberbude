@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {SpeedometerComponent} from '@shared/components/speedometer/speedometer';
 
-import { Speedometer } from './speedometer';
 
 describe('Speedometer', () => {
-  let component: Speedometer;
-  let fixture: ComponentFixture<Speedometer>;
+  let component: SpeedometerComponent;
+  let fixture: ComponentFixture<SpeedometerComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Speedometer]
+      imports: [SpeedometerComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(Speedometer);
+    fixture = TestBed.createComponent(SpeedometerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
