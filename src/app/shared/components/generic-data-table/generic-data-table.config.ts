@@ -9,6 +9,7 @@ export interface DataTableColumn<T> {
   type?: 'text' | 'number' | 'date' | 'boolean' | 'badge' | 'custom';
   sortable?: boolean;
   filterable?: boolean;
+  visible?: boolean; // Spalten-Sichtbarkeit
   filterType?: 'text' | 'select' | 'date';
   filterOptions?: { value: any; label: string }[];
   width?: string;
@@ -70,5 +71,6 @@ export interface DataTableConfig<T> {
   stickyHeader?: boolean;
   loading?: boolean;
   emptyMessage?: string;
+  columnVisibilityConfig?: boolean; // Ermögliche Spalten-Sichtbarkeit konfigurierbar zu machen
 }
 

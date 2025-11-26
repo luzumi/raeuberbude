@@ -134,6 +134,12 @@ export class AdminHomeAssistantComponent implements OnInit {
           action: () => this.exportAsJson(this.entities, 'entities'),
           tooltip: 'Als JSON exportieren',
         },
+        {
+          label: 'Export CSV',
+          icon: 'table_chart',
+          action: () => this.exportAsCsv(this.entities, 'entities'),
+          tooltip: 'Als CSV exportieren',
+        },
       ],
       rowActions: [
         {
@@ -569,6 +575,45 @@ export class AdminHomeAssistantComponent implements OnInit {
     const link = document.createElement('a');
     link.href = url;
     link.download = `${filename}-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  exportAsCsv(data: any[], filename: string): void {
+    if (!data || data.length === 0) {
+      this.showMessage('Keine Daten zum Exportieren', 'info');
+      return;
+    }
+
+    // Get all unique keys from objects
+    const keys = Array.from(
+      new Set(data.flatMap((obj) => Object.keys(obj)))
+    );
+
+    // Create CSV header
+    const header = keys.join(',');
+
+    // Create CSV rows
+    const rows = data.map((obj) =>
+      keys.map((key) => {
+        const value = obj[key];
+        if (value === null || value === undefined) {
+          return '';
+        }
+        // Quote string values that contain commas
+        if (typeof value === 'string' && value.includes(',')) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return String(value);
+      }).join(',')
+    );
+
+    const csvContent = [header, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
   }
