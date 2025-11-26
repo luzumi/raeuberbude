@@ -3,10 +3,17 @@ import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatListModule } from '@angular/material/list';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { firstValueFrom } from 'rxjs';
 import { HomeAssistantService } from '../../../core/services/homeassistant.service';
+
+interface StatItem {
+  label: string;
+  value: number | string;
+  icon?: string;
+  color?: string;
+}
 
 @Component({
   selector: 'app-ha-statistics-dialog',
@@ -16,14 +23,15 @@ import { HomeAssistantService } from '../../../core/services/homeassistant.servi
     MatDialogModule,
     MatCardModule,
     MatProgressSpinnerModule,
-    MatListModule,
+    MatDividerModule,
     MatIconModule,
   ],
   template: `
     <div class="dialog-container">
       <mat-card class="stats-header">
         <mat-card-header>
-          <mat-card-title>Statistiken - {{ title }}</mat-card-title>
+          <mat-card-title>{{ title }}</mat-card-title>
+          <mat-card-subtitle>Übersicht der Home Assistant Daten</mat-card-subtitle>
         </mat-card-header>
       </mat-card>
 
@@ -31,33 +39,63 @@ import { HomeAssistantService } from '../../../core/services/homeassistant.servi
         <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
       </div>
 
-      <div *ngIf="!loading" class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Gesamtanzahl</div>
-          <div class="stat-value">{{ totalCount }}</div>
+      <div *ngIf="!loading && stats.length > 0" class="stats-content">
+        <!-- Hauptstatistiken in großen Cards -->
+        <div class="main-stats">
+          <div class="main-stat-card" *ngFor="let stat of mainStats">
+            <div class="stat-icon-container">
+              <mat-icon [color]="stat.color">{{ stat.icon }}</mat-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-label">{{ stat.label }}</div>
+              <div class="stat-value">{{ stat.value }}</div>
+            </div>
+          </div>
         </div>
 
-        <div class="stat-card" *ngFor="let stat of stats">
-          <div class="stat-label">{{ stat.label }}</div>
-          <div class="stat-value">{{ stat.value }}</div>
+        <!-- Detaillierte Statistiken wenn vorhanden -->
+        <div *ngIf="detailStats.length > 0" class="detail-stats">
+          <h3>Detaillierte Aufschlüsselung</h3>
+          <mat-divider></mat-divider>
+          <div class="detail-grid">
+            <div class="detail-item" *ngFor="let item of detailStats">
+              <span class="detail-label">{{ item.label }}</span>
+              <span class="detail-value">{{ item.value }}</span>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div *ngIf="!loading && stats.length === 0" class="empty-message">
+        Keine Statistiken verfügbar
       </div>
     </div>
   `,
   styles: [`
+    @use '../../../../styles/tokens' as t;
+
     .dialog-container {
-      padding: 20px;
-      min-width: 400px;
+      padding: t.$spacing-4;
+      min-width: 450px;
+      max-height: 600px;
+      overflow: auto;
     }
 
     .stats-header {
-      margin-bottom: 20px;
+      margin-bottom: t.$spacing-4;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      color: t.$text-inverse;
 
       mat-card-title {
-        color: white;
+        color: t.$text-inverse;
         margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      mat-card-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: t.$spacing-1;
       }
     }
 
@@ -68,39 +106,122 @@ import { HomeAssistantService } from '../../../core/services/homeassistant.servi
       min-height: 200px;
     }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 16px;
+    .stats-content {
+      display: flex;
+      flex-direction: column;
+      gap: t.$spacing-4;
     }
 
-    .stat-card {
+    .main-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: t.$spacing-3;
+    }
+
+    .main-stat-card {
+      display: flex;
+      align-items: center;
+      gap: t.$spacing-3;
+      padding: t.$spacing-3;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
+      color: t.$text-inverse;
+      border-radius: t.$radius-sm;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
-      .stat-label {
-        font-size: 12px;
-        text-transform: uppercase;
-        opacity: 0.9;
-        margin-bottom: 8px;
+      .stat-icon-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+
+        mat-icon {
+          font-size: 28px;
+          width: 28px;
+          height: 28px;
+        }
       }
 
-      .stat-value {
-        font-size: 28px;
-        font-weight: bold;
+      .stat-info {
+        display: flex;
+        flex-direction: column;
+
+        .stat-label {
+          font-size: 12px;
+          opacity: 0.8;
+          text-transform: uppercase;
+          font-weight: 500;
+        }
+
+        .stat-value {
+          font-size: 24px;
+          font-weight: 700;
+        }
       }
+    }
+
+    .detail-stats {
+      padding: t.$spacing-3;
+      background: t.$color-highlight;
+      border-radius: t.$radius-sm;
+
+      h3 {
+        margin: 0 0 t.$spacing-2 0;
+        color: t.$text-default;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      mat-divider {
+        margin-bottom: t.$spacing-3;
+      }
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: t.$spacing-2;
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      padding: t.$spacing-2;
+      background: t.$surface;
+      border-radius: t.$radius-sm;
+      border-left: 2px solid t.$color-primary-dark;
+
+      .detail-label {
+        font-size: 11px;
+        color: t.$text-muted;
+        text-transform: uppercase;
+        font-weight: 500;
+      }
+
+      .detail-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: t.$text-default;
+        margin-top: t.$spacing-1;
+      }
+    }
+
+    .empty-message {
+      text-align: center;
+      padding: t.$spacing-5;
+      color: t.$text-muted;
+      font-size: 14px;
     }
   `],
 })
 export class HaStatisticsDialogComponent implements OnInit {
-  stats: { label: string; value: number }[] = [];
-  totalCount = 0;
+  title = 'Statistiken';
+  mainStats: StatItem[] = [];
+  detailStats: StatItem[] = [];
+  stats: any[] = []; // Cache für stats Überprüfung
   loading = false;
-  title = 'Statistics';
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: any,
@@ -114,49 +235,120 @@ export class HaStatisticsDialogComponent implements OnInit {
   private async loadStatistics(): Promise<void> {
     this.loading = true;
     try {
-      const stats = await firstValueFrom(this.haService.getStatistics());
-      this.processStatistics(stats);
+      const statistics = await firstValueFrom(this.haService.getStatistics());
+      this.processStatistics(statistics);
     } catch (error) {
       console.error('Fehler beim Laden von Statistiken:', error);
+      this.stats = [];
     } finally {
       this.loading = false;
     }
   }
 
-  private processStatistics(stats: any): void {
-    if (!stats) return;
+  private processStatistics(data: any): void {
+    this.mainStats = [];
+    this.detailStats = [];
 
-    // Title setzen based on data type
-    if (stats.totalEntities) {
-      this.title = 'Entities';
-      this.totalCount = stats.totalEntities;
-      const entitiesByType = stats.entitiesByType || {};
-      this.stats = Object.entries(entitiesByType).map(([type, count]: [string, any]) => ({
-        label: type,
-        value: count,
-      }));
-    } else if (stats.totalDevices) {
-      this.title = 'Devices';
-      this.totalCount = stats.totalDevices;
-      const devicesByManufacturer = stats.devicesByManufacturer || {};
-      this.stats = Object.entries(devicesByManufacturer)
-        .slice(0, 5)
-        .map(([manufacturer, count]: [string, any]) => ({
-          label: manufacturer,
-          value: count,
-        }));
-    } else if (stats.totalAreas) {
-      this.title = 'Areas';
-      this.totalCount = stats.totalAreas;
-    } else {
-      // Generic handling
-      this.totalCount = stats.total || Object.keys(stats).length;
-      this.stats = Object.entries(stats)
-        .filter(([key]) => key !== 'total')
-        .map(([key, value]: [string, any]) => ({
+    if (!data) return;
+
+    // Hauptstatistiken (immer anzeigen)
+    if (data.totalEntities !== undefined) {
+      this.title = 'Entities Statistiken';
+      this.mainStats.push({
+        label: 'Gesamt Entities',
+        value: data.totalEntities,
+        icon: 'sensors',
+        color: 'primary',
+      });
+      this.stats.push({ label: 'totalEntities', value: data.totalEntities });
+    }
+
+    if (data.totalDevices !== undefined) {
+      this.mainStats.push({
+        label: 'Devices',
+        value: data.totalDevices,
+        icon: 'devices',
+        color: 'accent',
+      });
+      this.stats.push({ label: 'totalDevices', value: data.totalDevices });
+    }
+
+    if (data.totalAreas !== undefined) {
+      this.mainStats.push({
+        label: 'Areas',
+        value: data.totalAreas,
+        icon: 'domain',
+        color: 'warn',
+      });
+      this.stats.push({ label: 'totalAreas', value: data.totalAreas });
+    }
+
+    if (data.totalAutomations !== undefined) {
+      this.mainStats.push({
+        label: 'Automations',
+        value: data.totalAutomations,
+        icon: 'automation',
+        color: 'primary',
+      });
+      this.stats.push({ label: 'totalAutomations', value: data.totalAutomations });
+    }
+
+    if (data.totalPersons !== undefined) {
+      this.mainStats.push({
+        label: 'Persons',
+        value: data.totalPersons,
+        icon: 'person',
+      });
+      this.stats.push({ label: 'totalPersons', value: data.totalPersons });
+    }
+
+    if (data.totalZones !== undefined) {
+      this.mainStats.push({
+        label: 'Zones',
+        value: data.totalZones,
+        icon: 'location_on',
+      });
+      this.stats.push({ label: 'totalZones', value: data.totalZones });
+    }
+
+    if (data.totalMediaPlayers !== undefined) {
+      this.mainStats.push({
+        label: 'Media Player',
+        value: data.totalMediaPlayers,
+        icon: 'theaters',
+      });
+      this.stats.push({ label: 'totalMediaPlayers', value: data.totalMediaPlayers });
+    }
+
+    if (data.totalServices !== undefined) {
+      this.mainStats.push({
+        label: 'Services',
+        value: data.totalServices,
+        icon: 'miscellaneous_services',
+      });
+      this.stats.push({ label: 'totalServices', value: data.totalServices });
+    }
+
+    // Detaillierte Aufschlüsselung (z.B. entitiesByType)
+    if (data.entitiesByType && Array.isArray(data.entitiesByType)) {
+      data.entitiesByType.forEach((item: any) => {
+        if (item.type && item.count) {
+          this.detailStats.push({
+            label: `${item.type}`,
+            value: item.count,
+          });
+        }
+      });
+    }
+
+    // Fallback: Wenn entitiesByType ein Object ist
+    if (data.entitiesByType && typeof data.entitiesByType === 'object' && !Array.isArray(data.entitiesByType)) {
+      Object.entries(data.entitiesByType).forEach(([key, value]: [string, any]) => {
+        this.detailStats.push({
           label: key,
-          value: typeof value === 'number' ? value : 1,
-        }));
+          value: value,
+        });
+      });
     }
   }
 }
