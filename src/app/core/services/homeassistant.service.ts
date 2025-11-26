@@ -98,7 +98,7 @@ export class HomeAssistantService {
    * Alle Automations laden
    */
   getAllAutomations(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiBase}/automations`, {
+    return this.http.get<any[]>(`${this.apiBase}/entities/automations`, {
       withCredentials: true
     });
   }
@@ -107,7 +107,7 @@ export class HomeAssistantService {
    * Alle Persons laden
    */
   getAllPersons(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiBase}/persons`, {
+    return this.http.get<any[]>(`${this.apiBase}/entities/persons`, {
       withCredentials: true
     });
   }
@@ -116,7 +116,7 @@ export class HomeAssistantService {
    * Alle Zones laden
    */
   getAllZones(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiBase}/zones`, {
+    return this.http.get<any[]>(`${this.apiBase}/entities/zones`, {
       withCredentials: true
     });
   }
@@ -125,7 +125,7 @@ export class HomeAssistantService {
    * Alle Media Players laden
    */
   getAllMediaPlayers(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiBase}/media-players`, {
+    return this.http.get<any[]>(`${this.apiBase}/entities/media-players`, {
       withCredentials: true
     });
   }
@@ -134,7 +134,7 @@ export class HomeAssistantService {
    * Alle Services laden
    */
   getAllServices(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiBase}/services`, {
+    return this.http.get<any[]>(`${this.apiBase}/entities/services`, {
       withCredentials: true
     });
   }
