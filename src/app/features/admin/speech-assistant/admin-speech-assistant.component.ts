@@ -27,6 +27,7 @@ import { environment } from '../../../../environments/environment';
 import { resolveBackendBase } from '../../../core/utils/backend';
 import { AdminGlobalConfigDialogComponent } from './admin-global-config-dialog.component';
 import { AdminLlmConfigComponent } from './admin-llm-config.component';
+import { AdminTranscriptEditDialogComponent } from './admin-transcript-edit-dialog.component';
 import { FrontendLoggingService } from '../../../core/services/frontend-logging.service';
 
 interface LlmConfig {
@@ -472,10 +473,23 @@ export class AdminSpeechAssistantComponent implements OnInit {
     this.loadTranscripts();
   }
 
-  viewDetails(transcript: Transcript): void {
+  async viewDetails(transcript: Transcript): Promise<void> {
     console.log('View details:', transcript);
-    // TODO: Open detail dialog
-    alert(`Details:\n\n${JSON.stringify(transcript, null, 2)}`);
+
+    const dialogRef = this.dialog.open(AdminTranscriptEditDialogComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { transcript },
+      disableClose: false,
+      panelClass: 'transcript-edit-dialog-container'
+    });
+
+    const result = await dialogRef.afterClosed().toPromise();
+    if (result) {
+      // Refresh transcripts after successful save
+      await this.loadTranscripts();
+    }
   }
 
   // ===== Neue Methoden =====

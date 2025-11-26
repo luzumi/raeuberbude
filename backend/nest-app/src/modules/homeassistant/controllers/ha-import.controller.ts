@@ -109,4 +109,41 @@ export class HaImportController {
   async getSnapshot(@Param('id') id: string): Promise<HaSnapshot> {
     return await this.importService.getSnapshot(id);
   }
+
+  @Post('reimport')
+  @ApiOperation({ summary: 'Re-import from configured HA structure file' })
+  @ApiResponse({ status: 201, description: 'Re-import successful' })
+  @ApiResponse({ status: 400, description: 'No file configured or file not found' })
+  async reimport(@Body() body: { filePath?: string }): Promise<HaSnapshot> {
+    const filePath = body?.filePath || this.findDefaultImportFile();
+
+    if (!filePath) {
+      throw new Error('No import file found. Please specify filePath or configure HA_IMPORT_FILE');
+    }
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`);
+    }
+
+    return await this.importService.importFromFile(filePath);
+  }
+
+  private findDefaultImportFile(): string | undefined {
+    const candidates = [
+      process.cwd(),
+      path.resolve(process.cwd(), '..'),
+      path.resolve(process.cwd(), '..', '..'),
+      path.resolve(process.cwd(), '..', '..', '..'),
+    ];
+    const filenameRegex = /^ha_structure_.*\.json$/i;
+
+    for (const dir of candidates) {
+      try {
+        const entries = fs.readdirSync(dir);
+        const match = entries.find((f) => filenameRegex.test(f));
+        if (match) return path.join(dir, match);
+      } catch {}
+    }
+    return undefined;
+  }
 }
