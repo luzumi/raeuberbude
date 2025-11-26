@@ -6,6 +6,7 @@ import {
   ViewChild,
   OnInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   TemplateRef,
   ContentChildren,
   QueryList,
@@ -225,7 +226,17 @@ import {
   styleUrls: ['./generic-data-table.component.scss'],
 })
 export class GenericDataTableComponent<T extends Record<string, any>> implements OnInit {
-  @Input() config!: DataTableConfig<T>;
+  @Input() set config(value: DataTableConfig<T>) {
+    this._config = value;
+    this.initializeDataSource();
+    this.buildDisplayColumns();
+    this.cdr.markForCheck();
+  }
+  get config(): DataTableConfig<T> {
+    return this._config;
+  }
+  private _config!: DataTableConfig<T>;
+
   @Output() rowSelected = new EventEmitter<T[]>();
   @Output() rowActionTriggered = new EventEmitter<{ action: string; row: T }>();
   @Output() pageChanged = new EventEmitter<PageEvent>();
@@ -237,9 +248,10 @@ export class GenericDataTableComponent<T extends Record<string, any>> implements
   allSelected = false;
   selectedRows = new Set<T>();
 
+  constructor(private cdr: ChangeDetectorRef) {}
+
   ngOnInit(): void {
-    this.initializeDataSource();
-    this.buildDisplayColumns();
+    // Initialization erfolgt jetzt im setter des @Input config
   }
 
   private initializeDataSource(): void {

@@ -466,7 +466,8 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.loadingEntities = true;
     try {
       this.entities = await firstValueFrom(this.haService.getAllEntities());
-      this.entitiesConfig.data = this.entities;
+      // Spread-Operator erzwingt Change Detection in der Table
+      this.entitiesConfig.data = [...this.entities];
       this.showMessage('Entities geladen', 'success');
     } catch (error) {
       console.error('Fehler beim Laden von Entities:', error);
@@ -480,7 +481,7 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.loadingDevices = true;
     try {
       this.devices = await firstValueFrom(this.haService.getAllDevices());
-      this.devicesConfig.data = this.devices;
+      this.devicesConfig.data = [...this.devices];
       this.showMessage('Devices geladen', 'success');
     } catch (error) {
       console.error('Fehler beim Laden von Devices:', error);
@@ -494,7 +495,7 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.loadingAreas = true;
     try {
       this.areas = await firstValueFrom(this.haService.getAllAreas());
-      this.areasConfig.data = this.areas;
+      this.areasConfig.data = [...this.areas];
       this.showMessage('Areas geladen', 'success');
     } catch (error) {
       console.error('Fehler beim Laden von Areas:', error);
@@ -508,7 +509,7 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.loadingAutomations = true;
     try {
       this.automations = await firstValueFrom(this.haService.getAllAutomations());
-      this.automationsConfig.data = this.automations;
+      this.automationsConfig.data = [...this.automations];
       this.showMessage('Automations geladen', 'success');
     } catch (error) {
       console.error('Fehler beim Laden von Automations:', error);
@@ -522,7 +523,7 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.loadingPersons = true;
     try {
       this.persons = await firstValueFrom(this.haService.getAllPersons());
-      this.personsConfig.data = this.persons;
+      this.personsConfig.data = [...this.persons];
       this.showMessage('Persons geladen', 'success');
     } catch (error: any) {
       console.error('Fehler beim Laden von Persons:', error);
@@ -541,7 +542,7 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.loadingZones = true;
     try {
       this.zones = await firstValueFrom(this.haService.getAllZones());
-      this.zonesConfig.data = this.zones;
+      this.zonesConfig.data = [...this.zones];
       this.showMessage('Zones geladen', 'success');
     } catch (error: any) {
       console.error('Fehler beim Laden von Zones:', error);
@@ -560,7 +561,7 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.loadingMediaPlayers = true;
     try {
       this.mediaPlayers = await firstValueFrom(this.haService.getAllMediaPlayers());
-      this.mediaPlayersConfig.data = this.mediaPlayers;
+      this.mediaPlayersConfig.data = [...this.mediaPlayers];
       this.showMessage('Media Players geladen', 'success');
     } catch (error: any) {
       console.error('Fehler beim Laden von Media Players:', error);
@@ -579,7 +580,7 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.loadingServices = true;
     try {
       this.services = await firstValueFrom(this.haService.getAllServices());
-      this.servicesConfig.data = this.services;
+      this.servicesConfig.data = [...this.services];
       this.showMessage('Services geladen', 'success');
     } catch (error: any) {
       console.error('Fehler beim Laden von Services:', error);
