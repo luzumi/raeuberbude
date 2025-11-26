@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -10,36 +10,44 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import {HorizontalSlider} from '@shared/components/horizontal-slider/horizontal-slider';
 import { LlmTestService } from '../../../core/services/llm-test.service';
 import { SettingsService } from '../../../core/services/settings.service';
+import { MatSelectModule } from '@angular/material/select';
 
 @Component({
   selector: 'app-admin-llm-config',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatExpansionModule, MatFormFieldModule, MatInputModule, MatSlideToggleModule, MatButtonModule, MatIconModule, MatSliderModule, MatCheckboxModule],
+  imports: [CommonModule, FormsModule, MatExpansionModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatSlideToggleModule, MatButtonModule, MatIconModule, MatSliderModule, MatCheckboxModule, HorizontalSlider],
   template: `
     <mat-accordion [multi]="true">
-      <mat-expansion-panel [expanded]="false">
+      <mat-expansion-panel [expanded]="true">
         <mat-expansion-panel-header>
           <mat-panel-title>Inference</mat-panel-title>
           <mat-panel-description>Temperature, Response length & Confidence</mat-panel-description>
         </mat-expansion-panel-header>
 
         <div class="panel-grid">
-          <mat-form-field class="full">
-            <mat-label>Temperature</mat-label>
-            <input matInput type="number" step="0.01" min="0" max="2" [(ngModel)]="local.temperature" (ngModelChange)="emitChange()">
-          </mat-form-field>
+          <div class="full form-field">
+            <label class="field-label">Temperature</label>
+            <div class="slider-row">
+              <span class="slider-value">{{ local.temperature.toFixed(2) }}</span>
+              <app-horizontal-slider [(value)]="local.temperature" (valueChange)="emitChange()" [min]="0" [max]="1" [step]="0.01"></app-horizontal-slider>
+            </div>
+          </div>
 
           <mat-form-field class="full">
             <mat-label>Limit Response Length (Max Tokens)</mat-label>
             <input matInput type="number" min="1" [(ngModel)]="local.maxTokens" (ngModelChange)="emitChange()">
           </mat-form-field>
 
-          <mat-form-field class="full">
-            <mat-label>Confidence Shortcut</mat-label>
-            <input matInput type="number" step="0.01" min="0" max="1" [(ngModel)]="local.confidenceShortcut" (ngModelChange)="emitChange()">
-          </mat-form-field>
+          <div class="full form-field">
+            <label class="field-label">Confidence Shortcut</label>
+            <div class="slider-row">
+              <span class="slider-value">{{ local.confidenceShortcut.toFixed(2) }}</span>
+              <app-horizontal-slider [value]="local.confidenceShortcut" (valueChange)="local.confidenceShortcut = $event; emitChange()" [min]="0" [max]="1" [step]="0.05"></app-horizontal-slider>
+            </div>
+          </div>
 
           <mat-form-field class="full">
             <mat-label>Ziel-Latenz (ms)</mat-label>
@@ -48,7 +56,7 @@ import { SettingsService } from '../../../core/services/settings.service';
         </div>
       </mat-expansion-panel>
 
-      <mat-expansion-panel [expanded]="false">
+      <mat-expansion-panel [expanded]="true">
         <mat-expansion-panel-header>
           <mat-panel-title>Sampling</mat-panel-title>
           <mat-panel-description>Top-K, Top-P und Penalties</mat-panel-description>
@@ -60,24 +68,33 @@ import { SettingsService } from '../../../core/services/settings.service';
             <input matInput type="number" min="0" [(ngModel)]="local.topK" (ngModelChange)="emitChange()">
           </mat-form-field>
 
-          <mat-form-field class="full">
-            <mat-label>Top P Sampling</mat-label>
-            <input matInput type="number" step="0.01" min="0" max="1" [(ngModel)]="local.topP" (ngModelChange)="emitChange()">
-          </mat-form-field>
+          <div class="full form-field">
+            <label class="field-label">Top P Sampling</label>
+            <div class="slider-row">
+              <span class="slider-value">{{ local.topP.toFixed(2) }}</span>
+              <app-horizontal-slider [(value)]="local.topP" (valueChange)="emitChange()" [min]="0" [max]="1" [step]="0.01"></app-horizontal-slider>
+            </div>
+          </div>
 
-          <mat-form-field class="full">
-            <mat-label>Repeat Penalty</mat-label>
-            <input matInput type="number" step="0.01" min="0" [(ngModel)]="local.repeatPenalty" (ngModelChange)="emitChange()">
-          </mat-form-field>
+          <div class="full form-field">
+            <label class="field-label">Repeat Penalty</label>
+            <div class="slider-row">
+              <span class="slider-value">{{ local.repeatPenalty.toFixed(2) }}</span>
+              <app-horizontal-slider [(value)]="local.repeatPenalty" (valueChange)="emitChange()" [min]="0" [step]="0.01"></app-horizontal-slider>
+            </div>
+          </div>
 
-          <mat-form-field class="full">
-            <mat-label>Min P Sampling</mat-label>
-            <input matInput type="number" step="0.01" min="0" max="1" [(ngModel)]="local.minPSampling" (ngModelChange)="emitChange()">
-          </mat-form-field>
+          <div class="full form-field">
+            <label class="field-label">Min P Sampling</label>
+            <div class="slider-row">
+              <span class="slider-value">{{ local.minPSampling.toFixed(2) }}</span>
+              <app-horizontal-slider [(value)]="local.minPSampling" (valueChange)="emitChange()" [min]="0" [max]="1" [step]="0.01"></app-horizontal-slider>
+            </div>
+          </div>
         </div>
       </mat-expansion-panel>
 
-      <mat-expansion-panel [expanded]="false">
+      <mat-expansion-panel [expanded]="true">
         <mat-expansion-panel-header>
           <mat-panel-title>Load & Performance</mat-panel-title>
           <mat-panel-description>Context length, GPU offload, thread pool, quantization</mat-panel-description>
@@ -86,18 +103,39 @@ import { SettingsService } from '../../../core/services/settings.service';
         <div class="panel-grid">
           <mat-form-field class="full">
             <mat-label>Context Length (tokens)</mat-label>
-            <input matInput type="number" min="0" [(ngModel)]="local.contextLength" (ngModelChange)="emitChange()">
+            <mat-select [(ngModel)]="local.contextLength" (selectionChange)="emitChange()">
+              <mat-option [value]="2048">2K (2048 Tokens)</mat-option>
+              <mat-option [value]="4096">4K (4096 Tokens)</mat-option>
+              <mat-option [value]="8192">8K (8192 Tokens)</mat-option>
+              <mat-option [value]="16384">16K (16384 Tokens)</mat-option>
+              <mat-option [value]="32768">32K (32768 Tokens)</mat-option>
+            </mat-select>
           </mat-form-field>
 
           <mat-form-field class="full">
             <mat-label>Evaluation Batch Size</mat-label>
-            <input matInput type="number" min="0" [(ngModel)]="local.evalBatchSize" (ngModelChange)="emitChange()">
+            <mat-select [(ngModel)]="local.evalBatchSize" (selectionChange)="emitChange()">
+              <mat-option [value]="1">1</mat-option>
+              <mat-option [value]="2">2</mat-option>
+              <mat-option [value]="4">4</mat-option>
+              <mat-option [value]="8">8</mat-option>
+              <mat-option [value]="16">16</mat-option>
+              <mat-option [value]="32">32</mat-option>
+              <mat-option [value]="64">64</mat-option>
+              <mat-option [value]="128">128</mat-option>
+              <mat-option [value]="256">256</mat-option>
+              <mat-option [value]="512">512</mat-option>
+            </mat-select>
           </mat-form-field>
 
-          <mat-form-field class="full">
-            <mat-label>CPU Thread Pool Size</mat-label>
-            <input matInput type="number" min="0" [(ngModel)]="local.cpuThreads" (ngModelChange)="emitChange()">
-          </mat-form-field>
+          <div class="full form-field">
+            <label class="field-label">CPU Thread Pool Size</label>
+            <div *ngIf="maxCpuThreads > 0" class="slider-row">
+              <span class="slider-value">{{ local.cpuThreads }}</span>
+              <app-horizontal-slider [(value)]="local.cpuThreads" (valueChange)="emitChange()" [min]="1" [max]="maxCpuThreads" [step]="1"></app-horizontal-slider>
+            </div>
+            <div *ngIf="maxCpuThreads === 0">Ermittle CPU-Kerne...</div>
+          </div>
 
           <div class="toggle-row full">
             <mat-slide-toggle [(ngModel)]="local.gpuOffload" (change)="emitChange()">GPU Offload</mat-slide-toggle>
@@ -138,11 +176,15 @@ import { SettingsService } from '../../../core/services/settings.service';
      .full { width:100%; }
      .toggle-row { padding-top:8px; }
      .config-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:12px; }
+     .slider-row { display:flex; align-items:center; gap:12px; }
+     .slider-value { width:60px; text-align:right; font-weight:600; }
+     /* Ensure mat-slider stays interactive even if overlays are present */
+     mat-slider { position: relative; z-index: 10050 !important; pointer-events: auto !important; }
      @media (max-width:720px) { .panel-grid { grid-template-columns: 1fr; } }
     `
   ]
 })
-export class AdminLlmConfigComponent implements OnChanges {
+export class AdminLlmConfigComponent implements OnChanges, OnInit {
   @Input() config: any = {};
   @Input() hasInstance = false;
   @Output() configChange = new EventEmitter<any>();
@@ -171,12 +213,17 @@ export class AdminLlmConfigComponent implements OnChanges {
 
   /** Flag für Test-Button (Sprach-Test) */
   isTesting = false;
+  maxCpuThreads = 0;
 
   constructor(
     private readonly snackBar: MatSnackBar,
     private readonly llmTestService: LlmTestService,
     private readonly settings: SettingsService
   ) {}
+
+  ngOnInit() {
+    this.detectCpuCores();
+  }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['config'] && this.config) {
@@ -202,6 +249,28 @@ export class AdminLlmConfigComponent implements OnChanges {
       };
       console.log('AdminLlmConfigComponent: loaded config into local:', this.local);
       console.log('AdminLlmConfigComponent: config.url =', this.config.url, ', config.model =', this.config.model);
+
+      // Ensure cpuThreads does not exceed detected max (if known)
+      if (this.maxCpuThreads > 0 && this.local.cpuThreads > this.maxCpuThreads) {
+        this.local.cpuThreads = this.maxCpuThreads;
+      }
+    }
+  }
+
+  private detectCpuCores() {
+    try {
+      if ((navigator as any).hardwareConcurrency) {
+        this.maxCpuThreads = Math.max(1, (navigator as any).hardwareConcurrency - 1);
+      } else {
+        this.maxCpuThreads = 4;
+      }
+      // clamp local value
+      if (this.local && this.local.cpuThreads > this.maxCpuThreads) {
+        this.local.cpuThreads = this.maxCpuThreads;
+      }
+    } catch (e) {
+      console.warn('Could not detect hardwareConcurrency:', e);
+      this.maxCpuThreads = 4;
     }
   }
 

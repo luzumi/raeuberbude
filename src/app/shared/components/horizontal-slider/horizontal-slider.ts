@@ -2,7 +2,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { MatSliderModule } from '@angular/material/slider';
 import { FormsModule } from '@angular/forms';
-import {NgClass} from '@angular/common';
 
 @Component({
   selector: 'app-horizontal-slider',

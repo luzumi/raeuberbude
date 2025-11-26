@@ -213,7 +213,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
         width: '820px',
         panelClass: 'admin-global-config-dialog',
         disableClose: false,
-        data: { config: this.config }
+        data: { config: this.config, models: Array.from(this.uniqueModels || []) }
       });
 
       const res = await dlg.afterClosed().toPromise();

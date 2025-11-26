@@ -1,12 +1,10 @@
 <div class="slider-fingerprint">
   <mat-slider
-    ngDefaultControl
     [min]="min"
     [max]="max"
     [step]="step"
     [disabled]="disabled"
-    [ngModel]="value"
-    (ngModelChange)="setVolume($event)">
-    <input matSliderThumb (click)="$event.stopPropagation()" />
+    (click)="$event.stopPropagation()">
+    <input matSliderThumb [ngModel]="value" (ngModelChange)="setVolume($event)">
   </mat-slider>
 </div>
