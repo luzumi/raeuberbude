@@ -17,6 +17,7 @@ import {
   DataTableToolbarButton,
 } from '@shared/components/generic-data-table/generic-data-table.config';
 import { HomeAssistantService } from '../../../core/services/homeassistant.service';
+import { HaDetailDialogComponent } from './ha-detail-dialog.component';
 
 @Component({
   selector: 'app-admin-homeassistant',
@@ -80,6 +81,17 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.loadAllData();
   }
 
+  /**
+   * Dialog für Details anzeigen
+   */
+  showDetails(row: any): void {
+    this.dialog.open(HaDetailDialogComponent, {
+      data: row,
+      width: '600px',
+      maxHeight: '90vh',
+    });
+  }
+
   private initializeTableConfigs(): void {
     // Entities Config
     this.entitiesConfig = {
@@ -123,6 +135,14 @@ export class AdminHomeAssistantComponent implements OnInit {
           tooltip: 'Als JSON exportieren',
         },
       ],
+      rowActions: [
+        {
+          icon: 'info',
+          tooltip: 'Details anzeigen',
+          action: (row: any) => this.showDetails(row),
+          color: 'primary',
+        },
+      ],
       stickyHeader: true,
       emptyMessage: 'Keine Entities gefunden',
     };
@@ -154,6 +174,14 @@ export class AdminHomeAssistantComponent implements OnInit {
           icon: 'refresh',
           action: () => this.loadDevices(),
           tooltip: 'Daten neu laden',
+        },
+      ],
+      rowActions: [
+        {
+          icon: 'info',
+          tooltip: 'Details anzeigen',
+          action: (row: any) => this.showDetails(row),
+          color: 'primary',
         },
       ],
       stickyHeader: true,
@@ -188,6 +216,14 @@ export class AdminHomeAssistantComponent implements OnInit {
           tooltip: 'Daten neu laden',
         },
       ],
+      rowActions: [
+        {
+          icon: 'info',
+          tooltip: 'Details anzeigen',
+          action: (row: any) => this.showDetails(row),
+          color: 'primary',
+        },
+      ],
       stickyHeader: true,
       emptyMessage: 'Keine Areas gefunden',
     };
@@ -219,6 +255,14 @@ export class AdminHomeAssistantComponent implements OnInit {
           icon: 'refresh',
           action: () => this.loadAutomations(),
           tooltip: 'Daten neu laden',
+        },
+      ],
+      rowActions: [
+        {
+          icon: 'info',
+          tooltip: 'Details anzeigen',
+          action: (row: any) => this.showDetails(row),
+          color: 'primary',
         },
       ],
       stickyHeader: true,
@@ -285,6 +329,14 @@ export class AdminHomeAssistantComponent implements OnInit {
           tooltip: 'Daten neu laden',
         },
       ],
+      rowActions: [
+        {
+          icon: 'info',
+          tooltip: 'Details anzeigen',
+          action: (row: any) => this.showDetails(row),
+          color: 'primary',
+        },
+      ],
       stickyHeader: true,
       emptyMessage: 'Keine Zones gefunden',
     };
@@ -319,6 +371,14 @@ export class AdminHomeAssistantComponent implements OnInit {
           tooltip: 'Daten neu laden',
         },
       ],
+      rowActions: [
+        {
+          icon: 'info',
+          tooltip: 'Details anzeigen',
+          action: (row: any) => this.showDetails(row),
+          color: 'primary',
+        },
+      ],
       stickyHeader: true,
       emptyMessage: 'Keine Media Players gefunden',
     };
@@ -351,10 +411,19 @@ export class AdminHomeAssistantComponent implements OnInit {
           tooltip: 'Daten neu laden',
         },
       ],
+      rowActions: [
+        {
+          icon: 'info',
+          tooltip: 'Details anzeigen',
+          action: (row: any) => this.showDetails(row),
+          color: 'primary',
+        },
+      ],
       stickyHeader: true,
       emptyMessage: 'Keine Services gefunden',
     };
   }
+
 
   private async loadAllData(): Promise<void> {
     await Promise.all([

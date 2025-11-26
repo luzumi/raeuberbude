@@ -147,5 +147,72 @@ export class HomeAssistantService {
       withCredentials: true
     });
   }
+
+  /**
+   * Entity-State abrufen
+   */
+  getEntityState(entityId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiBase}/entities/${entityId}/state`, {
+      withCredentials: true
+    });
+  }
+
+  /**
+   * Entity-History abrufen
+   */
+  getEntityHistory(entityId: string, startDate?: Date, endDate?: Date): Observable<any[]> {
+    const params: any = {};
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    return this.http.get<any[]>(`${this.apiBase}/entities/${entityId}/history`, {
+      params,
+      withCredentials: true
+    });
+  }
+
+  /**
+   * Devices in einer Area laden
+   */
+  getDevicesByArea(areaId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiBase}/entities/areas/${areaId}/devices`, {
+      withCredentials: true
+    });
+  }
+
+  /**
+   * Persons in einer Zone laden
+   */
+  getPersonsInZone(zoneName: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiBase}/entities/zones/${zoneName}/persons`, {
+      withCredentials: true
+    });
+  }
+
+  /**
+   * Person-Location abrufen
+   */
+  getPersonLocation(personId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiBase}/entities/persons/${personId}/location`, {
+      withCredentials: true
+    });
+  }
+
+  /**
+   * Automation nach ID laden
+   */
+  getAutomationById(automationId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiBase}/entities/automations/${automationId}`, {
+      withCredentials: true
+    });
+  }
+
+  /**
+   * Service-Details abrufen
+   */
+  getService(domain: string, service: string): Observable<any> {
+    return this.http.get<any>(`${this.apiBase}/entities/services/${domain}/${service}`, {
+      withCredentials: true
+    });
+  }
 }
 
