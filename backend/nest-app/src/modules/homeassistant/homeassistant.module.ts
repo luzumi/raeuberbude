@@ -3,7 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { HaImportService } from './services/ha-import.service';
 import { HaImportController } from './controllers/ha-import.controller';
 import { HaQueryService } from './services/ha-query.service';
-import { HaEntitiesController } from './controllers/ha-entities.controller';
+import { HaEntitiesController, HaAutomationsController, HaPersonsController, HaZonesController, HaMediaPlayersController, HaServicesController } from './controllers/ha-entities.controller';
 import { HaSnapshot, HaSnapshotSchema } from './schemas/ha-snapshot.schema';
 import { HaArea, HaAreaSchema } from './schemas/ha-area.schema';
 import { HaDevice, HaDeviceSchema } from './schemas/ha-device.schema';
@@ -33,7 +33,15 @@ import { HaBootstrapService } from './services/ha-bootstrap.service';
       { name: HaService.name, schema: HaServiceSchema },
     ])
   ],
-  controllers: [HaImportController, HaEntitiesController],
+  controllers: [
+    HaImportController,
+    HaEntitiesController,
+    HaAutomationsController,
+    HaPersonsController,
+    HaZonesController,
+    HaMediaPlayersController,
+    HaServicesController
+  ],
   providers: [HaImportService, HaQueryService, HaBootstrapService],
   exports: [HaImportService, HaQueryService]
 })
