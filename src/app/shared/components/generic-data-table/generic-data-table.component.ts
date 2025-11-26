@@ -5,8 +5,7 @@ import {
   EventEmitter,
   ViewChild,
   OnInit,
-  OnChanges,
-  SimpleChanges,
+  DoCheck,
   TemplateRef,
   ContentChildren,
   QueryList,
@@ -224,7 +223,7 @@ import {
   `,
   styleUrls: ['./generic-data-table.component.scss'],
 })
-export class GenericDataTableComponent<T extends Record<string, any>> implements OnInit, OnChanges {
+export class GenericDataTableComponent<T extends Record<string, any>> implements OnInit, DoCheck {
   @Input() config!: DataTableConfig<T>;
 
   @Output() rowSelected = new EventEmitter<T[]>();
@@ -238,18 +237,23 @@ export class GenericDataTableComponent<T extends Record<string, any>> implements
   allSelected = false;
   selectedRows = new Set<T>();
 
+  private lastDataLength = 0;
+
   constructor() {}
 
   ngOnInit(): void {
     this.initializeDataSource();
     this.buildDisplayColumns();
+    this.lastDataLength = this.config?.data?.length || 0;
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['config'] && this.dataSource) {
-      // Wenn config sich ändert und DataSource existiert, Daten aktualisieren
+  ngDoCheck(): void {
+    // Prüfe ob sich die Datenlänge geändert hat
+    const currentDataLength = this.config?.data?.length || 0;
+    if (currentDataLength !== this.lastDataLength && this.dataSource) {
       this.dataSource.data = this.config.data || [];
       this.buildDisplayColumns();
+      this.lastDataLength = currentDataLength;
     }
   }
 
