@@ -18,6 +18,7 @@ import {
 } from '@shared/components/generic-data-table/generic-data-table.config';
 import { HomeAssistantService } from '../../../core/services/homeassistant.service';
 import { HaDetailDialogComponent } from './ha-detail-dialog.component';
+import { HaStatisticsDialogComponent } from './ha-statistics-dialog.component';
 
 @Component({
   selector: 'app-admin-homeassistant',
@@ -92,6 +93,17 @@ export class AdminHomeAssistantComponent implements OnInit {
     });
   }
 
+  /**
+   * Dialog für Statistiken anzeigen
+   */
+  showStatistics(type: string): void {
+    this.dialog.open(HaStatisticsDialogComponent, {
+      data: { type },
+      width: '500px',
+      maxHeight: '90vh',
+    });
+  }
+
   private initializeTableConfigs(): void {
     // Entities Config
     this.entitiesConfig = {
@@ -121,6 +133,12 @@ export class AdminHomeAssistantComponent implements OnInit {
           icon: 'refresh',
           action: () => this.loadEntities(),
           tooltip: 'Daten neu laden',
+        },
+        {
+          label: 'Statistiken',
+          icon: 'assessment',
+          action: () => this.showStatistics('Entities'),
+          tooltip: 'Statistiken anzeigen',
         },
         {
           label: 'Daten importieren',
@@ -506,9 +524,14 @@ export class AdminHomeAssistantComponent implements OnInit {
       this.persons = await firstValueFrom(this.haService.getAllPersons());
       this.personsConfig.data = this.persons;
       this.showMessage('Persons geladen', 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fehler beim Laden von Persons:', error);
-      this.showMessage('Fehler beim Laden von Persons', 'error');
+      if (error.status === 404) {
+        this.persons = [];
+        this.showMessage('Persons-API nicht verfügbar', 'info');
+      } else {
+        this.showMessage('Fehler beim Laden von Persons', 'error');
+      }
     } finally {
       this.loadingPersons = false;
     }
@@ -520,9 +543,14 @@ export class AdminHomeAssistantComponent implements OnInit {
       this.zones = await firstValueFrom(this.haService.getAllZones());
       this.zonesConfig.data = this.zones;
       this.showMessage('Zones geladen', 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fehler beim Laden von Zones:', error);
-      this.showMessage('Fehler beim Laden von Zones', 'error');
+      if (error.status === 404) {
+        this.zones = [];
+        this.showMessage('Zones-API nicht verfügbar', 'info');
+      } else {
+        this.showMessage('Fehler beim Laden von Zones', 'error');
+      }
     } finally {
       this.loadingZones = false;
     }
@@ -534,9 +562,14 @@ export class AdminHomeAssistantComponent implements OnInit {
       this.mediaPlayers = await firstValueFrom(this.haService.getAllMediaPlayers());
       this.mediaPlayersConfig.data = this.mediaPlayers;
       this.showMessage('Media Players geladen', 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fehler beim Laden von Media Players:', error);
-      this.showMessage('Fehler beim Laden von Media Players', 'error');
+      if (error.status === 404) {
+        this.mediaPlayers = [];
+        this.showMessage('Media Players-API nicht verfügbar', 'info');
+      } else {
+        this.showMessage('Fehler beim Laden von Media Players', 'error');
+      }
     } finally {
       this.loadingMediaPlayers = false;
     }
@@ -548,9 +581,14 @@ export class AdminHomeAssistantComponent implements OnInit {
       this.services = await firstValueFrom(this.haService.getAllServices());
       this.servicesConfig.data = this.services;
       this.showMessage('Services geladen', 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fehler beim Laden von Services:', error);
-      this.showMessage('Fehler beim Laden von Services', 'error');
+      if (error.status === 404) {
+        this.services = [];
+        this.showMessage('Services-API nicht verfügbar', 'info');
+      } else {
+        this.showMessage('Fehler beim Laden von Services', 'error');
+      }
     } finally {
       this.loadingServices = false;
     }
