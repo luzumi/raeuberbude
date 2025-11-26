@@ -19,6 +19,7 @@ import {
 import { HomeAssistantService } from '../../../core/services/homeassistant.service';
 import { HaDetailDialogComponent } from './ha-detail-dialog.component';
 import { HaStatisticsDialogComponent } from './ha-statistics-dialog.component';
+import { HaJsonViewerDialogComponent } from './ha-json-viewer-dialog.component';
 
 @Component({
   selector: 'app-admin-homeassistant',
@@ -108,8 +109,31 @@ export class AdminHomeAssistantComponent implements OnInit {
    * Handler für Row-Menu Actions
    */
   handleRowMenuAction(actionId: string, row: any): void {
-    console.log(`Row Menu Action: ${actionId}`, row);
-    // Implementierung später
+    switch (actionId) {
+      case 'json':
+        this.showJsonViewer(row);
+        break;
+      case 'edit':
+        console.log('Edit action - später implementiert', row);
+        break;
+      case 'delete':
+        console.log('Delete action - später implementiert', row);
+        break;
+      default:
+        console.log(`Unknown action: ${actionId}`, row);
+    }
+  }
+
+  /**
+   * JSON-Viewer Dialog öffnen
+   */
+  showJsonViewer(data: any): void {
+    this.dialog.open(HaJsonViewerDialogComponent, {
+      data: { data, title: data.entityId || data.name || data.deviceId || data.id || 'JSON' },
+      width: '800px',
+      maxHeight: '90vh',
+      panelClass: 'json-viewer-dialog',
+    });
   }
 
   private initializeTableConfigs(): void {
