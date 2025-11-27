@@ -9,7 +9,7 @@ import { LogoutButtonComponent } from '../logout-button/logout-button';
 import { SpeechService } from '../../../core/services/speech.service';
 import { TerminalService } from '../../../core/services/terminal.service';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, take, skip, filter} from 'rxjs/operators';
 
 @Component({
   selector: 'app-header',
@@ -49,7 +49,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Aktiviere Validierung und TTS
     this.speechService.setValidationEnabled(true);
-    this.speechService.setTTSEnabled(true);
+    // this.speechService.setTTSEnabled(true);
 
     // Subscribe to last speech input updates
     this.speechService.lastInput$
@@ -132,9 +132,34 @@ export class HeaderComponent implements OnInit, OnDestroy {
       if (this.isRecording) {
         // Stop recording - Verarbeitung beginnt
         await this.speechService.stopRecording();
+
+        // Zeige unmittelbar eine Verarbeitungs-Nachricht, aber überschreibe
+        // diese nicht dauerhaft: Falls das SpeechService eine Antwort emittiert,
+        // wird unsere Meldung ersetzt. Falls nicht, zeigen wir nach 12s eine
+        // Fehler-Meldung statt dauerhaft "Verarbeite...".
         this.lastSpeechInput = 'Verarbeite...';
+
+        // Start a failsafe watcher that clears the status if no result arrives
+        const fallbackTimeout = setTimeout(() => {
+          if (this.lastSpeechInput === 'Verarbeite...') {
+            this.lastSpeechInput = 'Fehler bei der Verarbeitung. Bitte erneut versuchen.';
+          }
+        }, 12000);
+
+        // Subscribe once to the next meaningful lastInput emission and cancel timeout
+        let sub: any = null;
+        sub = this.speechService.lastInput$
+          .pipe(skip(1), filter((v: string) => !!v && v !== 'Verarbeite...'), take(1))
+          .subscribe(val => {
+            // clear fallback once we got a meaningful emission
+            clearTimeout(fallbackTimeout);
+            if (sub) { sub.unsubscribe(); }
+          });
+
       } else {
         // Start recording
+        // clear any previous UI status so user sees 'Höre zu...'
+        this.lastSpeechInput = '';
         await this.speechService.startRecording();
       }
     } catch (error) {

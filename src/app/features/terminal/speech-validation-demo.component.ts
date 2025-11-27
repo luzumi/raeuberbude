@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
-import { SpeechService } from '../../core/services/speech.service';
+import {SpeechService} from '../../core/services/speech.service';
 import { TtsService } from '../../core/services/tts.service';
 import { ValidationResult } from '../../core/services/transcription-validator.service';
 
@@ -488,8 +488,8 @@ export class SpeechValidationDemoComponent implements OnInit, OnDestroy {
 
     // Load current settings
     this.validationEnabled = this.speechService.isValidationEnabled();
-    this.ttsEnabled = this.speechService.isTTSEnabled();
-    this.sttMode = this.speechService.getSTTMode();
+    // this.ttsEnabled = this.speechService.isTTSEnabled();
+    // this.sttMode = this.speechService.getSTTMode();
   }
 
   ngOnDestroy(): void {
@@ -510,7 +510,7 @@ export class SpeechValidationDemoComponent implements OnInit, OnDestroy {
   }
 
   cancelSpeech(): void {
-    this.speechService.cancelSpeech();
+    // this.speechService.cancelSpeech();
   }
 
   clearClarification(): void {
@@ -524,17 +524,17 @@ export class SpeechValidationDemoComponent implements OnInit, OnDestroy {
   }
 
   onTTSToggle(): void {
-    this.speechService.setTTSEnabled(this.ttsEnabled);
+    // this.speechService.setTTSEnabled(this.ttsEnabled);
   }
 
   onSTTModeChange(): void {
-    this.speechService.setSTTMode(this.sttMode);
+    // this.speechService.setSTTMode(this.sttMode);
   }
 
   async speakTestMessage(): Promise<void> {
     if (this.testMessage) {
       try {
-        await this.speechService.speak(this.testMessage);
+        // await this.speechService.speak(this.testMessage);
       } catch (error) {
         console.error('Failed to speak test message:', error);
       }
