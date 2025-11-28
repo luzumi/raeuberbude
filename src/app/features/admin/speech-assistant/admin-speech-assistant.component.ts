@@ -946,6 +946,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
       assignedEntityId: updated.assignedEntityId || undefined,
       assignedTrigger: updated.assignedTrigger || undefined,
       assignedAction: updated.assignedAction,
+      manuallyValid: (updated as any).manuallyValid,
     };
 
     try {

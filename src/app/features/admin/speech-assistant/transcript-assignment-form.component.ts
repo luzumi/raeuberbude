@@ -71,6 +71,9 @@ export class TranscriptAssignmentFormComponent implements OnInit {
   // Trigger
   assignedTrigger = '';
 
+  // Manually valid flag (admin marks transcript as valid)
+  manuallyValid = false;
+
   private readonly backendUrl = resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001');
 
   constructor(
@@ -84,6 +87,7 @@ export class TranscriptAssignmentFormComponent implements OnInit {
     this.selectedAreaId = this.transcript.assignedAreaId || '';
     this.selectedEntityId = this.transcript.assignedEntityId || '';
     this.assignedTrigger = this.transcript.assignedTrigger || this.transcript.transcript;
+    this.manuallyValid = !!this.transcript.manuallyValid;
 
     if (this.transcript.assignedAction) {
       this.actionParams = this.transcript.assignedAction.params || {};
@@ -523,6 +527,7 @@ export class TranscriptAssignmentFormComponent implements OnInit {
       assignedDeviceId: this.selectedDeviceId || undefined,
       assignedEntityId: this.selectedEntityId || undefined,
       assignedTrigger: this.assignedTrigger || undefined,
+      manuallyValid: this.manuallyValid,
     };
 
     if (this.selectedAction) {

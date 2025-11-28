@@ -38,6 +38,8 @@ export interface Transcript {
   };
   assignedTrigger?: string;
   assignedTriggerAt?: string;
+  // Flag set by admin when marking a transcript as valid (persisted)
+  manuallyValid?: boolean;
 }
 
 export interface Area {

@@ -33,6 +33,8 @@ const transcriptSchema = new mongoose.Schema({
   hasAmbiguity: { type: Boolean, default: false },
   clarificationNeeded: { type: Boolean, default: false },
   clarificationQuestion: { type: String },
+  // Admin flag: mark transcript as manually validated (yellow → green)
+  manuallyValid: { type: Boolean, default: false },
 
   // Performance Metrics
   durationMs: { type: Number, required: true }, // Gesamt-Latenz
@@ -75,4 +77,3 @@ transcriptSchema.pre('save', function(next) {
 });
 
 export default mongoose.model('Transcript', transcriptSchema);
-

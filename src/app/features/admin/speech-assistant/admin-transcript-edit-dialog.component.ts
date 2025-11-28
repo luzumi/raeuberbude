@@ -52,6 +52,7 @@ export class AdminTranscriptEditDialogComponent {
         assignedEntityId: updated.assignedEntityId || undefined,
         assignedTrigger: updated.assignedTrigger || undefined,
         assignedAction: updated.assignedAction,
+        manuallyValid: (updated as any).manuallyValid,
       };
 
       await lastValueFrom(
