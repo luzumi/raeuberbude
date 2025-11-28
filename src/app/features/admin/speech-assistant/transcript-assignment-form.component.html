@@ -1,16 +1,38 @@
 <div class="transcript-assignment-form">
-  <!-- AI Adjusted Text -->
-  <div class="section">
-    <mat-form-field class="full-width">
-      <mat-label>Korrigierter Text</mat-label>
-      <textarea matInput [(ngModel)]="aiAdjustedText" rows="3" placeholder="Korrigiere das Transkript falls nötig..."></textarea>
-      <mat-hint>Dieser Text wird für die Verarbeitung verwendet</mat-hint>
-    </mat-form-field>
+  <!-- AI Adjusted Text as H2 and overlay editor -->
+  <div class="section ai-text-section">
+    <h2 class="ai-display" (click)="editingAiOverlay = true">{{ aiAdjustedText }}</h2>
+
+    <div class="ai-overlay" *ngIf="editingAiOverlay">
+      <div class="ai-overlay-backdrop" (click)="editingAiOverlay = false"></div>
+      <div class="ai-overlay-panel">
+        <mat-form-field class="full-width">
+          <mat-label>Korrigierter Text</mat-label>
+          <textarea matInput [(ngModel)]="aiAdjustedText" rows="4" placeholder="Korrigiere das Transkript falls nötig..."></textarea>
+          <mat-hint>Dieser Text wird für die Verarbeitung verwendet</mat-hint>
+        </mat-form-field>
+        <div class="overlay-actions">
+          <button mat-button (click)="editingAiOverlay = false">Abbrechen</button>
+          <button mat-raised-button color="primary" (click)="editingAiOverlay = false">OK</button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Area Selection -->
+  <!-- Area Selection as autocomplete (search + select combined) -->
   <div class="section">
     <h4>Area Auswahl</h4>
+
+    <mat-form-field class="full-width">
+      <mat-label>Area wählen oder suchen</mat-label>
+      <input matInput [(ngModel)]="areaSearchTerm" [matAutocomplete]="areaAuto" placeholder="Suche oder wähle eine Area" (input)="onAreaSearchChange()">
+      <mat-autocomplete #areaAuto="matAutocomplete" (optionSelected)="selectArea($event.option.value.area_id)">
+        <mat-option *ngFor="let area of filteredAreas" [value]="area">
+          {{ area.name }}
+        </mat-option>
+      </mat-autocomplete>
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
 
     <div class="warning-box" *ngIf="areas.length === 0">
       <mat-icon>warning</mat-icon>
@@ -19,22 +41,17 @@
         <p>Bitte importieren Sie die Home Assistant Daten im <a href="/admin/areas" target="_blank">Areas Admin-Bereich</a>.</p>
       </div>
     </div>
+  </div>
 
+  <!-- Devices section (between areas and entities) -->
+  <div class="section">
+    <h4>Device Auswahl</h4>
     <mat-form-field class="full-width">
-      <mat-label>Area suchen</mat-label>
-      <input matInput
-             [(ngModel)]="areaSearchTerm"
-             (input)="onAreaSearchChange()"
-             placeholder="Suche nach Area...">
-      <mat-icon matPrefix>search</mat-icon>
-    </mat-form-field>
-
-    <mat-form-field class="full-width">
-      <mat-label>Area</mat-label>
-      <mat-select [(ngModel)]="selectedAreaId" (selectionChange)="selectArea(selectedAreaId)">
-        <mat-option value="">Keine Area</mat-option>
-        <mat-option *ngFor="let area of filteredAreas" [value]="area.area_id">
-          {{ area.name }}
+      <mat-label>Device</mat-label>
+      <mat-select [(ngModel)]="selectedDeviceId" (selectionChange)="selectDevice(selectedDeviceId)">
+        <mat-option value="">Alle Devices</mat-option>
+        <mat-option *ngFor="let dev of devices" [value]="dev.device_id">
+          {{ dev.name || dev.device_id }}
         </mat-option>
       </mat-select>
     </mat-form-field>
@@ -201,4 +218,3 @@
     </button>
   </div>
 </div>
-

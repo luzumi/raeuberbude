@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { lastValueFrom } from 'rxjs';
 import { resolveBackendBase } from '../../../core/utils/backend';
 import { environment } from '../../../../environments/environment';
-import { Transcript, Area, Entity, ActionDefinition } from './transcript.model';
+import { Transcript, Area, Entity, ActionDefinition, Device } from './transcript.model';
 
 @Component({
   selector: 'app-transcript-assignment-form',
@@ -44,12 +44,17 @@ export class TranscriptAssignmentFormComponent implements OnInit {
   @Output() cancelled = new EventEmitter<void>();
 
   aiAdjustedText = '';
+  editingAiOverlay = false; // whether overlay editor is open
 
   // Area selection
   areas: Area[] = [];
   filteredAreas: Area[] = [];
   selectedAreaId = '';
   areaSearchTerm = '';
+
+  // Device selection
+  devices: Device[] = [];
+  selectedDeviceId = '';
 
   // Entity selection
   entities: Entity[] = [];
@@ -84,8 +89,7 @@ export class TranscriptAssignmentFormComponent implements OnInit {
       this.actionParams = this.transcript.assignedAction.params || {};
     }
 
-    await this.loadAreas();
-    await this.loadInitialEntities();
+    await Promise.all([this.loadAreas(), this.loadDevices(), this.loadInitialEntities()]);
 
     // If entity is already assigned, load it to show details and generate actions
     if (this.selectedEntityId) {
@@ -97,6 +101,62 @@ export class TranscriptAssignmentFormComponent implements OnInit {
           a => a.type === this.transcript.assignedAction?.type
         ) || null;
       }
+    }
+  }
+
+  async loadDevices(): Promise<void> {
+    try {
+      const response: any = await lastValueFrom(
+        this.http.get(`${this.backendUrl}/api/homeassistant/devices`, { withCredentials: true })
+      );
+      this.devices = response.devices || response || [];
+      console.log('Loaded devices:', this.devices.length);
+    } catch (error) {
+      console.error('Failed to load devices:', error);
+    }
+  }
+
+  async loadAreas(): Promise<void> {
+    try {
+      const response: any = await lastValueFrom(
+        this.http.get(`${this.backendUrl}/api/homeassistant/entities/areas`, { withCredentials: true })
+      );
+      this.areas = response.areas || [];
+      this.filteredAreas = [...this.areas];
+      console.log('Loaded areas:', this.areas.length);
+    } catch (error) {
+      console.error('Failed to load areas:', error);
+      this.snackBar.open('Fehler beim Laden der Areas', 'OK', { duration: 3000 });
+    }
+  }
+
+  onAreaSearchChange(): void {
+    const term = (this.areaSearchTerm || '').toLowerCase();
+    this.filteredAreas = this.areas.filter(area =>
+      area.name.toLowerCase().includes(term) ||
+      (area.aliases || []).some(alias => alias.toLowerCase().includes(term))
+    );
+  }
+
+  selectArea(areaId: string): void {
+    this.selectedAreaId = areaId;
+    // filter devices for the selected area (optional)
+    if (areaId) {
+      const areaDevices = this.devices.filter(d => d.area_id === areaId);
+      if (areaDevices.length > 0) {
+        this.selectedDeviceId = areaDevices[0].device_id;
+      }
+    }
+    console.log('Selected area:', areaId);
+  }
+
+  selectDevice(deviceId: string): void {
+    this.selectedDeviceId = deviceId;
+    // If device has entities, map them to entities list for selection
+    const device = this.devices.find(d => d.device_id === deviceId);
+    if (device && device.entities && device.entities.length > 0) {
+      // Convert to entity-like objects (will be loaded later if needed)
+      this.entities = device.entities.map(eid => ({ entity_id: eid, state: '', attributes: {} } as Entity));
     }
   }
 
@@ -122,72 +182,6 @@ export class TranscriptAssignmentFormComponent implements OnInit {
     } catch (error) {
       console.error('Failed to load initial entities:', error);
     }
-  }
-
-  async loadAreas(): Promise<void> {
-    try {
-      const response: any = await lastValueFrom(
-        this.http.get(`${this.backendUrl}/api/homeassistant/entities/areas`, { withCredentials: true })
-      );
-      this.areas = response.areas || [];
-      this.filteredAreas = [...this.areas];
-      console.log('Loaded areas:', this.areas.length);
-    } catch (error) {
-      console.error('Failed to load areas:', error);
-      this.snackBar.open('Fehler beim Laden der Areas', 'OK', { duration: 3000 });
-    }
-  }
-
-  onAreaSearchChange(): void {
-    const term = this.areaSearchTerm.toLowerCase();
-    this.filteredAreas = this.areas.filter(area =>
-      area.name.toLowerCase().includes(term) ||
-      (area.aliases || []).some(alias => alias.toLowerCase().includes(term))
-    );
-  }
-
-  selectArea(areaId: string): void {
-    this.selectedAreaId = areaId;
-    console.log('Selected area:', areaId);
-  }
-
-  async searchEntities(): Promise<void> {
-    // If search is cleared, reload initial entities
-    if (!this.entitySearchTerm || this.entitySearchTerm.length < 2) {
-      await this.loadInitialEntities();
-      return;
-    }
-
-    this.isSearchingEntities = true;
-    try {
-      const response: any = await lastValueFrom(
-        this.http.get(`${this.backendUrl}/api/homeassistant/entities/search`, {
-          params: { q: this.entitySearchTerm },
-          withCredentials: true
-        })
-      );
-      this.entities = response.entities || [];
-      console.log('Found entities:', this.entities.length);
-    } catch (error) {
-      console.error('Failed to search entities:', error);
-      this.snackBar.open('Fehler bei der Entitäts-Suche', 'OK', { duration: 3000 });
-    } finally {
-      this.isSearchingEntities = false;
-    }
-  }
-
-  async selectEntity(entityId: string): Promise<void> {
-    this.selectedEntityId = entityId;
-    await this.loadEntity(entityId);
-  }
-
-  clearEntitySelection(): void {
-    this.selectedEntity = null;
-    this.selectedEntityId = '';
-    this.availableActions = [];
-    this.selectedAction = null;
-    this.actionParams = {};
-    this.loadInitialEntities();
   }
 
   async loadEntity(entityId: string): Promise<void> {
@@ -520,11 +514,13 @@ export class TranscriptAssignmentFormComponent implements OnInit {
     console.log('Color changed:', hex, '→', this.actionParams[paramName]);
   }
 
+  // Expose a method that triggers the save (used by dialog via ViewChild)
   onSave(): void {
     const updated: Transcript = {
       ...this.transcript,
       aiAdjustedText: this.aiAdjustedText,
       assignedAreaId: this.selectedAreaId || undefined,
+      assignedDeviceId: this.selectedDeviceId || undefined,
       assignedEntityId: this.selectedEntityId || undefined,
       assignedTrigger: this.assignedTrigger || undefined,
     };
@@ -544,8 +540,32 @@ export class TranscriptAssignmentFormComponent implements OnInit {
     this.cancelled.emit();
   }
 
+  async searchEntities(): Promise<void> {
+    // reuse existing searchEntities impl if present, otherwise call loadInitialEntities
+    if (!this.entitySearchTerm || this.entitySearchTerm.length < 2) {
+      if (this.selectedDeviceId) return;
+      await this.loadInitialEntities();
+      return;
+    }
+
+    this.isSearchingEntities = true;
+    try {
+      const response: any = await lastValueFrom(
+        this.http.get(`${this.backendUrl}/api/homeassistant/entities/search`, {
+          params: { q: this.entitySearchTerm },
+          withCredentials: true
+        })
+      );
+      this.entities = response.entities || [];
+    } catch (error) {
+      console.error('Failed to search entities:', error);
+      this.snackBar.open('Fehler bei der Entitäts-Suche', 'OK', { duration: 3000 });
+    } finally {
+      this.isSearchingEntities = false;
+    }
+  }
+
   getEntityDisplayName(entity: Entity): string {
     return entity.attributes?.friendly_name || entity.entity_id;
   }
 }
-

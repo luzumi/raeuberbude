@@ -48,6 +48,7 @@ export class AdminTranscriptEditDialogComponent {
       const payload: Partial<Transcript> = {
         aiAdjustedText: updated.aiAdjustedText,
         assignedAreaId: updated.assignedAreaId || undefined,
+        assignedDeviceId: (updated as any).assignedDeviceId || undefined,
         assignedEntityId: updated.assignedEntityId || undefined,
         assignedTrigger: updated.assignedTrigger || undefined,
         assignedAction: updated.assignedAction,
@@ -58,7 +59,8 @@ export class AdminTranscriptEditDialogComponent {
       );
 
       this.snackBar.open('Transkript erfolgreich gespeichert', 'OK', { duration: 3000 });
-      this.dialogRef.close(true);
+      // Return the updated transcript id to caller
+      this.dialogRef.close(this.transcript._id);
     } catch (error) {
       console.error('Failed to save transcript:', error);
       this.snackBar.open('Fehler beim Speichern', 'OK', { duration: 3000 });
@@ -71,4 +73,3 @@ export class AdminTranscriptEditDialogComponent {
     this.dialogRef.close(false);
   }
 }
-

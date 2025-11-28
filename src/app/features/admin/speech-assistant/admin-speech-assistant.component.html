@@ -392,8 +392,8 @@
                 <ng-container matColumnDef="isValid">
                   <th mat-header-cell *matHeaderCellDef>Valid</th>
                   <td mat-cell *matCellDef="let row">
-                    <mat-icon [class.valid]="row.isValid" [class.invalid]="!row.isValid">
-                      {{ row.isValid ? 'check_circle' : 'cancel' }}
+                    <mat-icon [class.green]="recentlyUpdated.has(row._id)" [class.yellow]="!recentlyUpdated.has(row._id)">
+                      {{ recentlyUpdated.has(row._id) ? 'check_circle' : 'check_circle' }}
                     </mat-icon>
                   </td>
                 </ng-container>

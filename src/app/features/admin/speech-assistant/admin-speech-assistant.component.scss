@@ -148,6 +148,15 @@ mat-icon.invalid {
   color: #f44336;
 }
 
+// Valid icon colors: default yellow, recently updated green
+mat-icon.yellow {
+  color: #fdd835; /* amber 600-ish */
+}
+
+mat-icon.green {
+  color: #4caf50; /* green */
+}
+
 .hint {
   display: block;
   font-size: 0.85em;

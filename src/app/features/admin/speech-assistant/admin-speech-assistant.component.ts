@@ -175,6 +175,9 @@ export class AdminSpeechAssistantComponent implements OnInit {
   expandedElement: Transcript | null = null;
   isSavingTranscriptId: string | null = null;
 
+  // Track recently updated transcripts to show green
+  recentlyUpdated = new Set<string>();
+
   /** Aktiver Tab-Index, wird in der URL mitgeführt, damit Back/Reload den Tab erhalten */
   activeTabIndex = 0;
 
@@ -435,6 +438,13 @@ export class AdminSpeechAssistantComponent implements OnInit {
       this.transcripts = response.transcripts;
       this.pagination = response.pagination;
       console.log('Loaded transcripts:', this.transcripts.length);
+
+      // Keep recentlyUpdated but remove ids that are no longer in the loaded page
+      const loadedIds = new Set(this.transcripts.map(t => t._id));
+      this.recentlyUpdated = new Set(Array.from(this.recentlyUpdated).filter(id => loadedIds.has(id)));
+
+      // Close expanded element after loading
+      this.expandedElement = null;
     } catch (error) {
       console.error('Failed to load transcripts:', error);
     }
@@ -475,7 +485,10 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
     const result = await dialogRef.afterClosed().toPromise();
     if (result) {
-      // Refresh transcripts after successful save
+      // If dialog returned an id, mark it as recently updated and refresh list
+      if (typeof result === 'string') {
+        this.recentlyUpdated.add(result);
+      }
       await this.loadTranscripts();
     }
   }
@@ -943,8 +956,11 @@ export class AdminSpeechAssistantComponent implements OnInit {
       // Update local data
       const index = this.transcripts.findIndex(t => t._id === updated._id);
       if (index !== -1) {
-        this.transcripts[index] = { ...this.transcripts[index], ...payload };
+        this.transcripts[index] = { ...this.transcripts[index], ...payload } as Transcript;
       }
+
+      // mark as recently updated (will show green)
+      this.recentlyUpdated.add(updated._id);
 
       this.snackBar.open('Transkript erfolgreich gespeichert', 'OK', { duration: 3000 });
       this.expandedElement = null; // Close the expanded row after save

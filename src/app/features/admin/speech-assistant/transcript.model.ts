@@ -29,6 +29,7 @@ export interface Transcript {
   error?: string;
   createdAt: string;
   assignedAreaId?: string;
+  assignedDeviceId?: string;
   assignedEntityId?: string;
   assignedAction?: {
     type: string;
@@ -71,3 +72,12 @@ export interface ActionParam {
   options?: Array<{ value: any; label: string }>;
 }
 
+export interface Device {
+  device_id: string;
+  name?: string;
+  area_id?: string;
+  model?: string;
+  manufacturer?: string;
+  // Optional list of entity_ids that belong to this device
+  entities?: string[];
+}
