@@ -34,205 +34,21 @@
       <div class="original-transcript">{{ transcript.transcript }}</div>
     </div>
 
-    <!-- AI Adjusted Text -->
-    <div class="section">
-      <mat-form-field class="full-width">
-        <mat-label>Korrigierter Text</mat-label>
-        <textarea matInput [(ngModel)]="aiAdjustedText" rows="3" placeholder="Korrigiere das Transkript falls nötig..."></textarea>
-        <mat-hint>Dieser Text wird für die Verarbeitung verwendet</mat-hint>
-      </mat-form-field>
-    </div>
-
-    <!-- Area Selection -->
-    <div class="section">
-      <h3>Area Auswahl</h3>
-
-      <div class="warning-box" *ngIf="areas.length === 0">
-        <mat-icon>warning</mat-icon>
-        <div class="warning-content">
-          <p><strong>Keine Areas gefunden!</strong></p>
-          <p>Bitte importieren Sie die Home Assistant Daten im <a href="/admin/areas" target="_blank">Areas Admin-Bereich</a>.</p>
-        </div>
-      </div>
-
-      <mat-form-field class="full-width">
-        <mat-label>Area suchen</mat-label>
-        <input matInput
-               [(ngModel)]="areaSearchTerm"
-               (input)="onAreaSearchChange()"
-               placeholder="Suche nach Area...">
-        <mat-icon matPrefix>search</mat-icon>
-      </mat-form-field>
-
-      <mat-form-field class="full-width">
-        <mat-label>Area</mat-label>
-        <mat-select [(ngModel)]="selectedAreaId" (selectionChange)="selectArea(selectedAreaId)">
-          <mat-option value="">Keine Area</mat-option>
-          <mat-option *ngFor="let area of filteredAreas" [value]="area.area_id">
-            {{ area.name }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
-
-    <!-- Entity Search & Selection -->
-    <div class="section">
-      <h3>Entität Auswahl</h3>
-
-      <div class="warning-box" *ngIf="!isSearchingEntities && entities.length === 0 && !selectedEntity && !entitySearchTerm">
-        <mat-icon>warning</mat-icon>
-        <div class="warning-content">
-          <p><strong>Keine Entitäten gefunden!</strong></p>
-          <p>Bitte importieren Sie die Home Assistant Daten im <a href="/admin/areas" target="_blank">Areas Admin-Bereich</a>.</p>
-        </div>
-      </div>
-
-      <mat-form-field class="full-width">
-        <mat-label>Entität suchen</mat-label>
-        <input matInput
-               [(ngModel)]="entitySearchTerm"
-               (input)="searchEntities()"
-               placeholder="Suche nach Entität...">
-        <mat-icon matPrefix>search</mat-icon>
-        <mat-spinner *ngIf="isSearchingEntities" matSuffix diameter="20"></mat-spinner>
-        <mat-hint>Erste 50 steuerbare Entitäten werden angezeigt. Suchen Sie für mehr.</mat-hint>
-      </mat-form-field>
-
-      <div class="entity-results" *ngIf="entities.length > 0 && !selectedEntity">
-        <div class="entity-item"
-             *ngFor="let entity of entities"
-             [class.selected]="entity.entity_id === selectedEntityId"
-             (click)="selectEntity(entity.entity_id)">
-          <div class="entity-header">
-            <strong>{{ getEntityDisplayName(entity) }}</strong>
-            <span class="entity-id">{{ entity.entity_id }}</span>
-          </div>
-          <div class="entity-state">Status: {{ entity.state }}</div>
-        </div>
-      </div>
-
-      <div class="no-entities" *ngIf="entities.length === 0 && !isSearchingEntities && !selectedEntity">
-        <mat-icon>info</mat-icon>
-        <p>Keine Entitäten gefunden. Versuchen Sie eine andere Suche.</p>
-      </div>
-
-      <div class="selected-entity" *ngIf="selectedEntity">
-        <mat-icon>check_circle</mat-icon>
-        <span>Ausgewählt: <strong>{{ getEntityDisplayName(selectedEntity) }}</strong></span>
-        <button mat-icon-button (click)="clearEntitySelection()" matTooltip="Andere Entität wählen">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-    </div>
-
-    <!-- Action Selection -->
-    <div class="section" *ngIf="availableActions.length > 0">
-      <h3>Aktion Auswahl</h3>
-      <mat-form-field class="full-width">
-        <mat-label>Aktion</mat-label>
-        <mat-select [(ngModel)]="selectedAction" (selectionChange)="selectAction(selectedAction!)">
-          <mat-option [value]="null">Keine Aktion</mat-option>
-          <mat-option *ngFor="let action of availableActions" [value]="action">
-            {{ action.label }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <!-- Action Parameters -->
-      <div class="action-params" *ngIf="selectedAction && selectedAction.params && selectedAction.params.length > 0">
-        <h4>Parameter</h4>
-
-        <div *ngFor="let param of selectedAction.params" class="param-control">
-          <!-- Slider -->
-          <div *ngIf="param.type === 'slider'" class="slider-param">
-            <label>{{ param.label }}</label>
-            <div class="slider-container">
-              <mat-slider
-                [min]="param.min || 0"
-                [max]="param.max || 100"
-                [step]="param.step || 1"
-                [discrete]="true"
-                [showTickMarks]="true">
-                <input matSliderThumb [(ngModel)]="actionParams[param.name]">
-              </mat-slider>
-              <span class="slider-value">{{ getParamValue(param.name) }}{{ param.unit || '' }}</span>
-            </div>
-          </div>
-
-          <!-- Number Input -->
-          <mat-form-field *ngIf="param.type === 'number'" class="full-width">
-            <mat-label>{{ param.label }}</mat-label>
-            <input matInput
-                   type="number"
-                   [(ngModel)]="actionParams[param.name]"
-                   [attr.min]="param.min"
-                   [attr.max]="param.max"
-                   [attr.step]="param.step || 1">
-            <span matSuffix *ngIf="param.unit">{{ param.unit }}</span>
-          </mat-form-field>
-
-          <!-- Color Picker -->
-          <div *ngIf="param.type === 'color'" class="color-param">
-            <label>{{ param.label }}</label>
-            <input type="color"
-                   class="color-input"
-                   (change)="onColorChange(param.name, $event)">
-            <span class="color-value" *ngIf="getParamValue(param.name)">
-              RGB: {{ getParamValue(param.name).join(', ') }}
-            </span>
-          </div>
-
-          <!-- Select -->
-          <mat-form-field *ngIf="param.type === 'select'" class="full-width">
-            <mat-label>{{ param.label }}</mat-label>
-            <mat-select [(ngModel)]="actionParams[param.name]">
-              <mat-option *ngFor="let option of param.options" [value]="option.value">
-                {{ option.label }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <!-- Text Input -->
-          <mat-form-field *ngIf="param.type === 'text'" class="full-width">
-            <mat-label>{{ param.label }}</mat-label>
-            <input matInput [(ngModel)]="actionParams[param.name]">
-          </mat-form-field>
-        </div>
-      </div>
-    </div>
-
-    <!-- Trigger -->
-    <div class="section">
-      <mat-form-field class="full-width">
-        <mat-label>Trigger (Natural Language)</mat-label>
-        <textarea matInput [(ngModel)]="assignedTrigger" rows="2" placeholder="Z.B. 'Licht im Wohnzimmer einschalten'"></textarea>
-        <mat-hint>Natürlichsprachiger Auslöser für diese Aktion</mat-hint>
-      </mat-form-field>
-    </div>
-
-    <!-- Summary -->
-    <div class="summary-section" *ngIf="selectedEntity && selectedAction">
-      <h3>Zusammenfassung</h3>
-      <div class="summary-content">
-        <p><strong>Area:</strong> {{ selectedAreaId || 'Keine' }}</p>
-        <p><strong>Entität:</strong> {{ getEntityDisplayName(selectedEntity) }}</p>
-        <p><strong>Aktion:</strong> {{ selectedAction.label }}</p>
-        <p *ngIf="selectedAction.params && selectedAction.params.length > 0">
-          <strong>Parameter:</strong>
-          <span *ngFor="let param of selectedAction.params; let last = last">
-            {{ param.label }}: {{ getParamValue(param.name) }}{{ param.unit || '' }}{{ !last ? ', ' : '' }}
-          </span>
-        </p>
-        <p><strong>Trigger:</strong> {{ assignedTrigger }}</p>
-      </div>
-    </div>
+    <!-- Reusable Form Component -->
+    <app-transcript-assignment-form
+      #formComponent
+      [transcript]="transcript"
+      [showButtons]="false"
+      (save)="onSave($event)"
+      (cancelled)="onCancel()">
+    </app-transcript-assignment-form>
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-button (click)="cancel()">Abbrechen</button>
-    <button mat-raised-button color="primary" (click)="save()" [disabled]="!aiAdjustedText">
+    <button mat-button (click)="onCancel()" [disabled]="isSaving">Abbrechen</button>
+    <button mat-raised-button color="primary" (click)="formComponent.onSave()" [disabled]="isSaving">
       <mat-icon>save</mat-icon>
-      Speichern
+      {{ isSaving ? 'Speichere...' : 'Speichern' }}
     </button>
   </mat-dialog-actions>
 </div>

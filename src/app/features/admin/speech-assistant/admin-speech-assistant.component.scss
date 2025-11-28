@@ -99,6 +99,42 @@
   color: #4caf50;
 }
 
+// Expandable row styles
+.transcript-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  &.expanded-row {
+    background-color: rgba(63, 81, 181, 0.08);
+  }
+}
+
+.detail-row {
+  height: 0;
+  overflow: hidden;
+}
+
+.expanded-row-container {
+  overflow: hidden;
+}
+
+.expanded-row-content {
+  padding: 1.5rem;
+  background-color: #fafafa;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+
+  h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
 .warn {
   color: var(--warn-color, #ff9800);
   font-weight: bold;
