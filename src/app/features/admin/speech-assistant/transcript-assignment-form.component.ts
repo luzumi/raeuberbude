@@ -568,4 +568,14 @@ export class TranscriptAssignmentFormComponent implements OnInit {
   getEntityDisplayName(entity: Entity): string {
     return entity.attributes?.friendly_name || entity.entity_id;
   }
+
+  selectEntity(entityId: string): void {
+    this.selectedEntityId = entityId;
+    this.loadEntity(entityId).catch(err => console.error('selectEntity error', err));
+  }
+
+  clearEntitySelection(): void {
+    this.selectedEntity = null;
+    this.selectedEntityId = '';
+  }
 }

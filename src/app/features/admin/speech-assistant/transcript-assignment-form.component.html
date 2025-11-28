@@ -21,7 +21,10 @@
 
   <!-- Area Selection as autocomplete (search + select combined) -->
   <div class="section">
-    <h4>Area Auswahl</h4>
+    <h4>
+      Area Auswahl
+      <mat-icon *ngIf="areas.length === 0" class="small-warning-icon" matTooltip="Keine Areas gefunden! Bitte importieren Sie die Home Assistant Daten im Areas Admin-Bereich (Admin → Areas)." matTooltipPosition="above">warning</mat-icon>
+    </h4>
 
     <mat-form-field class="full-width">
       <mat-label>Area wählen oder suchen</mat-label>
@@ -33,14 +36,6 @@
       </mat-autocomplete>
       <mat-icon matPrefix>search</mat-icon>
     </mat-form-field>
-
-    <div class="warning-box" *ngIf="areas.length === 0">
-      <mat-icon>warning</mat-icon>
-      <div class="warning-content">
-        <p><strong>Keine Areas gefunden!</strong></p>
-        <p>Bitte importieren Sie die Home Assistant Daten im <a href="/admin/areas" target="_blank">Areas Admin-Bereich</a>.</p>
-      </div>
-    </div>
   </div>
 
   <!-- Devices section (between areas and entities) -->
