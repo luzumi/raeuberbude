@@ -1,0 +1,245 @@
+.transcript-assignment-form {
+  .section {
+    margin-bottom: 1.5rem;
+
+    h4 {
+      margin: 0 0 1rem 0;
+      font-size: 1rem;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.87);
+    }
+
+    h5 {
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  .warning-box {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+
+    mat-icon {
+      color: #ffc107;
+    }
+
+    .warning-content {
+      flex: 1;
+
+      p {
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+      }
+
+      strong {
+        color: #d39e00;
+      }
+
+      a {
+        color: #0066cc;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  .entity-results {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    margin-top: 0.5rem;
+
+    .entity-item {
+      padding: 0.75rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+
+      &.selected {
+        background-color: rgba(63, 81, 181, 0.1);
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .entity-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.25rem;
+
+        strong {
+          font-size: 0.95rem;
+        }
+
+        .entity-id {
+          font-size: 0.8rem;
+          color: rgba(0, 0, 0, 0.54);
+          font-family: monospace;
+        }
+      }
+
+      .entity-state {
+        font-size: 0.85rem;
+        color: rgba(0, 0, 0, 0.6);
+      }
+    }
+  }
+
+  .no-entities {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    text-align: center;
+    color: rgba(0, 0, 0, 0.54);
+
+    mat-icon {
+      color: rgba(0, 0, 0, 0.38);
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+  }
+
+  .selected-entity {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background-color: rgba(76, 175, 80, 0.1);
+    border-radius: 4px;
+    margin-top: 0.5rem;
+
+    mat-icon:first-child {
+      color: #4caf50;
+    }
+
+    span {
+      flex: 1;
+      font-size: 0.9rem;
+    }
+  }
+
+  .action-params {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+
+    .param-control {
+      margin-bottom: 1rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .slider-param {
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        color: rgba(0, 0, 0, 0.6);
+      }
+
+      .slider-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+
+        mat-slider {
+          flex: 1;
+        }
+
+        .slider-value {
+          font-weight: 500;
+          min-width: 60px;
+          text-align: right;
+        }
+      }
+    }
+
+    .color-param {
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        color: rgba(0, 0, 0, 0.6);
+      }
+
+      .color-input {
+        width: 60px;
+        height: 40px;
+        border: 1px solid rgba(0, 0, 0, 0.23);
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .color-value {
+        margin-left: 1rem;
+        font-size: 0.85rem;
+        color: rgba(0, 0, 0, 0.6);
+        font-family: monospace;
+      }
+    }
+  }
+
+  .summary-section {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: rgba(63, 81, 181, 0.05);
+    border-left: 4px solid #3f51b5;
+    border-radius: 4px;
+
+    h4 {
+      margin: 0 0 0.75rem 0;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #3f51b5;
+    }
+
+    .summary-content {
+      p {
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+
+        strong {
+          color: rgba(0, 0, 0, 0.87);
+        }
+      }
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+  }
+}
+

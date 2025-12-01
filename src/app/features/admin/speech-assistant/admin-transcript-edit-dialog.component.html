@@ -1,0 +1,55 @@
+<div class="transcript-edit-dialog">
+  <h2 mat-dialog-title>
+    <mat-icon>edit</mat-icon>
+    Transkript bearbeiten
+  </h2>
+
+  <mat-dialog-content>
+    <!-- Metadaten -->
+    <div class="metadata-section">
+      <h3>Metadaten</h3>
+      <div class="metadata-grid">
+        <div class="metadata-item">
+          <label>Zeitstempel:</label>
+          <span>{{ transcript.createdAt | date:'medium' }}</span>
+        </div>
+        <div class="metadata-item">
+          <label>User ID:</label>
+          <span>{{ transcript.userId }}</span>
+        </div>
+        <div class="metadata-item" *ngIf="transcript.terminalId">
+          <label>Terminal:</label>
+          <span>{{ transcript.terminalId }}</span>
+        </div>
+        <div class="metadata-item">
+          <label>STT Confidence:</label>
+          <span class="confidence-badge">{{ (transcript.sttConfidence * 100) | number:'1.0-0' }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Original Transcript -->
+    <div class="section">
+      <h3>Original Transkript</h3>
+      <div class="original-transcript">{{ transcript.transcript }}</div>
+    </div>
+
+    <!-- Reusable Form Component -->
+    <app-transcript-assignment-form
+      #formComponent
+      [transcript]="transcript"
+      [showButtons]="false"
+      (save)="onSave($event)"
+      (cancelled)="onCancel()">
+    </app-transcript-assignment-form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()" [disabled]="isSaving">Abbrechen</button>
+    <button mat-raised-button color="primary" (click)="formComponent.onSave()" [disabled]="isSaving">
+      <mat-icon>save</mat-icon>
+      {{ isSaving ? 'Speichere...' : 'Speichern' }}
+    </button>
+  </mat-dialog-actions>
+</div>
+

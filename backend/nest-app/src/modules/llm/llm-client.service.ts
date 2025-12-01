@@ -60,43 +60,19 @@ export class LlmClientService {
       stream: options.stream || false,
     };
 
-    // Apply instance config (with defaults)
-    // WICHTIG: Immer ALLE Parameter senden, damit LM Studio sie erhält!
-    const config = instance.config || {};
+    // ULTRA-MINIMAL: NUR messages, KEINE Parameter mehr
+    // Selbst temperature/max_tokens können Template-Errors verursachen
+    // LM Studio verwendet dann eigene Defaults
 
-    // Basic parameters (IMMER senden)
-    requestBody.temperature = config.temperature ?? 0.3;
-    requestBody.max_tokens = config.maxTokens ?? 500;
-
-    // LM-Studio specific sampling parameters (IMMER senden mit Defaults)
-    requestBody.top_k = config.topK ?? 40;
-    requestBody.top_p = config.topP ?? 0.95;
-    requestBody.repeat_penalty = config.repeatPenalty ?? 1.1;
-    requestBody.min_p = config.minPSampling ?? 0.05;
-
-    // LM-Studio specific performance parameters (nur wenn explizit gesetzt)
-    if (config.contextLength !== undefined) requestBody.n_ctx = config.contextLength;
-    if (config.evalBatchSize !== undefined) requestBody.n_batch = config.evalBatchSize;
-    if (config.cpuThreads !== undefined) requestBody.n_threads = config.cpuThreads;
-    if (config.gpuOffload !== undefined) requestBody.n_gpu_layers = config.gpuOffload ? -1 : 0;
-    if (config.keepModelInMemory !== undefined) requestBody.cache_prompt = config.keepModelInMemory;
-    if (config.flashAttention !== undefined) requestBody.flash_attn = config.flashAttention;
-
-    this.logger.log(`Sending request to LM Studio with parameters:`, {
+    this.logger.log(`Sending ULTRA-MINIMAL request (NO parameters):`, {
       model: requestBody.model,
-      temperature: requestBody.temperature,
-      max_tokens: requestBody.max_tokens,
-      top_k: requestBody.top_k,
-      top_p: requestBody.top_p,
-      repeat_penalty: requestBody.repeat_penalty,
-      min_p: requestBody.min_p,
-      n_ctx: requestBody.n_ctx,
-      n_batch: requestBody.n_batch,
-      n_threads: requestBody.n_threads,
+      message_count: requestBody.messages.length,
+      note: 'No temperature/max_tokens - LM Studio uses defaults'
     });
 
     try {
-      const timeout = config.timeoutMs || 30000;
+      // Use default timeout (config removed for ultra-minimal approach)
+      const timeout = 30000; // 30 seconds
 
       const response = await lastValueFrom(
         this.http.post(instance.url, requestBody, {

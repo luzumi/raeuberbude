@@ -2,6 +2,7 @@ import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import {MatCheckboxModule} from '@angular/material/checkbox';
@@ -16,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { lastValueFrom } from 'rxjs';
 import { CategoryService } from '../../../core/services/category.service';
 import { LlmService } from '../../../core/services/llm.service';
@@ -27,7 +29,10 @@ import { environment } from '../../../../environments/environment';
 import { resolveBackendBase } from '../../../core/utils/backend';
 import { AdminGlobalConfigDialogComponent } from './admin-global-config-dialog.component';
 import { AdminLlmConfigComponent } from './admin-llm-config.component';
+import { AdminTranscriptEditDialogComponent } from './admin-transcript-edit-dialog.component';
+import { TranscriptAssignmentFormComponent } from './transcript-assignment-form.component';
 import { FrontendLoggingService } from '../../../core/services/frontend-logging.service';
+import { Transcript } from './transcript.model';
 
 interface LlmConfig {
   url: string;
@@ -57,35 +62,6 @@ interface LlmConfig {
   vCacheQuant?: boolean;
 }
 
-interface Transcript {
-  _id: string;
-  userId: string;
-  terminalId?: string;
-  transcript: string;
-  sttConfidence: number;
-  aiAdjustedText?: string;
-  suggestions?: string[];
-  suggestionFlag: boolean;
-  category: string;
-  isValid: boolean;
-  confidence: number;
-  hasAmbiguity: boolean;
-  clarificationNeeded: boolean;
-  clarificationQuestion?: string;
-  durationMs: number;
-  timings: {
-    sttMs?: number;
-    preProcessMs?: number;
-    llmMs?: number;
-    dbMs?: number;
-    networkMs?: number;
-  };
-  model: string;
-  llmProvider: string;
-  fallbackUsed: boolean;
-  error?: string;
-  createdAt: string;
-}
 
 interface TranscriptsResponse {
   transcripts: Transcript[];
@@ -134,10 +110,19 @@ interface Stats {
     MatDialogModule,
     MatSnackBarModule,
     MatCheckboxModule,
+    MatTooltipModule,
     AdminLlmConfigComponent,
+    TranscriptAssignmentFormComponent,
   ],
   templateUrl: './admin-speech-assistant.component.html',
-  styleUrls: ['./admin-speech-assistant.component.scss']
+  styleUrls: ['./admin-speech-assistant.component.scss'],
+  animations: [
+    trigger('detailExpand', [
+      state('collapsed', style({ height: '0px', minHeight: '0' })),
+      state('expanded', style({ height: '*' })),
+      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
+    ]),
+  ],
 })
 export class AdminSpeechAssistantComponent implements OnInit {
   config: LlmConfig = {
@@ -185,6 +170,13 @@ export class AdminSpeechAssistantComponent implements OnInit {
   // Checkboxen für Transcripts
   selectedTranscripts = new Set<string>();
   bulkCategory = '';
+
+  // Expandable rows for inline editing
+  expandedElement: Transcript | null = null;
+  isSavingTranscriptId: string | null = null;
+
+  // Track recently updated transcripts to show green
+  recentlyUpdated = new Set<string>();
 
   /** Aktiver Tab-Index, wird in der URL mitgeführt, damit Back/Reload den Tab erhalten */
   activeTabIndex = 0;
@@ -446,6 +438,13 @@ export class AdminSpeechAssistantComponent implements OnInit {
       this.transcripts = response.transcripts;
       this.pagination = response.pagination;
       console.log('Loaded transcripts:', this.transcripts.length);
+
+      // Keep recentlyUpdated but remove ids that are no longer in the loaded page
+      const loadedIds = new Set(this.transcripts.map(t => t._id));
+      this.recentlyUpdated = new Set(Array.from(this.recentlyUpdated).filter(id => loadedIds.has(id)));
+
+      // Close expanded element after loading
+      this.expandedElement = null;
     } catch (error) {
       console.error('Failed to load transcripts:', error);
     }
@@ -472,10 +471,26 @@ export class AdminSpeechAssistantComponent implements OnInit {
     this.loadTranscripts();
   }
 
-  viewDetails(transcript: Transcript): void {
+  async viewDetails(transcript: Transcript): Promise<void> {
     console.log('View details:', transcript);
-    // TODO: Open detail dialog
-    alert(`Details:\n\n${JSON.stringify(transcript, null, 2)}`);
+
+    const dialogRef = this.dialog.open(AdminTranscriptEditDialogComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { transcript },
+      disableClose: false,
+      panelClass: 'transcript-edit-dialog-container'
+    });
+
+    const result = await dialogRef.afterClosed().toPromise();
+    if (result) {
+      // If dialog returned an id, mark it as recently updated and refresh list
+      if (typeof result === 'string') {
+        this.recentlyUpdated.add(result);
+      }
+      await this.loadTranscripts();
+    }
   }
 
   // ===== Neue Methoden =====
@@ -916,6 +931,45 @@ export class AdminSpeechAssistantComponent implements OnInit {
     } catch (error) {
       console.error('Failed to bulk update:', error);
       this.snackBar.open('Fehler beim Bulk-Update', 'OK', { duration: 3000 });
+    }
+  }
+
+  // Inline save from expandable row
+  async onInlineSave(updated: Transcript): Promise<void> {
+    if (!updated._id) return;
+
+    this.isSavingTranscriptId = updated._id;
+
+    const payload: Partial<Transcript> = {
+      aiAdjustedText: updated.aiAdjustedText,
+      assignedAreaId: updated.assignedAreaId || undefined,
+      assignedEntityId: updated.assignedEntityId || undefined,
+      assignedTrigger: updated.assignedTrigger || undefined,
+      assignedAction: updated.assignedAction,
+      manuallyValid: (updated as any).manuallyValid,
+    };
+
+    try {
+      await lastValueFrom(
+        this.http.put(`${this.backendUrl}/api/transcripts/${updated._id}`, payload, { withCredentials: true })
+      );
+
+      // Update local data
+      const index = this.transcripts.findIndex(t => t._id === updated._id);
+      if (index !== -1) {
+        this.transcripts[index] = { ...this.transcripts[index], ...payload } as Transcript;
+      }
+
+      // mark as recently updated (will show green)
+      this.recentlyUpdated.add(updated._id);
+
+      this.snackBar.open('Transkript erfolgreich gespeichert', 'OK', { duration: 3000 });
+      this.expandedElement = null; // Close the expanded row after save
+    } catch (error) {
+      console.error('Failed to save transcript:', error);
+      this.snackBar.open('Fehler beim Speichern', 'OK', { duration: 3000 });
+    } finally {
+      this.isSavingTranscriptId = null;
     }
   }
 

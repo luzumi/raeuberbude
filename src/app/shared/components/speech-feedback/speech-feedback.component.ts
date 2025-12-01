@@ -204,7 +204,7 @@ export class SpeechFeedbackComponent implements OnInit, OnDestroy {
 
   private autoHideTimer?: number;
 
-  constructor(private speechService: SpeechService) {}
+  constructor(private readonly speechService: SpeechService) {}
 
   ngOnInit(): void {
     // Auf Validierungsergebnisse reagieren

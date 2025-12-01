@@ -38,13 +38,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "2MB",
+                  "maximumError": "4MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "64kB",
+                  "maximumError": "128kB"
                 }
               ],
               "outputHashing": "all"
@@ -79,7 +79,7 @@
               "sslCert": "ssl/localhost.crt",
               "sslKey": "ssl/localhost.key",
               "host": "0.0.0.0",
-              "port": 4200
+              "port": 4301
             }
           },
           "defaultConfiguration": "development"

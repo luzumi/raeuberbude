@@ -156,7 +156,7 @@ SICHERHEIT:
     };
      // Get current runtime config to use as base URL
      const config = await this.getLlmConfig();
-     const baseUrl = config.url || 'http://192.168.56.1:1234';
+     const baseUrl = config.url || 'http://127.0.0.1:1234';
 
     // Normalize base URL
     const normalizedBaseUrl = this.normalizeUrl(baseUrl);
@@ -241,7 +241,7 @@ SICHERHEIT:
       }
 
       if (!instance) {
-        // Create new instance
+        // Create new instance with safe default config
         instance = await this.llmInstanceModel.create({
           name: `LM Studio @ ${new URL(normalizedBaseUrl).hostname}`,
           url: chatCompletionsUrl,
@@ -250,9 +250,17 @@ SICHERHEIT:
           isActive: false,
           health,
           lastHealthCheck: new Date(),
-          systemPrompt: ''
+          systemPrompt: '',
+          config: {
+            temperature: 0.3,
+            maxTokens: 500,
+            topK: 40,
+            topP: 0.95,
+            repeatPenalty: 1.1,
+            minPSampling: 0.05
+          }
         });
-        this.logger.log(`Created instance for model: ${modelId}`);
+        this.logger.log(`Created instance for model: ${modelId} with default config`);
       } else {
         // Update existing instance
         instance.health = health;

@@ -21,6 +21,32 @@ import { firstValueFrom } from 'rxjs';
     MatSnackBarModule,
     HeaderComponent,
   ],
+  styles: [`
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      text-align: center;
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      margin: 24px 0;
+    }
+    .empty-state mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: #ff9800;
+      margin-bottom: 16px;
+    }
+    .empty-state p {
+      margin: 0;
+      color: #856404;
+      font-size: 16px;
+    }
+  `],
   template: `
     <app-header></app-header>
     <div class="admin-page">
@@ -43,6 +69,15 @@ import { firstValueFrom } from 'rxjs';
               <mat-icon>refresh</mat-icon>
               Aktualisieren
             </button>
+            <button mat-raised-button color="accent" (click)="reimport()" [disabled]="isImporting">
+              <mat-icon>cloud_download</mat-icon>
+              {{ isImporting ? 'Importiere...' : 'HA Daten neu importieren' }}
+            </button>
+          </div>
+
+          <div *ngIf="areas.length === 0" class="empty-state">
+            <mat-icon>warning</mat-icon>
+            <p>Keine Areas gefunden. Bitte importieren Sie die Home Assistant Daten.</p>
           </div>
 
           <table mat-table [dataSource]="areas" class="mat-elevation-z1 admin-table">
@@ -95,6 +130,7 @@ import { firstValueFrom } from 'rxjs';
 export class AdminAreasComponent implements OnInit {
   areas: any[] = [];
   displayedColumns = ['areaId', 'name', 'aliases', 'floor', 'icon', 'actions'];
+  isImporting = false;
 
   constructor(
     private readonly http: HttpClient,
@@ -113,6 +149,43 @@ export class AdminAreasComponent implements OnInit {
     } catch (e) {
       console.error(e);
       this.snack.open('Fehler beim Laden der Bereiche', 'Schließen', { duration: 3000, panelClass: 'snackbar-error' });
+    }
+  }
+
+  async reimport() {
+    if (this.isImporting) return;
+
+    const confirmed = confirm(
+      'Dies importiert die Home Assistant Struktur neu aus der konfigurierten Datei (ha_structure_*.json).\n\n' +
+      'Bereiche, Geräte, Entitäten und Services werden aktualisiert.\n\n' +
+      'Fortfahren?'
+    );
+
+    if (!confirmed) return;
+
+    this.isImporting = true;
+    try {
+      const response: any = await firstValueFrom(
+        this.http.post('/api/homeassistant/import/reimport', {}, { withCredentials: true })
+      );
+
+      this.snack.open(
+        `✅ Import erfolgreich! ${response.stats?.areas || 0} Areas, ${response.stats?.entities || 0} Entities importiert.`,
+        'OK',
+        { duration: 5000 }
+      );
+
+      // Reload areas
+      await this.load();
+    } catch (e: any) {
+      console.error('Re-import failed:', e);
+      this.snack.open(
+        `❌ Import fehlgeschlagen: ${e?.error?.message || e?.message || 'Unbekannter Fehler'}`,
+        'OK',
+        { duration: 5000, panelClass: 'snackbar-error' }
+      );
+    } finally {
+      this.isImporting = false;
     }
   }
 

@@ -177,3 +177,114 @@ export class HaEntitiesController {
     return await this.queryService.getEntityStateHistory(entityId, startDate, endDate);
   }
 }
+
+// Zusätzliche Endpoints für fehlende HA-Modelle
+@ApiTags('HomeAssistant Automations')
+@Controller('api/homeassistant/entities/automations')
+export class HaAutomationsController {
+  constructor(private readonly queryService: HaQueryService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get all automations' })
+  async getAllAutomations() {
+    return await this.queryService.getAllAutomations();
+  }
+
+  @Get(':automationId')
+  @ApiOperation({ summary: 'Get automation by ID' })
+  async getAutomation(@Param('automationId') automationId: string) {
+    return await this.queryService.getAutomationById(automationId);
+  }
+}
+
+@ApiTags('HomeAssistant Persons')
+@Controller('api/homeassistant/entities/persons')
+export class HaPersonsController {
+  constructor(private readonly queryService: HaQueryService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get all persons' })
+  async getAllPersons() {
+    return await this.queryService.getAllPersons();
+  }
+
+  @Get(':personId')
+  @ApiOperation({ summary: 'Get person by ID' })
+  async getPerson(@Param('personId') personId: string) {
+    return await this.queryService.getPersonById(personId);
+  }
+
+  @Get(':personId/location')
+  @ApiOperation({ summary: 'Get person location' })
+  async getPersonLocation(@Param('personId') personId: string) {
+    return await this.queryService.getPersonLocation(personId);
+  }
+}
+
+@ApiTags('HomeAssistant Zones')
+@Controller('api/homeassistant/entities/zones')
+export class HaZonesController {
+  constructor(private readonly queryService: HaQueryService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get all zones' })
+  async getAllZones() {
+    return await this.queryService.getAllZones();
+  }
+
+  @Get(':zoneId')
+  @ApiOperation({ summary: 'Get zone by ID' })
+  async getZone(@Param('zoneId') zoneId: string) {
+    return await this.queryService.getZoneById(zoneId);
+  }
+
+  @Get(':zoneName/persons')
+  @ApiOperation({ summary: 'Get persons in zone' })
+  async getPersonsInZone(@Param('zoneName') zoneName: string) {
+    return await this.queryService.getPersonsInZone(zoneName);
+  }
+}
+
+@ApiTags('HomeAssistant Media Players')
+@Controller('api/homeassistant/entities/media-players')
+export class HaMediaPlayersController {
+  constructor(private readonly queryService: HaQueryService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get all media players' })
+  async getAllMediaPlayers() {
+    return await this.queryService.getAllMediaPlayers();
+  }
+
+  @Get(':entityId')
+  @ApiOperation({ summary: 'Get media player by ID' })
+  async getMediaPlayer(@Param('entityId') entityId: string) {
+    return await this.queryService.getMediaPlayerById(entityId);
+  }
+}
+
+@ApiTags('HomeAssistant Services')
+@Controller('api/homeassistant/entities/services')
+export class HaServicesController {
+  constructor(private readonly queryService: HaQueryService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get all services' })
+  @ApiQuery({ name: 'domain', required: false })
+  async getAllServices(@Query('domain') domain?: string) {
+    if (domain) {
+      return await this.queryService.getServicesByDomain(domain);
+    }
+    return await this.queryService.getAllServices();
+  }
+
+  @Get(':domain/:service')
+  @ApiOperation({ summary: 'Get service by domain and name' })
+  async getService(
+    @Param('domain') domain: string,
+    @Param('service') service: string
+  ) {
+    return await this.queryService.getService(domain, service);
+  }
+}
+

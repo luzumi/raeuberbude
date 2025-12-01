@@ -32,6 +32,18 @@ export const TranscriptSchema = new mongoose.Schema({
   rawResponse: { type: Object },
   error: { type: String },
   fallbackUsed: { type: Boolean, default: false },
+  // Home Assistant Assignment fields
+  assignedAreaId: { type: String, index: true },
+  assignedEntityId: { type: String, index: true },
+  assignedAction: {
+    type: {
+      type: String,
+      label: String,
+      params: Object
+    }
+  },
+  assignedTrigger: { type: String },
+  assignedTriggerAt: { type: Date },
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now }
 });
