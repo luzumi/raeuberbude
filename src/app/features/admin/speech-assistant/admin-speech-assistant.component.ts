@@ -225,8 +225,8 @@ export class AdminSpeechAssistantComponent implements OnInit {
     this.activeTabIndex = Number.isFinite(tabFromUrl) && tabFromUrl >= 0 ? tabFromUrl : 0;
 
     // Asynchrone Initialisierung starten
-    this.initializeComponent().then(() => {
-      console.log('Component initialized');
+    this.initializeComponent().then((r) => {
+      console.log('Component initialized', r);
     });
   }
 

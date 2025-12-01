@@ -44,6 +44,43 @@ try {
   process.exit(1); // Exit if we can't connect to MongoDB
 }
 
+// Migrate: Remove manuallyValid field, ensure clarificationNeeded defaults to true
+async function migrateClarificationNeededField() {
+  try {
+    const db = mongoose.connection.db;
+    const collection = db.collection('transcripts');
+
+    // Remove manuallyValid field from all documents
+    const removeResult = await collection.updateMany(
+      { manuallyValid: { $exists: true } },
+      { $unset: { manuallyValid: '' } }
+    );
+    if (removeResult.modifiedCount > 0) {
+      console.log(`✅ Removed manuallyValid field from ${removeResult.modifiedCount} transcripts`);
+    }
+
+    // Set clarificationNeeded to true for documents where it's missing or false
+    const migrateResult = await collection.updateMany(
+      {
+        $or: [
+          { clarificationNeeded: { $exists: false } },
+          { clarificationNeeded: null }
+        ]
+      },
+      {
+        $set: { clarificationNeeded: true }
+      }
+    );
+    if (migrateResult.modifiedCount > 0) {
+      console.log(`✅ Set clarificationNeeded=true for ${migrateResult.modifiedCount} transcripts`);
+    }
+
+    console.log('✅ Migration complete: clarificationNeeded now controls validation status');
+  } catch (error) {
+    console.error('Failed to migrate clarificationNeeded field:', error);
+  }
+}
+
 // Seed categories on startup
 async function seedCategories() {
   const categories = [
@@ -245,6 +282,7 @@ SICHERHEIT:
 // Initialize on MongoDB connection
 mongoose.connection.once('open', async () => {
   console.log('🔌 MongoDB connected');
+  await migrateClarificationNeededField();
   await seedCategories();
   await scanLlmInstances();
 });
@@ -335,10 +373,12 @@ app.get('/api/transcripts', async (req, res) => {
 // Get single transcript by ID
 app.get('/api/transcripts/:id', async (req, res) => {
   try {
-    const transcript = await Transcript.findById(req.params.id);
+    const transcript = await Transcript.findById(req.params.id).lean();
     if (!transcript) {
       return res.status(404).json({ error: 'Transcript not found' });
     }
+
+
     res.json(transcript);
   } catch (error) {
     console.error('Failed to fetch transcript:', error);
@@ -767,15 +807,19 @@ app.put('/api/llm-instances/:id/system-prompt', async (req, res) => {
 // Update single transcript
 app.put('/api/transcripts/:id', async (req, res) => {
   try {
+    const updateData = { $set: req.body };
+
     const transcript = await Transcript.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
-    );
+    ).lean();
 
     if (!transcript) {
       return res.status(404).json({ error: 'Transcript not found' });
     }
+
+    console.log(`✅ Updated transcript ${req.params.id}`);
 
     res.json(transcript);
   } catch (error) {
