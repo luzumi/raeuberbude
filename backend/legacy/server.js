@@ -36,13 +36,13 @@ const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://
 const maskedUri = mongoUri.replace(/:\/\/(.*@)/, '://****@');
 console.log(`Connecting to MongoDB using: ${maskedUri}`);
 
-mongoose.connect(mongoUri)
-  .then(() => {
-    console.log('MongoDB connection established');
-  })
-  .catch(err => {
-    console.error('MongoDB connection error', err);
-  });
+try {
+  await mongoose.connect(mongoUri);
+  console.log('MongoDB connection established');
+} catch (err) {
+  console.error('MongoDB connection error', err);
+  process.exit(1); // Exit if we can't connect to MongoDB
+}
 
 // Seed categories on startup
 async function seedCategories() {
@@ -71,6 +71,97 @@ async function seedCategories() {
   }
 }
 
+// Check health of an LLM instance
+async function checkInstanceHealth(url) {
+  try {
+    const response = await fetch(url.replace('/chat/completions', '/models'), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(5000)
+    });
+    return response.ok ? 'healthy' : 'unhealthy';
+  } catch (error) {
+    console.error('Health check failed for LLM instance:', error);
+    return 'unhealthy';
+  }
+}
+
+// Create a new LLM instance
+async function createLlmInstance(url, defaultModel) {
+  const health = await checkInstanceHealth(url);
+  const hostname = new URL(url).hostname;
+
+  const instance = await LlmInstance.create({
+    name: `LM Studio @ ${hostname}`,
+    url,
+    model: defaultModel,
+    enabled: true,
+    isActive: false,
+    health,
+    lastHealthCheck: new Date(),
+    systemPrompt: getDefaultSystemPrompt()
+  });
+
+  console.log(`✅ LLM instance registered: ${defaultModel} @ ${hostname}`);
+  return { instance, health };
+}
+
+// Remove duplicate LLM instances
+async function removeDuplicateInstances() {
+  const allInstances = await LlmInstance.find();
+  const urlModelMap = new Map();
+
+  for (const instance of allInstances) {
+    const key = `${instance.url}::${instance.model}`;
+    const existing = urlModelMap.get(key);
+
+    if (existing) {
+      const toDelete = existing.createdAt < instance.createdAt ? existing : instance;
+      const toKeep = existing.createdAt < instance.createdAt ? instance : existing;
+
+      await LlmInstance.findByIdAndDelete(toDelete._id);
+      console.log(`🧹 Removed duplicate: ${toDelete.model} @ ${new URL(toDelete.url).hostname}`);
+      urlModelMap.set(key, toKeep);
+    } else {
+      urlModelMap.set(key, instance);
+    }
+  }
+
+  return urlModelMap;
+}
+
+// Set first available instance as active if none is active
+async function ensureActiveInstanceExists() {
+  const firstInstance = await LlmInstance.findOne({ enabled: true });
+  if (firstInstance) {
+    firstInstance.isActive = true;
+    await firstInstance.save();
+    console.log(`✅ Set ${firstInstance.model} as active LLM (default)`);
+    return true;
+  }
+  return false;
+}
+
+// Process a single URL to ensure it has a corresponding LLM instance
+async function processLlmUrl(url, defaultModel) {
+  const existing = await LlmInstance.findOne({ url });
+  if (existing) {
+    return { hasActiveInstance: existing.isActive };
+  }
+
+  const { instance, health } = await createLlmInstance(url, defaultModel);
+
+  // Set first healthy instance as active
+  if (health === 'healthy') {
+    instance.isActive = true;
+    await instance.save();
+    console.log(`✅ Set ${defaultModel} @ ${new URL(url).hostname} as active LLM`);
+    return { hasActiveInstance: true };
+  }
+
+  return { hasActiveInstance: false };
+}
+
 // Scan LLM instances from environment variables on startup
 async function scanLlmInstances() {
   const llmUrlsString = process.env.LLM_URLS || 'http://192.168.56.1:1234/v1/chat/completions';
@@ -78,82 +169,16 @@ async function scanLlmInstances() {
   const defaultModel = process.env.LLM_MODEL || 'mistralai/mistral-7b-instruct-v0.3';
 
   try {
-    // Bereinige Duplikate: Lösche Instanzen mit gleicher URL+Model Kombination (behalte nur neueste)
-    const allInstances = await LlmInstance.find();
-    const urlModelMap = new Map();
-
-    for (const instance of allInstances) {
-      const key = `${instance.url}::${instance.model}`;
-      const existing = urlModelMap.get(key);
-
-      if (existing) {
-        // Duplikat gefunden - lösche das ältere
-        const toDelete = existing.createdAt < instance.createdAt ? existing : instance;
-        const toKeep = existing.createdAt < instance.createdAt ? instance : existing;
-
-        await LlmInstance.findByIdAndDelete(toDelete._id);
-        console.log(`🧹 Removed duplicate: ${toDelete.model} @ ${new URL(toDelete.url).hostname}`);
-        urlModelMap.set(key, toKeep);
-      } else {
-        urlModelMap.set(key, instance);
-      }
-    }
+    await removeDuplicateInstances();
 
     let hasActiveInstance = false;
-
     for (const url of llmUrls) {
-      // Check if instance already exists
-      const existing = await LlmInstance.findOne({ url });
-
-      if (!existing) {
-        // Test connection
-        let health = 'unknown';
-        try {
-          const response = await fetch(url.replace('/chat/completions', '/models'), {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(5000)
-          });
-          health = response.ok ? 'healthy' : 'unhealthy';
-        } catch (error) {
-          health = 'unhealthy';
-        }
-
-        const instance = await LlmInstance.create({
-          name: `LM Studio @ ${new URL(url).hostname}`,
-          url,
-          model: defaultModel,
-          enabled: true,
-          isActive: false,
-          health,
-          lastHealthCheck: new Date(),
-          systemPrompt: getDefaultSystemPrompt()
-        });
-
-        console.log(`✅ LLM instance registered: ${defaultModel} @ ${new URL(url).hostname}`);
-
-        // Set first healthy instance as active
-        if (!hasActiveInstance && health === 'healthy') {
-          instance.isActive = true;
-          await instance.save();
-          hasActiveInstance = true;
-          console.log(`✅ Set ${defaultModel} @ ${new URL(url).hostname} as active LLM`);
-        }
-      } else {
-        if (existing.isActive) {
-          hasActiveInstance = true;
-        }
-      }
+      const result = await processLlmUrl(url, defaultModel);
+      hasActiveInstance = hasActiveInstance || result.hasActiveInstance;
     }
 
-    // If no active instance exists, set first enabled instance as active
     if (!hasActiveInstance) {
-      const firstInstance = await LlmInstance.findOne({ enabled: true });
-      if (firstInstance) {
-        firstInstance.isActive = true;
-        await firstInstance.save();
-        console.log(`✅ Set ${firstInstance.model} as active LLM (default)`);
-      }
+      await ensureActiveInstanceExists();
     }
   } catch (error) {
     console.error('Failed to scan LLM instances:', error);
@@ -288,17 +313,17 @@ app.get('/api/transcripts', async (req, res) => {
     const total = await Transcript.countDocuments(query);
     const transcripts = await Transcript.find(query)
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit))
+      .limit(Number.parseInt(limit))
+      .skip((Number.parseInt(page) - 1) * Number.parseInt(limit))
       .lean();
 
     res.json({
       transcripts,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / parseInt(limit))
+        page: Number.parseInt(page),
+        limit: Number.parseInt(limit),
+        pages: Math.ceil(total / Number.parseInt(limit))
       }
     });
   } catch (error) {
@@ -378,12 +403,12 @@ app.get('/api/llm-config', async (req, res) => {
     url: process.env.LLM_URL || 'http://192.168.56.1:1234/v1/chat/completions',
     model: process.env.LLM_MODEL || 'mistralai/mistral-7b-instruct-v0.3',
     useGpu: process.env.LLM_USE_GPU === 'true',
-    timeoutMs: parseInt(process.env.LLM_TIMEOUT_MS || '30000'),
-    targetLatencyMs: parseInt(process.env.LLM_TARGET_LATENCY_MS || '2000'),
-    maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '500'),
-    temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.3'),
+    timeoutMs: Number.parseInt(process.env.LLM_TIMEOUT_MS || '30000'),
+    targetLatencyMs: Number.parseInt(process.env.LLM_TARGET_LATENCY_MS || '2000'),
+    maxTokens: Number.parseInt(process.env.LLM_MAX_TOKENS || '500'),
+    temperature: Number.parseFloat(process.env.LLM_TEMPERATURE || '0.3'),
     fallbackModel: process.env.LLM_FALLBACK_MODEL || '',
-    confidenceShortcut: parseFloat(process.env.LLM_CONFIDENCE_SHORTCUT || '0.85'),
+    confidenceShortcut: Number.parseFloat(process.env.LLM_CONFIDENCE_SHORTCUT || '0.85'),
     heuristicBypass: process.env.LLM_HEURISTIC_BYPASS === 'true'
   });
 });
@@ -555,66 +580,92 @@ app.post('/api/llm-instances/scan', async (req, res) => {
   }
 });
 
+// Helper function to remove exact URL::Model duplicates
+async function removeExactDuplicates(instances) {
+  const deleted = [];
+  const urlModelMap = new Map();
+
+  for (const instance of instances) {
+    const key = `${instance.url}::${instance.model}`;
+    const existing = urlModelMap.get(key);
+
+    if (existing) {
+      const toDelete = existing.createdAt < instance.createdAt ? existing : instance;
+      const toKeep = existing.createdAt < instance.createdAt ? instance : existing;
+
+      await LlmInstance.findByIdAndDelete(toDelete._id);
+      deleted.push({ model: toDelete.model, url: toDelete.url, reason: 'exact duplicate' });
+      urlModelMap.set(key, toKeep);
+    } else {
+      urlModelMap.set(key, instance);
+    }
+  }
+
+  return { deleted, remainingInstances: await LlmInstance.find() };
+}
+
+// Helper function to determine if a URL is localhost
+function isLocalhostUrl(url) {
+  return url.includes('localhost') || url.includes('127.0.0.1');
+}
+
+// Helper function to handle localhost vs external IP deduplication
+async function handleLocalhostDuplicates(instances, deleted) {
+  const modelMap = new Map();
+
+  for (const instance of instances) {
+    const existing = modelMap.get(instance.model);
+    const isCurrentLocalhost = isLocalhostUrl(instance.url);
+
+    if (!existing) {
+      modelMap.set(instance.model, instance);
+      continue;
+    }
+
+    const existingIsLocalhost = isLocalhostUrl(existing.url);
+
+    if (isCurrentLocalhost && !existingIsLocalhost) {
+      await deleteInstance(instance, 'localhost duplicate', deleted);
+    } else if (!isCurrentLocalhost && existingIsLocalhost) {
+      await deleteInstance(existing, 'localhost duplicate', deleted);
+      modelMap.set(instance.model, instance);
+    } else {
+      await handleSameTypeInstances(instance, existing, modelMap, deleted);
+    }
+  }
+
+  return modelMap;
+}
+
+// Helper function to delete an instance and track the deletion
+async function deleteInstance(instance, reason, deletedArray) {
+  await LlmInstance.findByIdAndDelete(instance._id);
+  deletedArray.push({ model: instance.model, url: instance.url, reason });
+}
+
+// Helper function to handle instances of the same type (both localhost or both external)
+async function handleSameTypeInstances(instance, existing, modelMap, deleted) {
+  const toDelete = existing.createdAt < instance.createdAt ? existing : instance;
+  const toKeep = existing.createdAt < instance.createdAt ? instance : existing;
+
+  if (toDelete._id !== toKeep._id) {
+    await deleteInstance(toDelete, 'older duplicate', deleted);
+    modelMap.set(instance.model, toKeep);
+  }
+}
+
 // Remove duplicate LLM instances
 app.post('/api/llm-instances/cleanup', async (req, res) => {
   try {
     const allInstances = await LlmInstance.find();
     const deleted = [];
 
-    // Schritt 1: Entferne exakte URL::Model Duplikate
-    const urlModelMap = new Map();
-    for (const instance of allInstances) {
-      const key = `${instance.url}::${instance.model}`;
-      const existing = urlModelMap.get(key);
+    // Step 1: Remove exact URL::Model duplicates
+    const { deleted: exactDupesDeleted, remainingInstances } = await removeExactDuplicates(allInstances);
+    deleted.push(...exactDupesDeleted);
 
-      if (existing) {
-        const toDelete = existing.createdAt < instance.createdAt ? existing : instance;
-        const toKeep = existing.createdAt < instance.createdAt ? instance : existing;
-
-        await LlmInstance.findByIdAndDelete(toDelete._id);
-        deleted.push({ model: toDelete.model, url: toDelete.url, reason: 'exact duplicate' });
-        urlModelMap.set(key, toKeep);
-      } else {
-        urlModelMap.set(key, instance);
-      }
-    }
-
-    // Schritt 2: Entferne localhost-Varianten wenn externe IP existiert
-    const remainingInstances = await LlmInstance.find();
-    const modelMap = new Map();
-
-    for (const instance of remainingInstances) {
-      const existing = modelMap.get(instance.model);
-      const isLocalhost = instance.url.includes('localhost') || instance.url.includes('127.0.0.1');
-
-      if (existing) {
-        const existingIsLocalhost = existing.url.includes('localhost') || existing.url.includes('127.0.0.1');
-
-        // Bevorzuge externe IP über localhost
-        if (isLocalhost && !existingIsLocalhost) {
-          // Lösche localhost-Variante
-          await LlmInstance.findByIdAndDelete(instance._id);
-          deleted.push({ model: instance.model, url: instance.url, reason: 'localhost duplicate' });
-        } else if (!isLocalhost && existingIsLocalhost) {
-          // Lösche alte localhost-Variante, behalte neue externe IP
-          await LlmInstance.findByIdAndDelete(existing._id);
-          deleted.push({ model: existing.model, url: existing.url, reason: 'localhost duplicate' });
-          modelMap.set(instance.model, instance);
-        } else {
-          // Beide localhost oder beide extern - behalte neuere
-          const toDelete = existing.createdAt < instance.createdAt ? existing : instance;
-          const toKeep = existing.createdAt < instance.createdAt ? instance : existing;
-
-          if (toDelete._id !== toKeep._id) {
-            await LlmInstance.findByIdAndDelete(toDelete._id);
-            deleted.push({ model: toDelete.model, url: toDelete.url, reason: 'older duplicate' });
-            modelMap.set(instance.model, toKeep);
-          }
-        }
-      } else {
-        modelMap.set(instance.model, instance);
-      }
-    }
+    // Step 2: Handle localhost vs external IP duplicates
+    await handleLocalhostDuplicates(remainingInstances, deleted);
 
     const remaining = await LlmInstance.find().sort({ createdAt: -1 }).lean();
     res.json({
@@ -624,7 +675,7 @@ app.post('/api/llm-instances/cleanup', async (req, res) => {
       remaining: remaining
     });
   } catch (error) {
-    console.error('Failed to cleanup LLM instances:', error);
+    console.error('Failed to clean up LLM instances:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -640,7 +691,7 @@ app.post('/api/llm-instances/:id/activate', async (req, res) => {
     }
 
     // Health check
-    let health = 'unknown';
+    let health;
     try {
       const response = await fetch(instance.url.replace('/chat/completions', '/models'), {
         method: 'GET',
@@ -650,6 +701,7 @@ app.post('/api/llm-instances/:id/activate', async (req, res) => {
       health = response.ok ? 'healthy' : 'unhealthy';
     } catch (error) {
       health = 'unhealthy';
+      console.error('Health check failed for LLM instance:', error);
     }
 
     if (health !== 'healthy') {
@@ -732,6 +784,22 @@ app.put('/api/transcripts/:id', async (req, res) => {
   }
 });
 
+// Delete single transcript
+app.delete('/api/transcripts/:id', async (req, res) => {
+  try {
+    const transcript = await Transcript.findByIdAndDelete(req.params.id);
+
+    if (!transcript) {
+      return res.status(404).json({ error: 'Transcript not found' });
+    }
+
+    res.json({ success: true, message: 'Transcript deleted' });
+  } catch (error) {
+    console.error('Failed to delete transcript:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Bulk update transcripts
 app.post('/api/transcripts/bulk-update', async (req, res) => {
   try {
@@ -756,7 +824,7 @@ app.post('/api/transcripts/bulk-update', async (req, res) => {
   }
 });
 
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3001;
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`HTTP logging server running on port ${port} (accessible from network)`);
 });
