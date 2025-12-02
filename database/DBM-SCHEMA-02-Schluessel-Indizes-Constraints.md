@@ -78,8 +78,7 @@ Alle Namen sind Vorschläge für die spätere SQL/TypeORM-Implementierung und di
 
 **Beziehungen (referenziert von):**
 - `user_rights.user_id` (1:1)
-- `user_allowed_terminals.user_id` (m:n via Join)
-- `terminal_allowed_users.user_id` (m:n via Join / alternative Sicht)
+- `terminal_allowed_users.user_id` (m:n via Join)
 - `speech_human_inputs.user_id` (1:n)
 - `speech_test_inputs.user_id` (optional 1:n)
 - `speech_transcripts.user_id` (1:n)
