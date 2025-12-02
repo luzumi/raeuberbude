@@ -312,6 +312,7 @@ app.post('/log-action', async (req, res) => {
 // Create a new transcript entry
 app.post('/api/transcripts', async (req, res) => {
   try {
+    console.log('Request; ', req, 'Response', res.body);
     const transcript = await Transcript.create(req.body);
     res.status(201).json(transcript);
   } catch (error) {
@@ -326,6 +327,7 @@ app.get('/api/transcripts', async (req, res) => {
     const {
       page = 1,
       limit = 50,
+      manuallyValid = false,
       userId,
       terminalId,
       model,
@@ -336,6 +338,7 @@ app.get('/api/transcripts', async (req, res) => {
     } = req.query;
 
     const query = {};
+    query.manuallyValid = manuallyValid;
     if (userId) query.userId = userId;
     if (terminalId) query.terminalId = terminalId;
     if (model) query.model = model;

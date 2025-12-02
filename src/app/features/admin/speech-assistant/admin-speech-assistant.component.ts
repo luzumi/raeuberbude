@@ -542,6 +542,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
   async setTranscriptValid(transcript: Transcript): Promise<void> {
     // Wenn bereits als gültig markiert, nichts tun
     if (transcript.manuallyValid) {
+      // TODO: Details anbieten zum Aufheben und anpassen des Transkripts
       this.snackBar.open('Transkript ist bereits als gültig markiert', 'OK', { duration: 2000 });
       return;
     }
