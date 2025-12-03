@@ -18,10 +18,13 @@ export default registerAs( 'database', (): TypeOrmModuleOptions => {
     password,
     database,
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    synchronize: process.env['NODE_ENV'] === 'development',
+    // ⚠️ synchronize deaktiviert - nutze TypeORM Migrations!
+    // Siehe: docs/migrations/LUD28-109-migrations-checklist.md
+    synchronize: false,
     logging: process.env['NODE_ENV'] === 'development',
     migrations: [__dirname + '/../migrations/*{.ts,.js}'],
     migrationsTableName: 'migrations',
+    migrationsRun: false, // Migrations manuell ausführen
     ssl: process.env['DATABASE_SSL'] === 'true'
       ? { rejectUnauthorized: false }
       : false,

@@ -8,7 +8,13 @@
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
-    "import:ha": "ts-node src/cli/import-ha-data.ts"
+    "import:ha": "ts-node src/cli/import-ha-data.ts",
+    "typeorm": "typeorm-ts-node-commonjs -d src/config/typeorm-cli.config.ts",
+    "migration:generate": "npm run typeorm -- migration:generate",
+    "migration:create": "npm run typeorm -- migration:create",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert",
+    "migration:show": "npm run typeorm -- migration:show"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.3",
