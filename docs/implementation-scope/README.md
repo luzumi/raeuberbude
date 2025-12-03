@@ -135,14 +135,22 @@ export class HaEntity {
 - [x] `database/DBM-SCHEMA-03-TypeORM-Mapping.md` (Draft)
 - [x] `database/README.md` (Übersicht)
 
-### LUD28-59.2 (Design) ⏳
-- [ ] `database/entities-spec/*.md` (Per-Entity Specs)
-- [ ] `design/erd-diagramme/LUD28-59-entities-erd.png` (Optional)
-- [ ] `database/DBM-SCHEMA-03-TypeORM-Mapping.md` (Final)
+### LUD28-59.2 (Design) ✅
+- [x] `database/entities-spec/*.md` (Per-Entity Specs)
+- [x] `docs/design-review/erd-diagram-lud28-107.md` (Mermaid ERD)
+- [x] `database/DBM-SCHEMA-03-TypeORM-Mapping.md` (Final)
+- [x] `docs/design-review/LUD28-107-review-notes.md` (Review & Freigabe)
 
 ### LUD28-59.3 (Implementation) ⏳
-- [ ] `backend/nest-app/src/modules/*/entities/*.entity.ts`
+**Dokument:** [LUD28-59.3-implementation-plan.md](./LUD28-59.3-implementation-plan.md)  
+**Ticket:** TBD (LUD28-59.3)  
+**Status:** 📋 Ready to Start
+
+- [ ] `backend/nest-app/src/modules/*/entities/*.entity.ts` (18 Entities)
+- [ ] Enum-Definitionen
+- [ ] Module-Registrierungen
 - [ ] TypeScript-Kompilierung erfolgreich
+- [ ] Entity-Verification-Script
 
 ### LUD28-59.4 (Migrations) ⏳
 - [ ] `backend/nest-app/src/migrations/*.ts`
