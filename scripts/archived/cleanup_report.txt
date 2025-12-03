@@ -1,0 +1,28 @@
+Archived scripts and consolidated docs report
+
+Moved scripts to scripts/archived/:
+- create-firewall-rule.ps1 -> scripts/archived/create-firewall-rule.ps1.disabled
+- check-mcp-status.ps1 -> scripts/archived/check-mcp-status.ps1.disabled
+- check-ports.bat -> scripts/archived/check-ports.bat.disabled
+- apply-ultra-minimal-fix.ps1 -> scripts/archived/apply-ultra-minimal-fix.ps1.disabled
+- test-llm-fixes.ps1 -> scripts/archived/test-llm-fixes.ps1.disabled
+
+Renamed in backend/nest-app/scripts:
+- validate-schema.sql -> validate-schema.sql.disabled
+
+Created unified docs:
+- docs/UNIFIED_DOCS.md
+
+Updated top-level MDs to point to unified doc:
+- README.md
+- AGENTS.md
+- AGENT.md
+- SESSION_SUMMARY.md
+- CLAUDE.md
+- roles.md
+- docs/implementation-scope/LUD28-59-TICKET-OVERVIEW.md
+
+Notes:
+- Changes are conservative: files are not deleted but moved/renamed to avoid breaking automation.
+- If you want full deletion, I can delete the archived files per your instruction.
+

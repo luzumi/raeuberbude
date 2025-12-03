@@ -1,3 +1,5 @@
+<!-- CONSOLIDATED: See docs/UNIFIED_DOCS.md -->
+
 # Agent Roles for Räuberbude
 
 ## Planner Agent

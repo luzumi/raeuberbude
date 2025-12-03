@@ -1,0 +1,63 @@
+{
+  "terminals": [
+    {
+      "terminalId": "TERM-LIVING-TV",
+      "name": "Living Room TV",
+      "description": "Smart TV in living room",
+      "type": "smart-tv",
+      "location": "Living Room",
+      "status": "active",
+      "capabilitiesJson": {
+        "screen": true,
+        "audio": true,
+        "microphone": false,
+        "touchscreen": false
+      },
+      "allowedActionsJson": ["control_lights", "control_media", "view_cameras"],
+      "settingsJson": {
+        "theme": "dark",
+        "voice_feedback": true,
+        "volume": 75
+      }
+    },
+    {
+      "terminalId": "TERM-KITCHEN-TABLET",
+      "name": "Kitchen Tablet",
+      "description": "Tablet mounted in kitchen",
+      "type": "tablet",
+      "location": "Kitchen",
+      "status": "active",
+      "capabilitiesJson": {
+        "screen": true,
+        "audio": true,
+        "microphone": true,
+        "touchscreen": true
+      },
+      "allowedActionsJson": ["control_lights", "control_climate", "view_recipes"],
+      "settingsJson": {
+        "theme": "light",
+        "screen_brightness": 80
+      }
+    },
+    {
+      "terminalId": "TERM-BEDROOM-DISPLAY",
+      "name": "Bedroom Display",
+      "description": "Display in bedroom",
+      "type": "kiosk",
+      "location": "Bedroom",
+      "status": "inactive",
+      "capabilitiesJson": {
+        "screen": true,
+        "audio": false,
+        "microphone": false,
+        "touchscreen": true
+      },
+      "allowedActionsJson": ["control_lights", "view_weather"],
+      "settingsJson": {
+        "theme": "dark",
+        "night_mode": true
+      }
+    }
+  ]
+}
+

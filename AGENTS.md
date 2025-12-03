@@ -1,3 +1,5 @@
+<!-- CONSOLIDATED: See docs/UNIFIED_DOCS.md -->
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 

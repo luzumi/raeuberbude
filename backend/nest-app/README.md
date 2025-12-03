@@ -51,6 +51,47 @@ npm run migration:generate -- src/migrations/MigrationName
 npm run migration:show
 ```
 
+---
+
+## Tests
+
+### Integration Tests (LUD28-110)
+
+Das Projekt verfügt über umfassende Integrationstests für Migrationen und Entity-Verhalten.
+
+#### Voraussetzungen
+- Docker & Docker Compose
+- Node.js >= 18
+
+#### Tests ausführen
+
+```powershell
+# Kompletter Test-Durchlauf (empfohlen)
+.\scripts\run-integration-tests.ps1
+
+# Oder mit npm
+npm run test:db
+
+# Nur Tests (DB läuft bereits)
+npm run test:integration
+
+# Mit Coverage
+npm run test:cov
+```
+
+#### Test-Kategorien
+
+- **Migration Tests**: Schema-Validierung, FK-Verhalten
+- **User CRUD**: CRUD Operations, CASCADE, SET NULL
+- **Terminal CRUD**: n:m Relations, Constraints
+- **HA Entity CRUD**: Hierarchien, Performance
+
+#### Dokumentation
+
+Vollständige Dokumentation: [docs/tests/LUD28-59-integration-tests.md](../../docs/tests/LUD28-59-integration-tests.md)
+
+Test-Verzeichnis: [test/README.md](./test/README.md)
+
 ### Manuelle Migration erstellen
 1. Datei erstellen: `src/migrations/YYYYMMDDHHMMSS-Description.ts`
 2. `up()` und `down()` Methoden implementieren

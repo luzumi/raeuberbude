@@ -7,10 +7,13 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  OneToMany,
 } from 'typeorm';
 import { HaEntityDomain } from '../enums';
 import { HaArea } from './ha-area.entity';
 import { HaDevice } from './ha-device.entity';
+import { HaEntityState } from './ha-entity-state.entity';
+import { HaEntityAttribute } from './ha-entity-attribute.entity';
 
 /**
  * HaEntity Entity
@@ -153,8 +156,15 @@ export class HaEntity {
   })
   device: HaDevice | null;
 
-  // Relations will be added after HaEntityState and HaEntityAttribute are created:
-  // - states: HaEntityState[] (1:n)
-  // - attributes: HaEntityAttribute[] (1:n)
-}
+  /**
+   * 1:n Relation to HaEntityState (history)
+   */
+  @OneToMany(() => HaEntityState, (state) => state.entity)
+  states: HaEntityState[];
 
+  /**
+   * 1:n Relation to HaEntityAttribute
+   */
+  @OneToMany(() => HaEntityAttribute, (attr) => attr.entity)
+  attributes: HaEntityAttribute[];
+}

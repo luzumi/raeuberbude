@@ -1,3 +1,5 @@
+<!-- CONSOLIDATED: See docs/UNIFIED_DOCS.md -->
+
 # SESSION ZUSAMMENFASSUNG - 2025-01-27
 
 ## Zweck
