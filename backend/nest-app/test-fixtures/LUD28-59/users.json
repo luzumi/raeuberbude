@@ -1,0 +1,52 @@
+{
+  "users": [
+    {
+      "canManageUsers": true,
+      "canManageTerminals": true,
+      "canDeleteInputs": true,
+      "canViewAllInputs": true,
+      "canViewOwnInputs": true,
+      "canUseSpeechInput": true,
+      "status": "active",
+      "role": "admin"
+    },
+    {
+      "canManageUsers": false,
+      "canManageTerminals": false,
+      "canDeleteInputs": false,
+      "canViewAllInputs": false,
+      "canViewOwnInputs": true,
+      "canUseSpeechInput": true,
+      "status": "active",
+      "role": "regular"
+    }
+  ],
+  "userRights": [
+    {
+      "displayName": "Admin User",
+      "profileData": {
+        "passwordHash": "$2a$10$adminpasswordhash",
+        "email": "admin@example.com",
+        "username": "admin"
+      }
+    },
+    {
+      "displayName": "Test User 2",
+      "profileData": {
+        "passwordHash": "$2a$10$abcdefghijklmnopqrstuvwxyz987654321",
+        "email": "testuser2@example.com",
+        "username": "testuser2"
+      },
+      "avatar": "avatar2.jpg"
+    },
+    {
+      "avatar": "avatar1.jpg",
+      "displayName": "Test User 1",
+      "profileData": {
+        "passwordHash": "$2a$10$abcdefghijklmnopqrstuvwxyz123456789",
+        "email": "testuser1@example.com",
+        "username": "testuser1"
+      }
+    }
+  ]
+}

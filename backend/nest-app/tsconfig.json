@@ -11,14 +11,13 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "strictPropertyInitialization": false
   },
   "exclude": [
     "node_modules",
     "dist",
     "**/*.spec.ts",
-    "**/*test.ts",
-    "src/config/database.config.ts",
-    "src/modules/homeassistant/entities/**"
+    "**/*test.ts"
   ]
 }

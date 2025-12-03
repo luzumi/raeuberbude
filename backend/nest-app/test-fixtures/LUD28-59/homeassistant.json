@@ -1,0 +1,128 @@
+{
+  "areas": [
+    {
+      "areaId": "living_room",
+      "name": "Living Room",
+      "aliases": ["Wohnzimmer", "Lounge"],
+      "floor": "ground_floor",
+      "icon": "mdi:sofa"
+    },
+    {
+      "areaId": "kitchen",
+      "name": "Kitchen",
+      "aliases": ["Küche"],
+      "floor": "ground_floor",
+      "icon": "mdi:silverware-fork-knife"
+    },
+    {
+      "areaId": "bedroom",
+      "name": "Bedroom",
+      "aliases": ["Schlafzimmer"],
+      "floor": "first_floor",
+      "icon": "mdi:bed"
+    },
+    {
+      "areaId": "bathroom",
+      "name": "Bathroom",
+      "aliases": ["Badezimmer", "Bad"],
+      "floor": "first_floor",
+      "icon": "mdi:shower"
+    }
+  ],
+  "devices": [
+    {
+      "deviceId": "device_hue_bridge",
+      "name": "Philips Hue Bridge",
+      "manufacturer": "Philips",
+      "model": "BSB002",
+      "swVersion": "1.50.0",
+      "areaId": "living_room"
+    },
+    {
+      "deviceId": "device_climate_kitchen",
+      "name": "Kitchen Climate Sensor",
+      "manufacturer": "Xiaomi",
+      "model": "WSDCGQ11LM",
+      "areaId": "kitchen"
+    }
+  ],
+  "entities": [
+    {
+      "entityId": "light.living_room_main",
+      "domain": "light",
+      "objectId": "living_room_main",
+      "friendlyName": "Living Room Main Light",
+      "aliases": ["Wohnzimmerlicht", "Hauptlicht"],
+      "icon": "mdi:ceiling-light",
+      "deviceClass": null,
+      "areaId": "living_room",
+      "deviceId": "device_hue_bridge",
+      "platform": "hue",
+      "disabled": false,
+      "hidden": false
+    },
+    {
+      "entityId": "sensor.kitchen_temperature",
+      "domain": "sensor",
+      "objectId": "kitchen_temperature",
+      "friendlyName": "Kitchen Temperature",
+      "icon": "mdi:thermometer",
+      "deviceClass": "temperature",
+      "unitOfMeasurement": "°C",
+      "areaId": "kitchen",
+      "deviceId": "device_climate_kitchen",
+      "platform": "xiaomi_ble",
+      "disabled": false,
+      "hidden": false
+    },
+    {
+      "entityId": "sensor.kitchen_humidity",
+      "domain": "sensor",
+      "objectId": "kitchen_humidity",
+      "friendlyName": "Kitchen Humidity",
+      "icon": "mdi:water-percent",
+      "deviceClass": "humidity",
+      "unitOfMeasurement": "%",
+      "areaId": "kitchen",
+      "deviceId": "device_climate_kitchen",
+      "platform": "xiaomi_ble",
+      "disabled": false,
+      "hidden": false
+    },
+    {
+      "entityId": "light.bedroom_ceiling",
+      "domain": "light",
+      "objectId": "bedroom_ceiling",
+      "friendlyName": "Bedroom Ceiling Light",
+      "aliases": ["Schlafzimmerlicht"],
+      "areaId": "bedroom",
+      "deviceId": "device_hue_bridge",
+      "platform": "hue",
+      "disabled": false,
+      "hidden": false
+    }
+  ],
+  "entity_states": [
+    {
+      "entityId": "light.living_room_main",
+      "state": "on",
+      "timestamp": "2024-01-01T10:00:00Z"
+    },
+    {
+      "entityId": "sensor.kitchen_temperature",
+      "state": "22.5",
+      "timestamp": "2024-01-01T10:00:00Z"
+    },
+    {
+      "entityId": "sensor.kitchen_humidity",
+      "state": "65",
+      "timestamp": "2024-01-01T10:00:00Z"
+    },
+    {
+      "entityId": "light.bedroom_ceiling",
+      "state": "off",
+      "timestamp": "2024-01-01T10:00:00Z"
+    }
+  ]
+}
+
