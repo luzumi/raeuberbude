@@ -31,10 +31,8 @@ const transcriptSchema = new mongoose.Schema({
   isValid: { type: Boolean, required: true },
   confidence: { type: Number, min: 0, max: 1 },
   hasAmbiguity: { type: Boolean, default: false },
-  clarificationNeeded: { type: Boolean, default: false },
+  clarificationNeeded: { type: Boolean, default: true }, // Admin kann auf false setzen → grüner Haken
   clarificationQuestion: { type: String },
-  // Admin flag: mark transcript as manually validated (yellow → green)
-  manuallyValid: { type: Boolean, default: false },
 
   // Performance Metrics
   durationMs: { type: Number, required: true }, // Gesamt-Latenz

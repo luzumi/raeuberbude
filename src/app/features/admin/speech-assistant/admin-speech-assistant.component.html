@@ -405,9 +405,19 @@
 
                 <ng-container matColumnDef="actions">
                   <th mat-header-cell *matHeaderCellDef>Aktionen</th>
-                  <td mat-cell *matCellDef="let row">
-                    <button mat-icon-button (click)="viewDetails(row); $event.stopPropagation()" matTooltip="Im Dialog öffnen">
-                      <mat-icon>open_in_new</mat-icon>
+                  <td mat-cell *matCellDef="let row" style="display: flex; gap: 0.25rem;">
+                    <button mat-icon-button color="primary" (click)="viewDetails(row); $event.stopPropagation()" matTooltip="Details anzeigen">
+                      <mat-icon>visibility</mat-icon>
+                    </button>
+                    <button mat-icon-button
+                            color="accent"
+                            (click)="setTranscriptValid(row); $event.stopPropagation()"
+                            [disabled]="row.manuallyValid"
+                            matTooltip="{{ row.manuallyValid ? 'Bereits als gültig markiert' : 'Als gültig markieren' }}">
+                      <mat-icon>{{ row.manuallyValid ? 'check_circle' : 'check_circle_outline' }}</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="deleteTranscript(row); $event.stopPropagation()" matTooltip="Löschen">
+                      <mat-icon>delete</mat-icon>
                     </button>
                   </td>
                 </ng-container>

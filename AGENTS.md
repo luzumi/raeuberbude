@@ -1,3 +1,5 @@
+<!-- CONSOLIDATED: See docs/UNIFIED_DOCS.md -->
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
@@ -9,5 +11,10 @@
 - When working in individual projects, use the `nx_project_details` mcp tool to analyze and understand the specific project structure and dependencies
 - For questions around nx configuration, best practices or if you're unsure, use the `nx_docs` tool to get relevant, up-to-date docs. Always use this instead of assuming things about nx configuration
 - If the user needs help with an Nx configuration or project graph error, use the `nx_workspace` tool to get any errors
+- If the user needs help with tickets, use the `tickets-verwalten` tool to get relevant, up-to-date docs. Always use this instead of assuming things about tickets
+- If the user needs help with YouTrack, use the `youtrack-mcp-server` tool to get relevant, up-to-date docs. Always use this instead of assuming things about YouTrack
+- If the user needs help with the backend, use the `backend` tool to get relevant, up-to-date docs. Always use this instead of assuming things about the backend
+- When the user needs help with the frontend, use the `frontend` tool to get relevant, up-to-date docs. Always use this instead of assuming things about the frontend
+- When the user needs help with the database, use the `database` tool to get relevant, up-to-date docs. Always use this instead of assuming things about the database
 
 <!-- nx configuration end-->
