@@ -10,15 +10,12 @@
 
 **Fortschritt:** 9 von 18 Entities implementiert (50%)
 
-### ✅ Abgeschlossene Module
+### ✅ Abgeschlossene Module (Alle!)
 - **Auth** (3 Entities): User, UserRights, UserAllowedTerminal
 - **Terminals** (2 Entities): AppTerminal, TerminalRights
 - **Speech-Inputs** (2 Entities): SpeechHumanInput, SpeechTestInput
-- **Logging** (2 Entities): Category, EventLog
-
-### ⏳ Ausstehende Module
-- **Logging** (2 Entities): IntentLog, SpeechTranscript
-- **HomeAssistant** (8 Entities): HaSnapshot, HaArea, HaDevice, HaEntity, HaEntityState, HaEntityAttribute, HaPerson
+- **Logging** (4 Entities): Category, EventLog, IntentLog, SpeechTranscript
+- **HomeAssistant** (7 Entities): HaSnapshot, HaArea, HaDevice, HaEntity, HaEntityState, HaEntityAttribute, HaPerson
 
 ---
 

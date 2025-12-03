@@ -81,18 +81,18 @@ npm run build
 | 1b | AppTerminal | ✅ | `modules/terminals/entities/app-terminal.entity.ts` |
 | 1b | TerminalRights | ✅ | `modules/terminals/entities/terminal-rights.entity.ts` |
 | 2 | SpeechHumanInput | ⏳ | TODO |
-| 2 | SpeechTestInput | ⏳ | TODO |
-| 2 | Category | ⏳ | TODO |
-| 2 | IntentLog | ⏳ | TODO |
-| 2 | SpeechTranscript | ⏳ | TODO |
-| 2 | EventLog | ⏳ | TODO |
-| 3 | HaSnapshot | ⏳ | TODO |
-| 3 | HaArea | ⏳ | TODO |
-| 3 | HaDevice | ⏳ | TODO |
-| 3 | HaEntity | ⏳ | TODO |
-| 3 | HaEntityState | ⏳ | TODO |
-| 3 | HaEntityAttribute | ⏳ | TODO |
-| 3 | HaPerson | ⏳ | TODO |
+| 2 | SpeechTestInput | ✅ | `modules/speech-inputs/entities/speech-test-input.entity.ts` |
+| 2 | Category | ✅ | `modules/logging/entities/category.entity.ts` |
+| 2 | IntentLog | ✅ | `modules/logging/entities/intent-log.entity.ts` |
+| 2 | SpeechTranscript | ✅ | `modules/logging/entities/speech-transcript.entity.ts` |
+| 2 | EventLog | ✅ | `modules/logging/entities/event-log.entity.ts` |
+| 3 | HaSnapshot | ✅ | `modules/homeassistant/entities/ha-snapshot.entity.ts` |
+| 3 | HaArea | ✅ | `modules/homeassistant/entities/ha-area.entity.ts` |
+| 3 | HaDevice | ✅ | `modules/homeassistant/entities/ha-device.entity.ts` |
+| 3 | HaEntity | ✅ | `modules/homeassistant/entities/ha-entity.entity.ts` |
+| 3 | HaEntityState | ✅ | `modules/homeassistant/entities/ha-entity-state.entity.ts` |
+| 3 | HaEntityAttribute | ✅ | `modules/homeassistant/entities/ha-entity-attribute.entity.ts` |
+| 3 | HaPerson | ✅ | `modules/homeassistant/entities/ha-person.entity.ts` |
 
 **Fortschritt:** 5/18 Entities (27.8%)
 
