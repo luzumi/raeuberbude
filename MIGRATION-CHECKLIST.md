@@ -1,23 +1,26 @@
 # MongoDB → MariaDB Migration - Ausführungs-Checkliste
 
+⚠️ **Sicherheitshinweis**: Alle Beispiele verwenden Umgebungsvariablen für Credentials. Niemals hartcodierte Credentials in Produktion verwenden!
+
 ## Vor der Migration
 
 - [ ] **Backup erstellen**
   ```bash
   # MongoDB Backup
-  mongodump --uri="mongodb://rb_root:rb_secret@localhost:27018/raueberbude?authSource=admin" --out=./backup-mongo-$(date +%Y%m%d)
+  # ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
+  mongodump --uri="mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@localhost:27018/raueberbude?authSource=admin" --out=./backup-mongo-$(date +%Y%m%d)
   
   # MariaDB Backup
-  mysqldump -h 127.0.0.1 -P 3307 -u rb_user -prb_user_secret raueberbude > backup-maria-$(date +%Y%m%d).sql
+  mysqldump -h 127.0.0.1 -P 3307 -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude > backup-maria-$(date +%Y%m%d).sql
   ```
 
 - [ ] **Datenbankverbindungen prüfen**
   ```bash
   # MongoDB erreichbar?
-  mongo --host localhost --port 27018 -u rb_root -p rb_secret --authenticationDatabase admin
+  mongo --host localhost --port 27018 -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin
   
   # MariaDB erreichbar?
-  mysql -h 127.0.0.1 -P 3307 -u rb_user -prb_user_secret raueberbude -e "SELECT VERSION();"
+  mysql -h 127.0.0.1 -P 3307 -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude -e "SELECT VERSION();"
   ```
 
 - [ ] **App stoppen** (falls läuft)
@@ -54,7 +57,8 @@
 
 - [ ] **Schritt 1: Neue Tabellen erstellen**
   ```bash
-  mysql -h 127.0.0.1 -P 3307 -u rb_user -prb_user_secret raueberbude < scripts/create-llm-and-category-tables.sql
+  # ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
+  mysql -h 127.0.0.1 -P 3307 -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude < scripts/create-llm-and-category-tables.sql
   ```
 
 - [ ] **Schritt 2: Tabellen leeren**
@@ -136,10 +140,11 @@
   node scripts/step1_truncate_tables.js
   
   # MongoDB-Backup wiederherstellen (falls nötig)
-  mongorestore --uri="mongodb://rb_root:rb_secret@localhost:27018/raueberbude?authSource=admin" ./backup-mongo-YYYYMMDD
+  # ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
+  mongorestore --uri="mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@localhost:27018/raueberbude?authSource=admin" ./backup-mongo-YYYYMMDD
   
   # MariaDB-Backup wiederherstellen (falls nötig)
-  mysql -h 127.0.0.1 -P 3307 -u rb_user -prb_user_secret raueberbude < backup-maria-YYYYMMDD.sql
+  mysql -h 127.0.0.1 -P 3307 -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude < backup-maria-YYYYMMDD.sql
   ```
 
 - [ ] **Problem dokumentieren**
