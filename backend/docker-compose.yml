@@ -17,23 +17,23 @@ services:
       - "27018:27017"
 
   mariadb:
-    image: mariadb:11
+    image: mariadb:11.2
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rb_root}"
-      MYSQL_DATABASE: "${DB_NAME:-raeuberbude}"
-      MYSQL_USER: "${DB_USER:-rb_app}"
-      MYSQL_PASSWORD: "${DB_PASSWORD:-rb_secret}"
+      MYSQL_ROOT_PASSWORD: "${MARIADB_ROOT_PASSWORD:-rb_mariadb_secret}"
+      MYSQL_DATABASE: "${MARIADB_DATABASE:-raueberbude}"
+      MYSQL_USER: "${MARIADB_USER:-rb_user}"
+      MYSQL_PASSWORD: "${MARIADB_PASSWORD:-rb_user_secret}"
     volumes:
       - mariadb_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 5
     ports:
-      - "${DB_PORT:-3307}:3306"
-
+      - "${MARIADB_PORT:-3307}:3306"
   api:
     build:
       context: ./nest-app
@@ -49,13 +49,12 @@ services:
       CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:4200}"
       # API spricht innerhalb des Compose-Netzwerks den Service-Namen 'mongo' an
       MONGO_URI: "mongodb://${MONGO_INITDB_ROOT_USERNAME:-rb_root}:${MONGO_INITDB_ROOT_PASSWORD:-rb_secret}@mongo:27017/${MONGO_INITDB_DATABASE:-raueberbude}?authSource=admin"
-      # Relationale DB (Standard: MariaDB im Compose-Netzwerk)
-      DB_TYPE: "${DB_TYPE:-mariadb}"
-      DB_HOST: "${DB_HOST:-mariadb}"
-      DB_PORT: "${DB_PORT_INTERNAL:-3306}"
-      DB_USER: "${DB_USER:-rb_app}"
-      DB_PASSWORD: "${DB_PASSWORD:-rb_secret}"
-      DB_NAME: "${DB_NAME:-raeuberbude}"
+      # MariaDB Configuration
+      MARIADB_HOST: "mariadb"
+      MARIADB_PORT: "3306"
+      MARIADB_DATABASE: "${MARIADB_DATABASE:-raueberbude}"
+      MARIADB_USER: "${MARIADB_USER:-rb_user}"
+      MARIADB_PASSWORD: "${MARIADB_PASSWORD:-rb_user_secret}"
       # STT Configuration
       STT_ENABLED: "true"
       STT_PRIMARY: "vosk"
@@ -143,6 +142,6 @@ services:
 
 volumes:
   mongo_data:
-  vosk_models:
-  whisper_models:
   mariadb_data:
+  whisper_models:
+  vosk_models:

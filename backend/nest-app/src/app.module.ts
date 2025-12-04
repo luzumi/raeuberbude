@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { HealthModule } from './health/health.module';
 import { HomeAssistantModule } from './modules/homeassistant/homeassistant.module';
 import { SpeechModule } from './modules/speech/speech.module';
 import { BootstrapService } from './bootstrap/bootstrap.service';
 import { LoggingModule } from './modules/logging/logging.module';
+import databaseConfig from './config/database.config';
 
 function buildMongoUri(config: ConfigService): string {
   const direct = config.get<string>('MONGO_URI');
@@ -35,12 +37,17 @@ function buildMongoUri(config: ConfigService): string {
         // fallback to local .env in nest-app/
         '.env',
       ],
+      load: [databaseConfig],
     }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         uri: buildMongoUri(config),
       }),
+    }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => config.get('database'),
     }),
     UsersModule,
     HealthModule,
