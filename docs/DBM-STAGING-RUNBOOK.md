@@ -8,6 +8,13 @@ Dieses Runbook dokumentiert den vollständigen Prozess für das Staging-Deployme
 **Datum**: 2025-12-03  
 **Verantwortlich**: Backend-Team, DB-Admin, OPS-Team
 
+## ⚠️ Sicherheitshinweis
+
+**WICHTIG**: Alle Beispiele in diesem Runbook verwenden Umgebungsvariablen (`${VARIABLE_NAME}`) für Credentials. 
+- **Niemals** hartcodierte Credentials in Produktionsumgebungen verwenden
+- Verwenden Sie einen Secrets Manager (z.B. AWS Secrets Manager, HashiCorp Vault, Azure Key Vault)
+- Stellen Sie sicher, dass alle Umgebungsvariablen vor der Ausführung korrekt gesetzt sind
+
 ---
 
 ## 📋 Pre-Deployment Checklist
@@ -36,9 +43,10 @@ Dieses Runbook dokumentiert den vollständigen Prozess für das Staging-Deployme
 
 ```powershell
 # MongoDB Backup
+# ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
 cd backend
 docker-compose exec mongo mongodump --authenticationDatabase admin \
-  -u rb_root -p rb_secret \
+  -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} \
   --db raueberbude \
   --out /data/backup/staging-$(Get-Date -Format "yyyy-MM-dd-HHmm")
 
@@ -70,7 +78,8 @@ cd backend/nest-app
 npm run migration:run
 
 # Validation: Tabellen-Check
-docker-compose exec mariadb mysql -u rb_user -prb_user_secret raueberbude -e "SHOW TABLES;"
+# ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
+docker-compose exec mariadb mysql -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude -e "SHOW TABLES;"
 ```
 
 **Erwartete Tabellen**:
@@ -139,12 +148,13 @@ npx playwright test playwright/tests/migration-smoke.spec.ts --reporter=list
 
 ```powershell
 # Count-Vergleich MongoDB vs MariaDB
+# ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
 $mongoUsers = docker-compose -f backend/docker-compose.yml exec mongo mongosh \
-  -u rb_root -p rb_secret --authenticationDatabase admin \
+  -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin \
   --eval "db.app_users.countDocuments()"
 
 $mariaUsers = docker-compose -f backend/docker-compose.yml exec mariadb \
-  mysql -u rb_user -prb_user_secret raueberbude \
+  mysql -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude \
   -e "SELECT COUNT(*) FROM app_users;"
 
 Write-Host "MongoDB Users: $mongoUsers"
@@ -178,8 +188,9 @@ Invoke-RestMethod -Uri http://localhost:3001/ha-entities | ConvertTo-Json
 
 ```sql
 -- MariaDB Console öffnen
+-- ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
 docker-compose -f backend/docker-compose.yml exec mariadb \
-  mysql -u rb_user -prb_user_secret raueberbude
+  mysql -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude
 
 -- Sample Queries
 SELECT * FROM app_users LIMIT 5;
@@ -271,7 +282,8 @@ docker-compose up -d api
 Invoke-RestMethod -Uri http://localhost:3001/health
 
 # 6. Validieren, dass alte Daten noch da sind
-docker-compose exec mongo mongosh -u rb_root -p rb_secret \
+# ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
+docker-compose exec mongo mongosh -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} \
   --authenticationDatabase admin \
   --eval "db.app_users.countDocuments()"
 ```

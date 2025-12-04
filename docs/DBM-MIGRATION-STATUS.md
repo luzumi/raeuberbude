@@ -40,13 +40,30 @@ Die Migration enthält:
 - **Workaround**: Migration wurde manuell erstellt (basierend auf Entities)
 - **Für Produktion**: Benutzer-Grants müssen korrekt gesetzt werden
 
-### Lösung für Produktion:
+### ⚠️ Sicherheitshinweis für Produktion
+
+**WICHTIG**: Verwenden Sie in Produktionsumgebungen niemals hartcodierte oder Beispiel-Credentials!
+
+### Lösung für Entwicklungsumgebung:
 ```sql
--- Im MariaDB-Container ausführen:
-CREATE USER IF NOT EXISTS 'rb_user'@'%' IDENTIFIED BY 'rb_user_secret';
-GRANT ALL PRIVILEGES ON raueberbude.* TO 'rb_user'@'%';
+-- Im MariaDB-Container ausführen (NUR für lokale Entwicklung):
+-- Verwenden Sie die Credentials aus Ihren Umgebungsvariablen
+CREATE USER IF NOT EXISTS '${MARIADB_USER}'@'localhost' IDENTIFIED BY '${MARIADB_PASSWORD}';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON raueberbude.* TO '${MARIADB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 ```
+
+### Für Produktionsumgebungen:
+1. **Credentials**: Nutzen Sie einen Secrets Manager (z.B. AWS Secrets Manager, HashiCorp Vault, Azure Key Vault)
+2. **Benutzerberechtigungen**: Vergeben Sie nur die minimal notwendigen Rechte (Least Privilege Principle)
+3. **Host-Einschränkung**: Beschränken Sie den Zugriff auf spezifische IP-Adressen oder Netzwerke, niemals auf `'%'`
+4. **Beispiel für eingeschränkte Berechtigungen**:
+   ```sql
+   -- Ersetzen Sie <SPECIFIC_IP> mit der tatsächlichen IP-Adresse
+   CREATE USER IF NOT EXISTS '${MARIADB_USER}'@'<SPECIFIC_IP>' IDENTIFIED BY '${MARIADB_PASSWORD}';
+   GRANT SELECT, INSERT, UPDATE, DELETE ON raueberbude.* TO '${MARIADB_USER}'@'<SPECIFIC_IP>';
+   FLUSH PRIVILEGES;
+   ```
 
 ## 🚀 Nächste Schritte
 
@@ -67,10 +84,12 @@ docker-compose up -d mariadb
 Start-Sleep -Seconds 15
 ```
 
-### Schritt 2: Benutzer-Grants setzen
+### Schritt 2: Benutzer-Grants setzen (NUR für lokale Entwicklung)
 ```powershell
-# Setze Grants für rb_user
-docker exec backend-mariadb-1 mariadb -u root -prb_mariadb_secret -e "CREATE USER IF NOT EXISTS 'rb_user'@'%' IDENTIFIED BY 'rb_user_secret'; GRANT ALL PRIVILEGES ON raueberbude.* TO 'rb_user'@'%'; FLUSH PRIVILEGES;"
+# ⚠️ WARNUNG: Nur für lokale Entwicklung verwenden!
+# Für Produktion: Verwenden Sie sichere, umgebungsspezifische Credentials aus einem Secrets Manager
+# Ersetzen Sie die Werte mit Ihren tatsächlichen Umgebungsvariablen
+docker exec backend-mariadb-1 mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "CREATE USER IF NOT EXISTS '${MARIADB_USER}'@'localhost' IDENTIFIED BY '${MARIADB_PASSWORD}'; GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON raueberbude.* TO '${MARIADB_USER}'@'localhost'; FLUSH PRIVILEGES;"
 ```
 
 ### Schritt 3: Migration ausführen
