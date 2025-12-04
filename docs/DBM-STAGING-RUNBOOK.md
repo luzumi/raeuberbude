@@ -14,6 +14,8 @@ Dieses Runbook dokumentiert den vollständigen Prozess für das Staging-Deployme
 - **Niemals** hartcodierte Credentials in Produktionsumgebungen verwenden
 - Verwenden Sie einen Secrets Manager (z.B. AWS Secrets Manager, HashiCorp Vault, Azure Key Vault)
 - Stellen Sie sicher, dass alle Umgebungsvariablen vor der Ausführung korrekt gesetzt sind
+- **Warnung**: Kommandozeilenargumente für Passwörter können in Prozesslisten sichtbar werden
+- **Für Produktionssysteme**: Verwenden Sie MySQL-Konfigurationsdateien (`~/.my.cnf`) oder sichere Credential-Übergabemethoden
 
 ---
 

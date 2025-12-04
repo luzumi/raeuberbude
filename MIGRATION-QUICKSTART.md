@@ -1,6 +1,9 @@
 # MongoDB zu MariaDB Migration - Schnellstart
 
-⚠️ **Sicherheitshinweis**: Alle Beispiele verwenden Umgebungsvariablen für Credentials. Niemals hartcodierte Credentials in Produktion verwenden!
+⚠️ **Sicherheitshinweis**: 
+- Alle Beispiele verwenden Umgebungsvariablen für Credentials. Niemals hartcodierte Credentials in Produktion verwenden!
+- **Warnung**: Kommandozeilenargumente für Passwörter können in Prozesslisten sichtbar werden
+- **Für Produktionssysteme**: Verwenden Sie MySQL-Konfigurationsdateien oder sichere Credential-Übergabemethoden
 
 ## Voraussetzungen
 

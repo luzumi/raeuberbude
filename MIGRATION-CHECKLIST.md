@@ -1,6 +1,9 @@
 # MongoDB → MariaDB Migration - Ausführungs-Checkliste
 
-⚠️ **Sicherheitshinweis**: Alle Beispiele verwenden Umgebungsvariablen für Credentials. Niemals hartcodierte Credentials in Produktion verwenden!
+⚠️ **Sicherheitshinweis**: 
+- Alle Beispiele verwenden Umgebungsvariablen für Credentials. Niemals hartcodierte Credentials in Produktion verwenden!
+- **Warnung**: Das Übergeben von Passwörtern in Kommandozeilenargumenten kann diese in Prozesslisten sichtbar machen
+- **Für Produktionssysteme**: Verwenden Sie MySQL-Konfigurationsdateien (`~/.my.cnf`) oder MongoDB-Connection-Strings ohne eingebettete Credentials
 
 ## Vor der Migration
 

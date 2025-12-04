@@ -68,11 +68,13 @@ FLUSH PRIVILEGES;"
 1. **Credentials**: Nutzen Sie einen Secrets Manager (z.B. AWS Secrets Manager, HashiCorp Vault, Azure Key Vault)
 2. **Benutzerberechtigungen**: Vergeben Sie nur die minimal notwendigen Rechte (Least Privilege Principle)
 3. **Host-Einschränkung**: Beschränken Sie den Zugriff auf spezifische IP-Adressen oder Netzwerke, niemals auf `'%'`
-4. **Beispiel für eingeschränkte Berechtigungen** (Werte manuell aus Secrets Manager abrufen):
+4. **Credential-Übergabe**: Verwenden Sie MySQL-Konfigurationsdateien statt Kommandozeilenargumente
+5. **Beispiel für Produktionsberechtigungen** (Werte manuell aus Secrets Manager abrufen):
    ```sql
    -- Ersetzen Sie <YOUR_USER>, <YOUR_PASSWORD> und <SPECIFIC_IP> mit tatsächlichen Werten
+   -- Anmerkung: Für Migrationen werden auch CREATE, DROP, INDEX, ALTER benötigt
    CREATE USER IF NOT EXISTS '<YOUR_USER>'@'<SPECIFIC_IP>' IDENTIFIED BY '<YOUR_PASSWORD>';
-   GRANT SELECT, INSERT, UPDATE, DELETE ON raueberbude.* TO '<YOUR_USER>'@'<SPECIFIC_IP>';
+   GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON raueberbude.* TO '<YOUR_USER>'@'<SPECIFIC_IP>';
    FLUSH PRIVILEGES;
    ```
 
