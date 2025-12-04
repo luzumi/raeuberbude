@@ -23,8 +23,9 @@ const { YOU_TRACK_API_URL, TOKEN } = (() => {
         };
       }
     }
-  } catch (_) {
-    // ignore secrets parsing errors; fall back to env/defaults
+  } catch (error) {
+    // Log the error for debugging, but continue with fallback values
+    console.warn('Error parsing secrets, using fallback values:', error.message);
   }
   return {
     YOU_TRACK_API_URL: envUrl || 'https://luzumi.youtrack.cloud',
@@ -42,7 +43,7 @@ async function resolveProjectId(inputProject, axiosOpts) {
   if (inputProject && typeof inputProject === 'object' && inputProject.id) {
     return inputProject.id;
   }
-  let shortName = undefined;
+  let shortName;
   if (inputProject && typeof inputProject === 'object' && inputProject.shortName) {
     shortName = inputProject.shortName;
   } else if (typeof inputProject === 'string' && inputProject.length > 0) {
@@ -71,47 +72,80 @@ async function resolveProjectId(inputProject, axiosOpts) {
   return found.id;
 }
 
+function addSection(lines, title, content, isList = false) {
+  if (!content || (Array.isArray(content) && content.length === 0)) {
+    return false;
+  }
+
+  lines.push(`## ${title}`);
+
+  if (Array.isArray(content)) {
+    content.forEach(item => lines.push(isList ? `- [ ] ${item}` : `- ${item}`));
+  } else {
+    lines.push(content);
+  }
+
+  lines.push('');
+  return true;
+}
+
+function addTargetSection(lines, meta) {
+  if (!meta.feature && !meta.intent) return false;
+
+  const title = 'Ziel';
+  const content = [];
+  if (meta.feature) content.push(meta.feature);
+  if (meta.intent) content.push(meta.intent);
+
+  return addSection(lines, title, content.join(' – '));
+}
+
+function addTasksSection(lines, tasks) {
+  return addSection(lines, 'Aufgaben', tasks, true);
+}
+
+function addAcceptanceCriteriaSection(lines, criteria) {
+  return addSection(lines, 'Akzeptanzkriterien', criteria);
+}
+
+function addContextSection(lines, meta) {
+  const context = meta.context || {};
+  const contextItems = Object.entries(context).map(([key, value]) => `${key}: ${value}`);
+  return addSection(lines, 'Kontext', contextItems);
+}
+
+function addNotesSection(lines, notes) {
+  if (!notes) return false;
+
+  lines.push('---', String(notes), '');
+  return true;
+}
+
+function addFooter(lines, template) {
+  lines.push(`_Automatisch erstellt (${template}) – ${new Date().toISOString()}_`);
+}
+
 function buildRichDescription(body = {}) {
   const template = body.template || 'generic';
   const meta = body.meta || {};
   const tasks = Array.isArray(body.tasks) ? body.tasks : [];
-  const ac = Array.isArray(body.acceptanceCriteria) ? body.acceptanceCriteria : [];
+  const acceptanceCriteria = Array.isArray(body.acceptanceCriteria) ? body.acceptanceCriteria : [];
   const notes = body.notes || '';
+
   const lines = [];
-  // Ziel
-  if (meta.feature || meta.intent) {
-    lines.push('## Ziel');
-    const title = meta.feature ? `- ${meta.feature}` : '';
-    const intent = meta.intent ? ` – ${meta.intent}` : '';
-    lines.push(`${title}${intent}`.trim());
-    lines.push('');
-  }
-  // Aufgaben
-  if (tasks.length) {
-    lines.push('## Aufgaben');
-    for (const t of tasks) lines.push(`- [ ] ${t}`);
-    lines.push('');
-  }
-  // Akzeptanzkriterien
-  if (ac.length) {
-    lines.push('## Akzeptanzkriterien');
-    for (const a of ac) lines.push(`- ${a}`);
-    lines.push('');
-  }
-  // Kontext
-  const context = meta.context || {};
-  const ctxKeys = Object.keys(context);
-  if (ctxKeys.length) {
-    lines.push('## Kontext');
-    for (const k of ctxKeys) lines.push(`- ${k}: ${context[k]}`);
-    lines.push('');
-  }
-  if (notes) {
-    lines.push('---');
-    lines.push(String(notes));
-    lines.push('');
-  }
-  lines.push(`_Automatisch erstellt (${template}) – ${new Date().toISOString()}_`);
+
+  // Add all sections
+  const sections = [
+    () => addTargetSection(lines, meta),
+    () => addTasksSection(lines, tasks),
+    () => addAcceptanceCriteriaSection(lines, acceptanceCriteria),
+    () => addContextSection(lines, meta),
+    () => addNotesSection(lines, notes)
+  ];
+
+  sections.forEach(section => section());
+  addFooter(lines, template);
+
   return lines.join('\n');
 }
 
@@ -321,6 +355,339 @@ app.listen(PORT, () => {
   console.log(`YouTrack MCP Server listening on port ${PORT}`);
   console.log(`POST /issues       -> ${YOU_TRACK_API_URL}/api/issues`);
   console.log(`POST /createIssue  -> ${YOU_TRACK_API_URL}/api/issues`);
+});
+
+// Update issue fields using proper API structure
+app.patch('/issues/:issueId/fields', async (req, res) => {
+  try {
+    const issueId = req.params.issueId;
+    const { fields } = req.body;
+
+    if (!fields || !Array.isArray(fields)) {
+      return res.status(400).json({ success: false, error: 'Missing fields array in body' });
+    }
+
+    const axiosOpts = {
+      headers: {
+        Authorization: `Bearer ${normalizedToken()}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
+    };
+
+    // Build the fields string for YouTrack API
+    const fieldsParam = 'id,idReadable,summary,fields(id,$type,value(id,name,presentation,minutes))';
+
+    const response = await axios.post(
+      `${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(issueId)}?fields=${fieldsParam}`,
+      { fields },
+      axiosOpts
+    );
+
+    res.json({ success: true, issue: response.data });
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+    console.error('Fehler beim Aktualisieren der Felder:', data);
+    res.status(status).json({ success: false, error: data, status });
+  }
+});
+
+// Get issue with all fields
+app.get('/issues/:issueId', async (req, res) => {
+  try {
+    const issueId = req.params.issueId;
+    const axiosOpts = {
+      headers: {
+        Authorization: `Bearer ${normalizedToken()}`,
+        'Accept': 'application/json'
+      },
+      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
+    };
+
+    const fieldsParam = 'id,idReadable,summary,description,created,updated,fields(id,$type,projectCustomField(id,field(id,name)),value(id,name,presentation,minutes))';
+
+    const response = await axios.get(
+      `${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(issueId)}?fields=${fieldsParam}`,
+      axiosOpts
+    );
+
+    res.json({ success: true, issue: response.data });
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+    res.status(status).json({ success: false, error: data, status });
+  }
+});
+
+// Get project custom fields with their IDs
+app.get('/projects/:projectId/customFields', async (req, res) => {
+  try {
+    const projectId = req.params.projectId;
+    const axiosOpts = {
+      headers: {
+        Authorization: `Bearer ${normalizedToken()}`,
+        'Accept': 'application/json'
+      },
+      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
+    };
+
+    const fieldsParam = 'field(id,name,fieldType),bundle(id),id,emptyFieldText,isSpentTime,isEstimation';
+
+    const response = await axios.get(
+      `${YOU_TRACK_API_URL}/api/admin/projects/${encodeURIComponent(projectId)}/customFields?fields=${fieldsParam}`,
+      axiosOpts
+    );
+
+    res.json({ success: true, customFields: response.data });
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+    res.status(status).json({ success: false, error: data, status });
+  }
+});
+
+// Create issue link (depends on, relates to, etc.)
+app.post('/issues/:issueId/links', async (req, res) => {
+  try {
+    const issueId = req.params.issueId;
+    const { linkType, targetIssue } = req.body;
+
+    if (!linkType || !targetIssue) {
+      return res.status(400).json({ success: false, error: 'Missing linkType or targetIssue' });
+    }
+
+    const axiosOpts = {
+      headers: {
+        Authorization: `Bearer ${normalizedToken()}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
+    };
+
+    // Get available link types first
+    const linkTypesResponse = await axios.get(
+      `${YOU_TRACK_API_URL}/api/issueLinkTypes?fields=id,name,sourceToTarget,targetToSource`,
+      axiosOpts
+    );
+
+    const linkTypes = linkTypesResponse.data;
+    const foundType = linkTypes.find(lt =>
+      lt.sourceToTarget === linkType ||
+      lt.targetToSource === linkType ||
+      lt.name === linkType
+    );
+
+    if (!foundType) {
+      return res.status(400).json({
+        success: false,
+        error: `Link type '${linkType}' not found`,
+        availableTypes: linkTypes.map(lt => ({ name: lt.name, sourceToTarget: lt.sourceToTarget, targetToSource: lt.targetToSource }))
+      });
+    }
+
+    const payload = {
+      linkType: { id: foundType.id },
+      issues: [{ idReadable: targetIssue }]
+    };
+
+    const response = await axios.post(
+      `${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(issueId)}/links`,
+      payload,
+      axiosOpts
+    );
+
+    res.json({ success: true, link: response.data });
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+    console.error('Fehler beim Erstellen des Links:', data);
+    res.status(status).json({ success: false, error: data, status });
+  }
+});
+
+// Helper function to update issue fields
+async function updateIssueFields(issueId, fields, axiosOpts) {
+  if (!fields?.length) return;
+
+  const fieldsParam = 'id,idReadable,summary';
+  await axios.post(
+    `${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(issueId)}?fields=${fieldsParam}`,
+    { fields },
+    axiosOpts
+  );
+}
+
+// Helper function to create a single issue link
+async function createIssueLink(issueId, link, axiosOpts) {
+  // Get link types
+  const linkTypesResponse = await axios.get(
+    `${YOU_TRACK_API_URL}/api/issueLinkTypes?fields=id,name,sourceToTarget,targetToSource`,
+    axiosOpts
+  );
+
+  const linkTypes = linkTypesResponse.data;
+  const foundType = linkTypes.find(lt =>
+    lt.sourceToTarget === link.linkType ||
+    lt.targetToSource === link.linkType ||
+    lt.name === link.linkType
+  );
+
+  if (foundType) {
+    const payload = {
+      linkType: { id: foundType.id },
+      issues: [{ idReadable: link.targetIssue }]
+    };
+
+    await axios.post(
+      `${YOU_TRACK_API_URL}/api/issues/${encodeURIComponent(issueId)}/links`,
+      payload,
+      axiosOpts
+    );
+  }
+}
+
+// Process all links for a single issue
+async function processIssueLinks(issueId, links, axiosOpts) {
+  if (!links?.length) return;
+
+  for (const link of links) {
+    try {
+      await createIssueLink(issueId, link, axiosOpts);
+    } catch (linkError) {
+      console.warn(`Link creation failed for ${issueId}:`, linkError.response?.data || linkError.message);
+      throw linkError; // Re-throw to be handled by the caller
+    }
+  }
+}
+
+// Process a single issue (fields and links)
+async function processSingleIssue(issue, axiosOpts) {
+  const { issueId, fields, links } = issue;
+
+  await updateIssueFields(issueId, fields, axiosOpts);
+  await processIssueLinks(issueId, links, axiosOpts);
+
+  return { issueId, success: true };
+}
+
+// Batch update multiple issues
+app.post('/issues/batch-update', async (req, res) => {
+  try {
+    const { issues } = req.body;
+
+    if (!issues || !Array.isArray(issues)) {
+      return res.status(400).json({ success: false, error: 'Missing issues array' });
+    }
+
+    const axiosOpts = {
+      headers: {
+        Authorization: `Bearer ${normalizedToken()}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true'
+        ? new https.Agent({ rejectUnauthorized: false })
+        : undefined
+    };
+
+    const results = [];
+    const errors = [];
+
+    // Process each issue in series to avoid rate limiting
+    for (const issue of issues) {
+      try {
+        const result = await processSingleIssue(issue, axiosOpts);
+        results.push(result);
+      } catch (error) {
+        errors.push({
+          issueId: issue.issueId,
+          error: error.response?.data || error.message
+        });
+      }
+    }
+
+    res.json({
+      success: errors.length === 0,
+      results,
+      errors,
+      summary: {
+        total: issues.length,
+        succeeded: results.length,
+        failed: errors.length
+      }
+    });
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+    console.error('Fehler beim Batch-Update:', data);
+    res.status(status).json({
+      success: false,
+      error: data,
+      status
+    });
+  }
+});
+
+// Batch update issues with commands API
+app.post('/issues/batch-update-commands', async (req, res) => {
+  try {
+    const { updates } = req.body || {};
+    if (!updates || !Array.isArray(updates)) {
+      return res.status(400).json({ success: false, error: 'Missing updates array' });
+    }
+
+    const axiosOpts = {
+      headers: {
+        Authorization: `Bearer ${normalizedToken()}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      httpsAgent: process.env.YOUTRACK_INSECURE_TLS === 'true' ? new https.Agent({ rejectUnauthorized: false }) : undefined
+    };
+
+    const results = [];
+    const errors = [];
+
+    for (const update of updates) {
+      const { issueId, command } = update;
+      if (!issueId || !command) {
+        errors.push({ issueId, error: 'Missing issueId or command' });
+        continue;
+      }
+
+      try {
+        await axios.post(
+          `${YOU_TRACK_API_URL}/api/commands`,
+          {
+            query: command,
+            issues: [{ idReadable: issueId }],
+            silent: true
+          },
+          axiosOpts
+        );
+        results.push({ issueId, success: true });
+      } catch (error) {
+        errors.push({
+          issueId,
+          error: error.response?.data?.error_description || error.message
+        });
+      }
+    }
+
+    res.json({
+      success: errors.length === 0,
+      results,
+      errors,
+      summary: { total: updates.length, succeeded: results.length, failed: errors.length }
+    });
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { message: error.message };
+    res.status(status).json({ success: false, error: data, status });
+  }
 });
 
 // Simple health endpoint

@@ -108,6 +108,8 @@ cd backend/nest-app
 npm run import:ha ../../ha_structure_2025-10-30T11-32-32.058Z.json
 ```
 
+<!-- CONSOLIDATED: See docs/UNIFIED_DOCS.md -->
+
 <!-- MANUAL ADDITIONS START -->
 <!-- Weitere Entwicklungsprinzipien, technische Richtlinien, Arbeitsabläufe oder Agentenrollen kannst du hier ergänzen. -->
 capabilities:

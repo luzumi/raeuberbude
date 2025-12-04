@@ -219,11 +219,18 @@ export class AdminSpeechAssistantComponent implements OnInit {
     }
   }
 
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): void {
     // Tab-Index aus QueryParams lesen (fallback 0)
     const tabFromUrl = Number(this.route.snapshot.queryParamMap.get('tab'));
     this.activeTabIndex = Number.isFinite(tabFromUrl) && tabFromUrl >= 0 ? tabFromUrl : 0;
 
+    // Asynchrone Initialisierung starten
+    this.initializeComponent().then((r) => {
+      console.log('Component initialized', r);
+    });
+  }
+
+  private async initializeComponent(): Promise<void> {
     // Ensure config is loaded first so we can fetch models from configured LLM URL
     await this.loadConfig();
     await this.loadLlmInstances();
@@ -252,18 +259,18 @@ export class AdminSpeechAssistantComponent implements OnInit {
       this.config = {
         url: cfg.url || '',
         model: cfg.model || '',
-        useGpu: cfg.useGpu !== undefined ? cfg.useGpu : true,
+        useGpu: cfg.useGpu ?? true,
         timeoutMs: cfg.timeoutMs || 30000,
         targetLatencyMs: cfg.targetLatencyMs || 2000,
         maxTokens: cfg.maxTokens || 500,
-        temperature: cfg.temperature !== undefined ? cfg.temperature : 0.3,
+        temperature: cfg.temperature ?? 0.3,
         fallbackModel: cfg.fallbackModel || '',
         confidenceShortcut: cfg.confidenceShortcut || 0.85,
-        heuristicBypass: cfg.heuristicBypass !== undefined ? cfg.heuristicBypass : false,
+        heuristicBypass: cfg.heuristicBypass ?? false,
         // Erweiterte LM-Studio Sampling-Einstellungen
         topK: (cfg as any).topK ?? 40,
         topP: (cfg as any).topP ?? 0.95,
-        repeatPenalty: (cfg as any).repeatPenalty ?? 1.0,
+        repeatPenalty: (cfg as any).repeatPenalty ?? 1,
         minPSampling: (cfg as any).minPSampling ?? 0.05,
         contextLength: (cfg as any).contextLength ?? 4096,
         evalBatchSize: (cfg as any).evalBatchSize ?? 512,
@@ -363,13 +370,15 @@ export class AdminSpeechAssistantComponent implements OnInit {
    * Fetch available models directly from configured LLM URL and merge into uniqueModels
    */
   private async fetchModelsFromConfig(): Promise<void> {
-    if (!this.config || !this.config.url) return;
+    if (!this.config?.url) return;
     try {
       const models = await lastValueFrom(this.llmService.getModels(this.config.url));
       this.frontendLogger.debug('AdminSpeech', 'fetchModelsFromConfig', { url: this.config.url, models });
       const set = new Set(this.uniqueModels || []);
       for (const m of models) set.add(m);
-      this.uniqueModels = Array.from(set).sort();
+
+      this.uniqueModels = Array.from(set).sort((a, b) => a.localeCompare(b));
+
       console.log('Fetched models from config url:', this.config.url, this.uniqueModels);
     } catch (e) {
       console.warn('Failed to fetch models from configured LLM:', e);
@@ -392,7 +401,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
         return Number.isFinite(n) ? n : 0;
       };
 
-      if (this.stats && this.stats.summary) {
+      if (this.stats?.summary) {
         this.stats.summary.totalRequests = parseNum(this.stats.summary.totalRequests) || 0;
         this.stats.summary.avgDuration = parseNum(this.stats.summary.avgDuration) || 0;
         this.stats.summary.avgLlmTime = parseNum(this.stats.summary.avgLlmTime) || 0;
@@ -493,6 +502,80 @@ export class AdminSpeechAssistantComponent implements OnInit {
     }
   }
 
+  async deleteTranscript(transcript: Transcript): Promise<void> {
+    const confirmed = confirm(
+      `Transkript wirklich löschen?\n\n` +
+      `Text: "${transcript.transcript.substring(0, 50)}${transcript.transcript.length > 50 ? '...' : ''}"\n` +
+      `Kategorie: ${transcript.category || 'Keine'}\n` +
+      `Erstellt: ${new Date(transcript.createdAt).toLocaleString()}\n\n` +
+      `Diese Aktion kann nicht rückgängig gemacht werden.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await lastValueFrom(
+        this.http.delete(`${this.backendUrl}/api/transcripts/${transcript._id}`, { withCredentials: true })
+      );
+
+      this.snackBar.open('Transkript erfolgreich gelöscht', 'OK', { duration: 3000 });
+
+      // Remove from local array to avoid reload
+      this.transcripts = this.transcripts.filter(t => t._id !== transcript._id);
+
+      // Update pagination count
+      this.pagination.total = Math.max(0, this.pagination.total - 1);
+
+      // Remove from selected if selected
+      this.selectedTranscripts.delete(transcript._id);
+
+      console.log('Deleted transcript:', transcript._id);
+    } catch (error) {
+      console.error('Failed to delete transcript:', error);
+      this.snackBar.open('Fehler beim Löschen des Transkripts', 'Schließen', {
+        duration: 5000,
+        panelClass: 'snackbar-error'
+      });
+    }
+  }
+
+  async setTranscriptValid(transcript: Transcript): Promise<void> {
+    // Wenn bereits als gültig markiert, nichts tun
+    if (transcript.manuallyValid) {
+      // TODO: Details anbieten zum Aufheben und anpassen des Transkripts
+      this.snackBar.open('Transkript ist bereits als gültig markiert', 'OK', { duration: 2000 });
+      return;
+    }
+
+    try {
+      // Update in Backend
+      const updated = await lastValueFrom(
+        this.http.put<Transcript>(
+          `${this.backendUrl}/api/transcripts/${transcript._id}`,
+          { manuallyValid: true },
+          { withCredentials: true }
+        )
+      );
+      console.log('Updated transcript:', updated);
+
+      // Update local state
+      transcript.manuallyValid = true;
+
+      // Add to recently updated to show green highlight
+      this.recentlyUpdated.add(transcript._id);
+
+      this.snackBar.open('✅ Transkript als gültig markiert', 'OK', { duration: 3000 });
+
+      console.log('Set transcript as valid:', transcript._id);
+    } catch (error) {
+      console.error('Failed to set transcript as valid:', error);
+      this.snackBar.open('Fehler beim Markieren als gültig', 'Schließen', {
+        duration: 5000,
+        panelClass: 'snackbar-error'
+      });
+    }
+  }
+
   // ===== Neue Methoden =====
 
   async loadCategories(): Promise<void> {
@@ -504,88 +587,106 @@ export class AdminSpeechAssistantComponent implements OnInit {
     }
   }
 
-  async loadLlmInstances(): Promise<void> {
+async loadLlmInstances(): Promise<void> {
+  try {
+    // Avoid cached 304 responses by adding a cache-buster on the backend call
+    const ts = Date.now();
+    this.llmInstances = await lastValueFrom(
+      this.http.get<LlmInstance[]>(`${this.backendUrl}/api/llm-instances`, { params: { _t: String(ts) } })
+    );
+    this.activeInstance = this.llmInstances.find(i => i.isActive) || null;
+
+    // Lade System-Prompt für die aktive oder erste Instanz
+    const instanceToLoad = this.llmInstances.find(i => i.isActive) || this.llmInstances[0];
+    await this.loadSystemPromptFor(instanceToLoad);
+
+    // Entdecke Modelle aus allen Instanzen
+    const { modelSet, sources } = await this.discoverModels(this.llmInstances);
+    this.uniqueModelSources = sources;
+    this.uniqueModels = Array.from(modelSet).sort((a, b) => a.localeCompare(b));
+
+    console.log('Unique models:', this.uniqueModels);
+    console.log('Unique model sources:', this.uniqueModelSources);
+    this.frontendLogger.debug('AdminSpeech', 'Model discovery', { uniqueModels: this.uniqueModels, uniqueModelSources: this.uniqueModelSources });
+
+    console.log('Loaded LLM instances:', this.llmInstances.length);
+    this.frontendLogger.info('AdminSpeech', 'Finished populating model discovery', { instances: this.llmInstances.length });
+  } catch (error) {
+    console.error('Failed to load LLM instances:', error);
+    this.frontendLogger.error('AdminSpeech', 'Failed to load LLM instances (outer)', error);
+  }
+}
+
+/** Lade System-Prompt für eine Instanz (falls vorhanden) */
+private async loadSystemPromptFor(instance?: LlmInstance): Promise<void> {
+  if (!instance?._id) {
+    this.systemPrompt = '';
+    this.activeInstance = null;
+    return;
+  }
+
+  try {
+    const promptResult = await lastValueFrom(this.llmService.getSystemPrompt(instance._id));
+    this.systemPrompt = promptResult.systemPrompt || '';
+    this.activeInstance = instance;
+
+    // WICHTIG: Setze config.url und config.model, damit Test die richtige Instanz verwendet!
+    this.config.url = instance.url.replace('/v1/chat/completions', '');
+    this.config.model = instance.model;
+    this.config.systemPrompt = this.systemPrompt;
+
+    // Replace config reference so child OnChanges is triggered
+    this.config = { ...this.config };
+    console.log(`Loaded system prompt for instance: ${instance.model}, length: ${this.systemPrompt.length}`);
+  } catch (e) {
+    console.warn('Failed to load system prompt:', e);
+    this.systemPrompt = '';
+  }
+}
+
+/** Hole Modelle von jeder Instanz und baue unique set und Quellen-Map auf */
+private async discoverModels(instances: LlmInstance[]): Promise<{
+  modelSet: Set<string>;
+  sources: Record<string, { instances: string[]; active: boolean }>;
+}> {
+  const modelSet = new Set<string>(this.uniqueModels || []);
+  const sources: Record<string, { instances: string[]; active: boolean }> = {};
+
+  for (const inst of instances) {
+    const idOrUrl = inst.name || inst.url;
     try {
-      // Avoid cached 304 responses by adding a cache-buster on the backend call
-      const ts = Date.now();
-      this.llmInstances = await lastValueFrom(
-        this.http.get<LlmInstance[]>(`${this.backendUrl}/api/llm-instances`, { params: { _t: String(ts) } })
-      );
-      this.activeInstance = this.llmInstances.find(i => i.isActive) || null;
-
-      // Load system prompt of first active instance (or first instance if none active)
-      const instanceToLoad = this.llmInstances.find(i => i.isActive) || this.llmInstances[0];
-      if (instanceToLoad?._id) {
-        try {
-          const promptResult = await lastValueFrom(
-            this.llmService.getSystemPrompt(instanceToLoad._id)
-          );
-          this.systemPrompt = promptResult.systemPrompt || '';
-          this.activeInstance = instanceToLoad;
-
-          // WICHTIG: Setze config.url und config.model, damit Test die richtige Instanz verwendet!
-          this.config.url = instanceToLoad.url.replace('/v1/chat/completions', '');
-          this.config.model = instanceToLoad.model;
-          this.config.systemPrompt = this.systemPrompt;
-
-          // Replace config reference so child OnChanges is triggered
-          this.config = { ...this.config };
-          console.log(`Loaded system prompt for instance: ${instanceToLoad.model}, length: ${this.systemPrompt.length}`);
-        } catch (e) {
-          console.warn('Failed to load system prompt:', e);
-          this.systemPrompt = '';
-        }
-      } else {
-        this.systemPrompt = '';
-        this.activeInstance = null;
+      const models = await lastValueFrom(this.llmService.getModels(inst.url));
+      console.log(`Models from instance ${idOrUrl}:`, models);
+      if (!models || models.length === 0) {
+        console.warn(`No models returned from instance ${idOrUrl}`);
       }
 
-      // Query each instance for available models and build unique set (merge with any models already from config)
-      const modelSet = new Set<string>(this.uniqueModels || []);
-      // reset sources map
-      this.uniqueModelSources = {};
-      for (const inst of this.llmInstances) {
-        try {
-          const models = await lastValueFrom(this.llmService.getModels(inst.url));
-          console.log(`Models from instance ${inst.name || inst.url}:`, models);
-          if (!models || models.length === 0) {
-            console.warn(`No models returned from instance ${inst.name || inst.url}`);
-          }
-          for (const m of models || []) {
-            modelSet.add(m);
-            const entry = this.uniqueModelSources[m] || { instances: [], active: false };
-            if (!entry.instances.includes(inst.name || inst.url)) entry.instances.push(inst.name || inst.url);
-            // mark active true if instance is active
-            entry.active = entry.active || !!inst.isActive;
-            this.uniqueModelSources[m] = entry;
-          }
-          // also include the instance.model field if present
-          if (inst.model) {
-            modelSet.add(inst.model);
-            const mm = inst.model;
-            const entry = this.uniqueModelSources[mm] || { instances: [], active: false };
-            if (!entry.instances.includes(inst.name || inst.url)) entry.instances.push(inst.name || inst.url);
-            entry.active = entry.active || !!inst.isActive;
-            this.uniqueModelSources[mm] = entry;
-          }
-        } catch (e) {
-          // ignore individual instance failures
-          console.warn(`Failed to fetch models from instance ${inst.name || inst.url}:`, e);
-        }
+      for (const m of models || []) {
+        modelSet.add(m);
+        const entry = sources[m] || { instances: [], active: false };
+        if (!entry.instances.includes(idOrUrl)) entry.instances.push(idOrUrl);
+        entry.active = entry.active || !!inst.isActive;
+        sources[m] = entry;
       }
-      this.uniqueModels = Array.from(modelSet).sort((a, b) => a.localeCompare(b));
 
-      console.log('Unique models:', this.uniqueModels);
-      console.log('Unique model sources:', this.uniqueModelSources);
-      this.frontendLogger.debug('AdminSpeech', 'Model discovery', { uniqueModels: this.uniqueModels, uniqueModelSources: this.uniqueModelSources });
-
-      console.log('Loaded LLM instances:', this.llmInstances.length);
-      this.frontendLogger.info('AdminSpeech', 'Finished populating model discovery', { instances: this.llmInstances.length });
-    } catch (error) {
-      console.error('Failed to load LLM instances:', error);
-      this.frontendLogger.error('AdminSpeech', 'Failed to load LLM instances (outer)', error);
+      // also include the inst.model field if present
+      if (inst.model) {
+        modelSet.add(inst.model);
+        const mm = inst.model;
+        const entry = sources[mm] || { instances: [], active: false };
+        if (!entry.instances.includes(idOrUrl)) entry.instances.push(idOrUrl);
+        entry.active = entry.active || !!inst.isActive;
+        sources[mm] = entry;
+      }
+    } catch (e) {
+      // ignore individual instance failures
+      console.warn(`Failed to fetch models from instance ${idOrUrl}:`, e);
     }
   }
+
+  return { modelSet, sources };
+}
+
 
   async scanLlmInstances(): Promise<void> {
     try {
@@ -628,7 +729,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
           'OK',
           { duration: 3000 }
         );
-      } else if (result.loadResult?.error && result.loadResult.error.includes('not support')) {
+      } else if (result.loadResult?.error?.includes?.('not support')) {
         this.snackBar.open(
           `⚠️ ${instance.model} als aktiv markiert (LM Studio load API nicht verfügbar - Modell manuell laden)`,
           'OK',
@@ -761,7 +862,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
         // Erweiterte LM-Studio Sampling-Einstellungen
         (this.config as any).topK = instance.config.topK ?? 40;
         (this.config as any).topP = instance.config.topP ?? 0.95;
-        (this.config as any).repeatPenalty = instance.config.repeatPenalty ?? 1.0;
+        (this.config as any).repeatPenalty = instance.config.repeatPenalty ?? 1;
         (this.config as any).minPSampling = instance.config.minPSampling ?? 0.05;
         (this.config as any).contextLength = instance.config.contextLength ?? 4096;
         (this.config as any).evalBatchSize = instance.config.evalBatchSize ?? 512;
@@ -800,7 +901,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
   }
 
   async saveSystemPrompt(): Promise<void> {
-    if (!this.activeInstance || !this.activeInstance._id) {
+    if (!this.activeInstance?._id) {
       this.snackBar.open('Keine LLM-Instanz ausgewählt', 'OK', { duration: 3000 });
       return;
     }
@@ -998,7 +1099,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
     if (!confirmed) return;
 
     try {
-      const current = { ...(this.settings.current || {}) } as any;
+      const current = { ...(this.settings.current) } as any;
       // Übertrage die instanz-spezifischen Werte in die globalen Einstellungen
       current.temperature = this.config.temperature;
       current.maxTokens = this.config.maxTokens;
