@@ -1,170 +1,61 @@
-import {
-  Entity,
-  Column,
-  PrimaryColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Index,
-  OneToMany,
-} from 'typeorm';
-import { HaEntityDomain } from '../enums';
-import { HaArea } from './ha-area.entity';
-import { HaDevice } from './ha-device.entity';
-import { HaEntityState } from './ha-entity-state.entity';
-import { HaEntityAttribute } from './ha-entity-attribute.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
-/**
- * HaEntity Entity
- *
- * Represents a HomeAssistant entity with natural primary key (entity_id).
- *
- * @see database/DBM-SCHEMA-03-TypeORM-Mapping.md
- */
 @Entity('ha_entities')
-@Index('uq_ha_entities__entity_id', ['entityId'], { unique: true })
-@Index('ix_ha_entities__domain', ['domain'])
-@Index('ix_ha_entities__area_id', ['areaId'])
-@Index('ix_ha_entities__device_id', ['deviceId'])
-export class HaEntity {
-  /**
-   * Natural Primary Key from HomeAssistant (e.g. 'light.living_room_main')
-   */
-  @PrimaryColumn({ type: 'varchar', length: 255, name: 'entity_id' })
-  entityId: string;
+@Index(['entityId'], { unique: true })
+@Index(['domain'])
+@Index(['area'])
+export class HaEntityEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
-  /**
-   * Entity Domain (light, switch, sensor, etc.)
-   */
-  @Column({
-    type: 'enum',
-    enum: HaEntityDomain,
-    name: 'domain',
-  })
-  domain: HaEntityDomain;
+  @Column({ type: 'varchar', length: 255, unique: true, name: 'entity_id' })
+  entityId!: string;
 
-  /**
-   * Object ID (part after domain, e.g. 'living_room_main')
-   */
-  @Column({ type: 'varchar', length: 255, name: 'object_id' })
-  objectId: string;
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'friendly_name' })
+  friendlyName!: string;
 
-  /**
-   * Friendly Name
-   */
-  @Column({ type: 'varchar', length: 255, name: 'friendly_name' })
-  friendlyName: string;
-
-  /**
-   * Entity Aliases (JSON array)
-   */
-  @Column({ type: 'json', nullable: true, name: 'aliases' })
-  aliases: string[] | null;
-
-  /**
-   * Icon
-   */
-  @Column({ type: 'varchar', length: 100, nullable: true, name: 'icon' })
-  icon: string | null;
-
-  /**
-   * Device Class (e.g. 'temperature', 'humidity')
-   */
   @Column({ type: 'varchar', length: 100, nullable: true, name: 'device_class' })
-  deviceClass: string | null;
+  deviceClass!: string;
 
-  /**
-   * Unit of Measurement (e.g. '°C', '%')
-   */
-  @Column({ type: 'varchar', length: 100, nullable: true, name: 'unit_of_measurement' })
-  unitOfMeasurement: string | null;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  area!: string;
 
-  /**
-   * Area ID (Foreign Key to ha_areas.area_id)
-   */
-  @Column({ type: 'varchar', length: 255, nullable: true, name: 'area_id' })
-  areaId: string | null;
+  @Column({ type: 'varchar', length: 100 })
+  domain!: string;
 
-  /**
-   * Device ID (Foreign Key to ha_devices.device_id)
-   */
-  @Column({ type: 'varchar', length: 255, nullable: true, name: 'device_id' })
-  deviceId: string | null;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  platform!: string;
 
-  /**
-   * Platform (e.g. 'hue', 'mqtt')
-   */
-  @Column({ type: 'varchar', length: 255, nullable: true, name: 'platform' })
-  platform: string | null;
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'unique_id' })
+  uniqueId!: string;
 
-  /**
-   * Is entity disabled?
-   */
-  @Column({ type: 'boolean', default: false, name: 'disabled' })
-  disabled: boolean;
+  @Column({ type: 'int', nullable: true, name: 'supported_features' })
+  supportedFeatures!: number;
 
-  /**
-   * Is entity hidden?
-   */
-  @Column({ type: 'boolean', default: false, name: 'hidden' })
-  hidden: boolean;
-
-  /**
-   * Entity Category (diagnostic, config)
-   */
   @Column({ type: 'varchar', length: 100, nullable: true, name: 'entity_category' })
-  entityCategory: string | null;
+  entityCategory!: string;
 
-  /**
-   * Creation Timestamp
-   */
-  @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
-  createdAt: Date;
+  @Column({ type: 'json', nullable: true })
+  capabilities!: any;
 
-  /**
-   * Last Update
-   */
-  @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
-  updatedAt: Date;
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'original_name' })
+  originalName!: string;
 
-  // =========================
-  // Relations
-  // =========================
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
 
-  /**
-   * n:1 Relation to HaArea
-   * ON DELETE SET NULL: Entity remains when area is deleted
-   */
-  @ManyToOne(() => HaArea, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({
-    name: 'area_id',
-    referencedColumnName: 'areaId',
-    foreignKeyConstraintName: 'fk_ha_entities__ha_areas__area_id',
-  })
-  area: HaArea | null;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt!: Date;
 
-  /**
-   * n:1 Relation to HaDevice
-   * ON DELETE SET NULL: Entity remains when device is deleted
-   */
-  @ManyToOne(() => HaDevice, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({
-    name: 'device_id',
-    referencedColumnName: 'deviceId',
-    foreignKeyConstraintName: 'fk_ha_entities__ha_devices__device_id',
-  })
-  device: HaDevice | null;
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'object_id' })
+  objectId!: string | null;
 
-  /**
-   * 1:n Relation to HaEntityState (history)
-   */
-  @OneToMany(() => HaEntityState, (state) => state.entity)
-  states: HaEntityState[];
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'entity_type' })
+  entityType!: string | null;
 
-  /**
-   * 1:n Relation to HaEntityAttribute
-   */
-  @OneToMany(() => HaEntityAttribute, (attr) => attr.entity)
-  attributes: HaEntityAttribute[];
+  @Column({ type: 'varchar', length: 36, nullable: true, name: 'device_id' })
+  deviceId!: string | null;
+
+  @Column({ type: 'varchar', length: 36, nullable: true, name: 'area_id' })
+  areaId!: string | null;
 }
