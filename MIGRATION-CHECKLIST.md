@@ -7,11 +7,19 @@
 - [ ] **Backup erstellen**
   ```bash
   # MongoDB Backup
-  # ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
-  mongodump --uri="mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@localhost:27018/raueberbude?authSource=admin" --out=./backup-mongo-$(date +%Y%m%d)
+  # ⚠️ Verwenden Sie --authenticationDatabase statt URI um Credentials nicht in der Prozessliste zu zeigen
+  mongodump --host localhost --port 27018 \
+    --username ${MONGO_INITDB_ROOT_USERNAME} \
+    --password ${MONGO_INITDB_ROOT_PASSWORD} \
+    --authenticationDatabase admin \
+    --db raueberbude \
+    --out=./backup-mongo-$(date +%Y%m%d)
   
   # MariaDB Backup
-  mysqldump -h 127.0.0.1 -P 3307 -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude > backup-maria-$(date +%Y%m%d).sql
+  # ⚠️ Verwenden Sie separate --password Option für mehr Sicherheit
+  mysqldump -h 127.0.0.1 -P 3307 \
+    -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" \
+    raueberbude > backup-maria-$(date +%Y%m%d).sql
   ```
 
 - [ ] **Datenbankverbindungen prüfen**
@@ -140,11 +148,18 @@
   node scripts/step1_truncate_tables.js
   
   # MongoDB-Backup wiederherstellen (falls nötig)
-  # ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
-  mongorestore --uri="mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@localhost:27018/raueberbude?authSource=admin" ./backup-mongo-YYYYMMDD
+  # ⚠️ Verwenden Sie separate Auth-Parameter statt URI
+  mongorestore --host localhost --port 27018 \
+    --username ${MONGO_INITDB_ROOT_USERNAME} \
+    --password ${MONGO_INITDB_ROOT_PASSWORD} \
+    --authenticationDatabase admin \
+    --db raueberbude \
+    ./backup-mongo-YYYYMMDD
   
   # MariaDB-Backup wiederherstellen (falls nötig)
-  mysql -h 127.0.0.1 -P 3307 -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude < backup-maria-YYYYMMDD.sql
+  mysql -h 127.0.0.1 -P 3307 \
+    -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" \
+    raueberbude < backup-maria-YYYYMMDD.sql
   ```
 
 - [ ] **Problem dokumentieren**

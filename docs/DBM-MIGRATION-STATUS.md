@@ -45,23 +45,34 @@ Die Migration enthält:
 **WICHTIG**: Verwenden Sie in Produktionsumgebungen niemals hartcodierte oder Beispiel-Credentials!
 
 ### Lösung für Entwicklungsumgebung:
+
+**Option 1: Direkter Zugriff (manuell ersetzen)**
 ```sql
 -- Im MariaDB-Container ausführen (NUR für lokale Entwicklung):
--- Verwenden Sie die Credentials aus Ihren Umgebungsvariablen
+-- Ersetzen Sie <YOUR_USER> und <YOUR_PASSWORD> mit Ihren tatsächlichen Werten aus der .env-Datei
+CREATE USER IF NOT EXISTS '<YOUR_USER>'@'localhost' IDENTIFIED BY '<YOUR_PASSWORD>';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON raueberbude.* TO '<YOUR_USER>'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+**Option 2: Mit Shell-Substitution (Bash/PowerShell)**
+```bash
+# Bash/Linux (stellen Sie sicher, dass Umgebungsvariablen gesetzt sind)
+docker exec backend-mariadb-1 mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "
 CREATE USER IF NOT EXISTS '${MARIADB_USER}'@'localhost' IDENTIFIED BY '${MARIADB_PASSWORD}';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON raueberbude.* TO '${MARIADB_USER}'@'localhost';
-FLUSH PRIVILEGES;
+FLUSH PRIVILEGES;"
 ```
 
 ### Für Produktionsumgebungen:
 1. **Credentials**: Nutzen Sie einen Secrets Manager (z.B. AWS Secrets Manager, HashiCorp Vault, Azure Key Vault)
 2. **Benutzerberechtigungen**: Vergeben Sie nur die minimal notwendigen Rechte (Least Privilege Principle)
 3. **Host-Einschränkung**: Beschränken Sie den Zugriff auf spezifische IP-Adressen oder Netzwerke, niemals auf `'%'`
-4. **Beispiel für eingeschränkte Berechtigungen**:
+4. **Beispiel für eingeschränkte Berechtigungen** (Werte manuell aus Secrets Manager abrufen):
    ```sql
-   -- Ersetzen Sie <SPECIFIC_IP> mit der tatsächlichen IP-Adresse
-   CREATE USER IF NOT EXISTS '${MARIADB_USER}'@'<SPECIFIC_IP>' IDENTIFIED BY '${MARIADB_PASSWORD}';
-   GRANT SELECT, INSERT, UPDATE, DELETE ON raueberbude.* TO '${MARIADB_USER}'@'<SPECIFIC_IP>';
+   -- Ersetzen Sie <YOUR_USER>, <YOUR_PASSWORD> und <SPECIFIC_IP> mit tatsächlichen Werten
+   CREATE USER IF NOT EXISTS '<YOUR_USER>'@'<SPECIFIC_IP>' IDENTIFIED BY '<YOUR_PASSWORD>';
+   GRANT SELECT, INSERT, UPDATE, DELETE ON raueberbude.* TO '<YOUR_USER>'@'<SPECIFIC_IP>';
    FLUSH PRIVILEGES;
    ```
 
