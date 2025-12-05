@@ -34,6 +34,11 @@ const RELAXED = __ENV.RELAXED === '1'; // if set, treat non-5xx responses as suc
 const SMOKE = __ENV.SMOKE === '1'; // if set, run only a lightweight health-check scenario
 const LEGACY = __ENV.LEGACY === '1'; // if set, use only legacy-supported endpoints
 
+// Provide safe defaults for test arrays if not defined in environment or elsewhere
+const TEST_USERS = (typeof globalThis.TEST_USERS !== 'undefined' ? globalThis.TEST_USERS : (__ENV.TEST_USERS ? __ENV.TEST_USERS.split(',') : ['curl-debug-user', 'test-user-1', 'test-user-2']));
+const TEST_TERMINALS = (typeof globalThis.TEST_TERMINALS !== 'undefined' ? globalThis.TEST_TERMINALS : (__ENV.TEST_TERMINALS ? __ENV.TEST_TERMINALS.split(',') : ['curl-debug-term', 'term-1']));
+const TEST_ENTITY_IDS = (typeof globalThis.TEST_ENTITY_IDS !== 'undefined' ? globalThis.TEST_ENTITY_IDS : (__ENV.TEST_ENTITY_IDS ? __ENV.TEST_ENTITY_IDS.split(',') : ['entity-1','entity-2','entity-3']));
+
 // helper to determine if a response is acceptable
 function isOk(res, expectedStatus) {
   if (!res) return false;
