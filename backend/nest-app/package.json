@@ -18,7 +18,8 @@
     "migrate:mongo-to-mariadb": "ts-node src/cli/migrate-mongo-to-mariadb.ts",
     "migrate:keywords-suggestions": "ts-node src/cli/migrate-keywords-suggestions.ts",
     "validate:many-to-many-migration": "ts-node src/cli/validate-many-to-many-migration.ts",
-    "validate:data-types": "ts-node src/cli/validate-data-types.ts"
+    "validate:data-types": "ts-node src/cli/validate-data-types.ts",
+    "validate:schema": "ts-node src/cli/validate-schema.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.3",
