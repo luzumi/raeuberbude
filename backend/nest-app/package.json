@@ -15,7 +15,10 @@
     "migration:create": "npm run typeorm -- migration:create",
     "migration:run": "npm run typeorm -- migration:run -d src/data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/data-source.ts",
-    "migrate:mongo-to-mariadb": "ts-node src/cli/migrate-mongo-to-mariadb.ts"
+    "migrate:mongo-to-mariadb": "ts-node src/cli/migrate-mongo-to-mariadb.ts",
+    "migrate:keywords-suggestions": "ts-node src/cli/migrate-keywords-suggestions.ts",
+    "validate:many-to-many-migration": "ts-node src/cli/validate-many-to-many-migration.ts",
+    "validate:data-types": "ts-node src/cli/validate-data-types.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.3",
@@ -52,9 +55,11 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.5",
     "@types/fluent-ffmpeg": "^2.1.26",
+    "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.10.0",
     "@types/ws": "^8.5.10",
+    "jest": "^30.2.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.4.5",

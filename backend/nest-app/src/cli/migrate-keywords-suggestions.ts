@@ -116,6 +116,91 @@ class KeywordsSuggestionsMigrator {
     console.log('✅ MariaDB connected');
   }
 
+  // Ensure required tables exist (low-risk CREATE TABLE IF NOT EXISTS)
+  private async ensureTables(): Promise<void> {
+    console.log('🛠️  Ensuring required MariaDB tables exist...');
+
+    // Keywords
+    await this.mariaDb.query(`
+      CREATE TABLE IF NOT EXISTS ${TABLES.KEYWORDS} (
+        id VARCHAR(36) NOT NULL PRIMARY KEY,
+        keyword VARCHAR(255) NOT NULL,
+        normalized VARCHAR(255) NOT NULL,
+        usage_count INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY ux_${TABLES.KEYWORDS}_normalized (normalized)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // Suggestions
+    await this.mariaDb.query(`
+      CREATE TABLE IF NOT EXISTS ${TABLES.SUGGESTIONS} (
+        id VARCHAR(36) NOT NULL PRIMARY KEY,
+        suggestion_text TEXT NOT NULL,
+        text_hash VARCHAR(64) NOT NULL,
+        usage_count INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY ux_${TABLES.SUGGESTIONS}_hash (text_hash)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // Transcripts (minimal schema to allow joins in migration)
+    await this.mariaDb.query(`
+      CREATE TABLE IF NOT EXISTS ${TABLES.TRANSCRIPTS} (
+        id VARCHAR(36) NOT NULL PRIMARY KEY,
+        user_id VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // Transcript <-> Keyword join table
+    await this.mariaDb.query(`
+      CREATE TABLE IF NOT EXISTS ${TABLES.TRANSCRIPT_KEYWORDS} (
+        transcript_id VARCHAR(36) NOT NULL,
+        keyword_id VARCHAR(36) NOT NULL,
+        position INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (transcript_id, keyword_id),
+        KEY idx_${TABLES.TRANSCRIPT_KEYWORDS}_keyword (keyword_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // Transcript <-> Suggestion join table
+    await this.mariaDb.query(`
+      CREATE TABLE IF NOT EXISTS ${TABLES.TRANSCRIPT_SUGGESTIONS} (
+        transcript_id VARCHAR(36) NOT NULL,
+        suggestion_id VARCHAR(36) NOT NULL,
+        position INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (transcript_id, suggestion_id),
+        KEY idx_${TABLES.TRANSCRIPT_SUGGESTIONS}_suggestion (suggestion_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // Intent logs (minimal)
+    await this.mariaDb.query(`
+      CREATE TABLE IF NOT EXISTS ${TABLES.INTENT_LOGS} (
+        id VARCHAR(36) NOT NULL PRIMARY KEY,
+        intent_key VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // IntentLog <-> Keyword join table
+    await this.mariaDb.query(`
+      CREATE TABLE IF NOT EXISTS ${TABLES.INTENT_LOG_KEYWORDS} (
+        intent_log_id VARCHAR(36) NOT NULL,
+        keyword_id VARCHAR(36) NOT NULL,
+        position INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (intent_log_id, keyword_id),
+        KEY idx_${TABLES.INTENT_LOG_KEYWORDS}_keyword (keyword_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    console.log('   ✅ Tables ensured');
+  }
+
   async disconnect(): Promise<void> {
     await this.mongoDb.disconnect();
     await this.mariaDb.destroy();
@@ -477,6 +562,8 @@ class KeywordsSuggestionsMigrator {
     try {
       await this.connectMongo();
       await this.connectMariaDB();
+      // Ensure tables exist before attempting migration joins
+      await this.ensureTables();
 
       await this.migrateTranscriptKeywords();
       await this.migrateTranscriptSuggestions();
