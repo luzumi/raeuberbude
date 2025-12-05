@@ -312,7 +312,8 @@ app.post('/log-action', async (req, res) => {
 // Create a new transcript entry
 app.post('/api/transcripts', async (req, res) => {
   try {
-    console.log('Request; ', req, 'Response', res.body);
+    // Lightweight logging: avoid serializing the entire req/res objects (expensive)
+    console.log(`POST /api/transcripts - user=${req.body?.userId || '-'} terminal=${req.body?.terminalId || '-'} length=${req.headers['content-length'] || '-'} `);
     const transcript = await Transcript.create(req.body);
     res.status(201).json(transcript);
   } catch (error) {
