@@ -309,14 +309,75 @@ app.post('/log-action', async (req, res) => {
 
 // ===== Transcript API Endpoints =====
 
+const DIAG = process.env.DIAG === '1';
+
+// Diagnostics counters (in-memory, non-persistent)
+const diagCounters = {
+  totalPosts: 0,
+  postSuccess: 0,
+  postErrors: 0,
+  lastErrors: [] // store last few error messages
+};
+
 // Create a new transcript entry
 app.post('/api/transcripts', async (req, res) => {
+  diagCounters.totalPosts++;
+  // Basic request validation to return 400 early for malformed requests
+  const required = ['userId', 'transcript', 'isValid', 'durationMs', 'model'];
+  const missing = required.filter(f => req.body[f] === undefined || req.body[f] === null);
+  if (missing.length > 0) {
+    diagCounters.postErrors++;
+    const msg = `Missing required fields: ${missing.join(', ')}`;
+    diagCounters.lastErrors.push({ time: new Date().toISOString(), msg });
+    if (diagCounters.lastErrors.length > 20) diagCounters.lastErrors.shift();
+    if (DIAG) console.log(`DIAG_POST_ERR_VALIDATION ${msg}`);
+    return res.status(400).json({ error: msg });
+  }
+
   try {
-    console.log('Request; ', req, 'Response', res.body);
+    // Lightweight logging: avoid serializing the entire req/res objects (expensive)
+    console.log(`POST /api/transcripts - user=${req.body?.userId || '-'} terminal=${req.body?.terminalId || '-'} length=${req.headers['content-length'] || '-'} `);
     const transcript = await Transcript.create(req.body);
+
+    diagCounters.postSuccess++;
+
+    if (DIAG) {
+      // safe small snippets
+      const user = req.body?.userId || '-';
+      const len = req.headers['content-length'] || '-';
+      const snippet = JSON.stringify({ userId: req.body?.userId, terminalId: req.body?.terminalId, transcript: req.body?.transcript ? String(req.body.transcript).slice(0,100) : '' });
+      console.log(`DIAG_POST_OK id=${transcript._id} user=${user} len=${len} snippet=${snippet}`);
+    }
+
     res.status(201).json(transcript);
   } catch (error) {
-    console.error('Failed to create transcript:', error);
+    // Handle known Mongoose/Mongo errors with clearer status codes
+    diagCounters.postErrors++;
+    const errMsg = error && error.message ? error.message : String(error);
+    diagCounters.lastErrors.push({ time: new Date().toISOString(), msg: errMsg });
+    if (diagCounters.lastErrors.length > 20) diagCounters.lastErrors.shift();
+
+    if (error.name === 'ValidationError') {
+      console.error('ValidationError creating transcript:', error.message || error);
+      if (DIAG) console.log(`DIAG_POST_ERR_VALIDATION ${error.message}`);
+      return res.status(400).json({ error: error.message });
+    }
+
+    if (error.code === 11000 || (error.message && error.message.includes('E11000'))) {
+      console.error('Duplicate key error creating transcript:', error.message || error);
+      if (DIAG) console.log(`DIAG_POST_ERR_DUPLICATE ${error.message}`);
+      return res.status(409).json({ error: 'Duplicate key' });
+    }
+
+    console.error('Failed to create transcript:', error.message || error);
+    if (DIAG) {
+      try {
+        const bodySnippet = JSON.stringify(req.body).slice(0,200);
+        console.log(`DIAG_POST_ERR msg=${error.message || error} body=${bodySnippet}`);
+      } catch (e) {
+        console.log(`DIAG_POST_ERR msg=${error.message || error} (body-skip)`);
+      }
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -869,6 +930,16 @@ app.post('/api/transcripts/bulk-update', async (req, res) => {
     console.error('Failed to bulk update transcripts:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Diagnostic metrics endpoint
+app.get('/api/diag/metrics', (req, res) => {
+  res.json({
+    totalPosts: diagCounters.totalPosts,
+    postSuccess: diagCounters.postSuccess,
+    postErrors: diagCounters.postErrors,
+    lastErrors: diagCounters.lastErrors
+  });
 });
 
 const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3001;
