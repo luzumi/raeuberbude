@@ -129,7 +129,8 @@ cd C:\Users\corat\IdeaProjects\raueberbude
 
 ```powershell
 # Schritt 1: Neue Tabellen
-mysql -h 127.0.0.1 -P 3307 -u rb_user -prb_user_secret raueberbude < scripts/create-llm-and-category-tables.sql
+# ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
+mysql -h 127.0.0.1 -P 3307 -u $env:MARIADB_USER -p"$env:MARIADB_PASSWORD" raueberbude < scripts/create-llm-and-category-tables.sql
 
 # Schritt 2: Tabellen leeren
 node scripts/step1_truncate_tables.js

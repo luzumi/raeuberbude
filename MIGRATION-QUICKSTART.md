@@ -1,10 +1,16 @@
 # MongoDB zu MariaDB Migration - Schnellstart
 
+⚠️ **Sicherheitshinweis**: 
+- Alle Beispiele verwenden Umgebungsvariablen für Credentials. Niemals hartcodierte Credentials in Produktion verwenden!
+- **Warnung**: Kommandozeilenargumente für Passwörter können in Prozesslisten sichtbar werden
+- **Für Produktionssysteme**: Verwenden Sie MySQL-Konfigurationsdateien oder sichere Credential-Übergabemethoden
+
 ## Voraussetzungen
 
 - ✅ MariaDB läuft auf Port 3307
 - ✅ MongoDB läuft auf Port 27018
 - ✅ Node.js und npm installiert
+- ✅ Umgebungsvariablen für Datenbankzugriff sind gesetzt
 
 ## Migration durchführen
 
@@ -23,7 +29,8 @@ Das Skript führt automatisch alle Schritte aus.
 
 ```powershell
 cd C:\Users\corat\IdeaProjects\raueberbude\backend\nest-app
-mysql -h 127.0.0.1 -P 3307 -u rb_user -prb_user_secret raueberbude < scripts/create-llm-and-category-tables.sql
+# ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
+mysql -h 127.0.0.1 -P 3307 -u $env:MARIADB_USER -p"$env:MARIADB_PASSWORD" raueberbude < scripts/create-llm-and-category-tables.sql
 ```
 
 #### Schritt 2: Bestehende Tabellen leeren
@@ -121,7 +128,8 @@ node scripts/step1_truncate_tables.js
 #### Schritt 2: Bestehende Tabellen leeren
 
 ```
-mysql -h 127.0.0.1 -P 3307 -u rb_user -prb_user_secret raueberbude < scripts/create-llm-and-category-tables.sql
+# ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
+mysql -h 127.0.0.1 -P 3307 -u $env:MARIADB_USER -p"$env:MARIADB_PASSWORD" raueberbude < scripts/create-llm-and-category-tables.sql
 cd C:\Users\corat\IdeaProjects\raueberbude\backend\nest-app
 ```powershell
 

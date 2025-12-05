@@ -16,7 +16,8 @@ Dieses Dokument beschreibt die vollständige Migration von MongoDB nach MariaDB.
 
 ```bash
 cd backend/nest-app
-mysql -h 127.0.0.1 -P 3307 -u rb_user -prb_user_secret raueberbude < scripts/create-llm-and-category-tables.sql
+# ⚠️ Verwenden Sie Umgebungsvariablen für Credentials
+mysql -h 127.0.0.1 -P 3307 -u ${MARIADB_USER} -p"${MARIADB_PASSWORD}" raueberbude < scripts/create-llm-and-category-tables.sql
 ```
 
 ### Schritt 2: Migrations-Script ausführen
