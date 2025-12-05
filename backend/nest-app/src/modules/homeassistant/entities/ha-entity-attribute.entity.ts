@@ -6,7 +6,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { HaEntity } from './ha-entity.entity';
+import { HaEntityEntity } from './ha-entity.entity';
 
 /**
  * HaEntityAttribute Entity
@@ -58,12 +58,11 @@ export class HaEntityAttribute {
    * n:1 Relation to HaEntity
    * ON DELETE CASCADE: Attribute is deleted when entity is deleted
    */
-  @ManyToOne(() => HaEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => HaEntityEntity, { onDelete: 'CASCADE' })
   @JoinColumn({
     name: 'entity_id',
     referencedColumnName: 'entityId',
     foreignKeyConstraintName: 'fk_ha_entity_attributes__ha_entities__entity_id',
   })
-  entity: HaEntity;
+  entity: HaEntityEntity;
 }
-

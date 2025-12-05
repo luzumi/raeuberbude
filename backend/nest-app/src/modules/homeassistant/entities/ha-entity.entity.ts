@@ -59,3 +59,6 @@ export class HaEntityEntity {
   @Column({ type: 'varchar', length: 36, nullable: true, name: 'area_id' })
   areaId!: string | null;
 }
+
+// Backwards-compatible alias (some modules import `HaEntity`)
+export { HaEntityEntity as HaEntity };

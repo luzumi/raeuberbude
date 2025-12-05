@@ -6,7 +6,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { HaEntity } from './ha-entity.entity';
+import { HaEntityEntity } from './ha-entity.entity';
 import { HaSnapshot } from './ha-snapshot.entity';
 
 /**
@@ -73,13 +73,13 @@ export class HaEntityState {
    * n:1 Relation to HaEntity
    * ON DELETE CASCADE: State is deleted when entity is deleted
    */
-  @ManyToOne(() => HaEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => HaEntityEntity, { onDelete: 'CASCADE' })
   @JoinColumn({
     name: 'entity_id',
     referencedColumnName: 'entityId',
     foreignKeyConstraintName: 'fk_ha_entity_states__ha_entities__entity_id',
   })
-  entity: HaEntity;
+  entity: HaEntityEntity;
 
   /**
    * n:1 Relation to HaSnapshot
@@ -93,4 +93,3 @@ export class HaEntityState {
   })
   snapshot: HaSnapshot | null;
 }
-

@@ -1,4 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
+import { Keyword } from './keyword.entity';
+import { Suggestion } from './suggestion.entity';
+import { TranscriptKeyword } from './transcript-keyword.entity';
+import { TranscriptSuggestion } from './transcript-suggestion.entity';
 
 @Entity('transcripts')
 @Index(['userId', 'createdAt'])
@@ -123,5 +137,48 @@ export class TranscriptEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-}
 
+  // =========================
+  // Relations (Many-to-Many)
+  // =========================
+
+  /**
+   * M:N Relation zu Keywords über Join-Table
+   */
+  @ManyToMany(() => Keyword, (keyword) => keyword.transcripts)
+  @JoinTable({
+    name: 'transcript_keywords',
+    joinColumn: { name: 'transcript_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'keyword_id', referencedColumnName: 'id' },
+  })
+  keywords: Keyword[];
+
+  /**
+   * M:N Relation zu Suggestions über Join-Table
+   */
+  @ManyToMany(() => Suggestion, (suggestion) => suggestion.transcripts)
+  @JoinTable({
+    name: 'transcript_suggestions',
+    joinColumn: { name: 'transcript_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'suggestion_id', referencedColumnName: 'id' },
+  })
+  suggestionsEntities: Suggestion[];
+
+  /**
+   * 1:n Relation zu TranscriptKeyword (für position field)
+   */
+  @OneToMany(
+    () => TranscriptKeyword,
+    (transcriptKeyword) => transcriptKeyword.transcript,
+  )
+  transcriptKeywords: TranscriptKeyword[];
+
+  /**
+   * 1:n Relation zu TranscriptSuggestion (für position field)
+   */
+  @OneToMany(
+    () => TranscriptSuggestion,
+    (transcriptSuggestion) => transcriptSuggestion.transcript,
+  )
+  transcriptSuggestions: TranscriptSuggestion[];
+}
