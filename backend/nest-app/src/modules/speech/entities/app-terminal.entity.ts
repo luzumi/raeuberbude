@@ -83,3 +83,5 @@ export class AppTerminalEntity {
   updatedAt: Date;
 }
 
+// Export alias for backwards compatibility
+export { AppTerminalEntity as AppTerminal };

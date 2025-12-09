@@ -9,9 +9,9 @@ export default registerAs('database', (): TypeOrmModuleOptions => ({
   password: process.env['MARIADB_PASSWORD'] || 'rb_user_secret',
   database: process.env['MARIADB_DATABASE'] || 'raueberbude',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-  // Disable auto schema sync to avoid destructive ALTERs at app startup.
-  // Use explicit migrations instead.
-  synchronize: false,
+  // Enable auto schema sync for development (DISABLE IN PRODUCTION!)
+  // In production, use explicit migrations instead.
+  synchronize: process.env['NODE_ENV'] !== 'production',
   logging: process.env['NODE_ENV'] === 'development',
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],
   migrationsTableName: 'migrations',

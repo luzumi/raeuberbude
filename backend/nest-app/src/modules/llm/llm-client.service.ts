@@ -1,13 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 
 export interface LlmRequestOptions {
   messages: Array<{ role: string; content: string }>;
   stream?: boolean;
-  instanceId?: string; // Optional: specific instance to use
+  instanceId?: string;
 }
 
 export interface LlmResponse {
@@ -24,56 +22,41 @@ export interface LlmResponse {
 /**
  * Central LLM Client Service
  *
- * Handles all LLM requests and automatically applies instance-specific
- * sampling parameters (topK, topP, repeatPenalty, etc.) from the database.
+ * MongoDB removed - uses hardcoded defaults.
+ * TODO: Migrate to TypeORM for LLM instance configuration.
  */
 @Injectable()
 export class LlmClientService {
   private readonly logger = new Logger(LlmClientService.name);
 
-  constructor(
-    @InjectModel('LlmInstance') private readonly llmInstanceModel: Model<any>,
-    private readonly http: HttpService,
-  ) {}
+  // Hardcoded default instance (TODO: Move to TypeORM)
+  private readonly defaultInstance = {
+    model: 'default-model',
+    url: 'http://localhost:1234/v1/chat/completions',
+    isActive: true,
+  };
 
-  /**
-   * Send a request to the active LLM instance with full config
-   */
+  constructor(private readonly http: HttpService) {}
+
   async request(options: LlmRequestOptions): Promise<LlmResponse> {
     const startTime = Date.now();
-
-    // Find instance to use (specific or active)
-    const instance = options.instanceId
-      ? await this.llmInstanceModel.findById(options.instanceId)
-      : await this.llmInstanceModel.findOne({ isActive: true });
-
-    if (!instance) {
-      throw new Error('No active LLM instance found');
-    }
+    const instance = this.defaultInstance;
 
     this.logger.debug(`Using LLM instance: ${instance.model}`);
 
-    // Build request body with ALL config parameters
     const requestBody: any = {
       model: instance.model,
       messages: options.messages,
       stream: options.stream || false,
     };
 
-    // ULTRA-MINIMAL: NUR messages, KEINE Parameter mehr
-    // Selbst temperature/max_tokens können Template-Errors verursachen
-    // LM Studio verwendet dann eigene Defaults
-
-    this.logger.log(`Sending ULTRA-MINIMAL request (NO parameters):`, {
+    this.logger.log(`Sending request:`, {
       model: requestBody.model,
       message_count: requestBody.messages.length,
-      note: 'No temperature/max_tokens - LM Studio uses defaults'
     });
 
     try {
-      // Use default timeout (config removed for ultra-minimal approach)
-      const timeout = 30000; // 30 seconds
-
+      const timeout = 30000;
       const response = await lastValueFrom(
         this.http.post(instance.url, requestBody, {
           timeout,
@@ -100,18 +83,11 @@ export class LlmClientService {
     }
   }
 
-  /**
-   * Get the currently active instance config
-   */
   async getActiveInstanceConfig() {
-    const instance = await this.llmInstanceModel.findOne({ isActive: true });
-    if (!instance) {
-      throw new Error('No active LLM instance found');
-    }
     return {
-      model: instance.model,
-      url: instance.url,
-      config: instance.config,
+      model: this.defaultInstance.model,
+      url: this.defaultInstance.url,
+      config: {},
     };
   }
 }

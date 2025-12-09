@@ -26,7 +26,7 @@ export class BootstrapService implements OnModuleInit {
       if (existing) {
         this.logger.log(`Superadmin '${username}' existiert bereits`);
         // Ensure rights are admin
-        await this.rights.update(String(existing._id), { role: 'admin' });
+        await this.rights.update(String(existing.id), { role: 'admin' });
         return;
       }
 
@@ -35,8 +35,8 @@ export class BootstrapService implements OnModuleInit {
 
       // Default Rechte: admin
       const createdUser = await this.users.findByUsername(username);
-      if (createdUser?._id) {
-        await this.rights.update(String(createdUser._id), { role: 'admin' });
+      if (createdUser?.id) {
+        await this.rights.update(String(createdUser.id), { role: 'admin' });
       } else {
         this.logger.warn(`Konnte ID für neu erstellten Superadmin '${username}' nicht ermitteln – Rechte nicht gesetzt`);
       }
@@ -46,3 +46,4 @@ export class BootstrapService implements OnModuleInit {
     }
   }
 }
+

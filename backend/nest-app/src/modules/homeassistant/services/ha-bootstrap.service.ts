@@ -1,9 +1,8 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HaImportService } from './ha-import.service';
-import { HaSyncService } from './ha-sync.service';
-import * as fs from 'fs';
-import * as path from 'path';
+import { HaImportTypeOrmService } from './ha-import-typeorm.service';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 // Controls
 // HA_IMPORT_ON_START: 'never' | 'if_empty' | 'always' (default: 'always')
@@ -16,8 +15,7 @@ export class HaBootstrapService implements OnApplicationBootstrap {
 
   constructor(
     private readonly config: ConfigService,
-    private readonly importService: HaImportService,
-    private readonly syncService: HaSyncService,
+    private readonly importService: HaImportTypeOrmService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -58,15 +56,8 @@ export class HaBootstrapService implements OnApplicationBootstrap {
 
     this.logger.log(`Starte Bootstrap-Import aus Datei: ${jsonPath}`);
     try {
-      const snapshot = await this.importService.importFromFile(jsonPath);
-      this.logger.log('Bootstrap-Import erfolgreich abgeschlossen.');
-
-      const syncMode = (this.config.get<string>('HA_SYNC_AFTER_IMPORT') || 'true').toLowerCase();
-      if (syncMode === 'true' || syncMode === '1' || syncMode === 'always') {
-        this.logger.log('Starte HA Sync nach Import (Mongo -> MariaDB)');
-        const result = await this.syncService.syncAll();
-        this.logger.log(`HA Sync result: ${result.areas.upserted} areas, ${result.devices.upserted} devices, ${result.entities.upserted} entities upserted`);
-      }
+      await this.importService.importFromFile(jsonPath);
+      this.logger.log('Bootstrap-Import erfolgreich abgeschlossen (direkt in MariaDB).');
     } catch (e: any) {
       const failOnError = (this.config.get<string>('HA_IMPORT_FAIL_ON_ERROR') || 'false').toLowerCase() === 'true';
       this.logger.error(`Bootstrap-Import fehlgeschlagen: ${e?.message}`);

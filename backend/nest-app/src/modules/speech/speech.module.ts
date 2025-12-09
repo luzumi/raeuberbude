@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { SpeechController } from './speech.controller';
 import { SpeechService } from './speech.service';
@@ -9,19 +9,19 @@ import { STTProviderService } from './stt/stt.provider';
 import { VoskProvider } from './stt/vosk.provider';
 import { WhisperProvider } from './stt/whisper.provider';
 import { AudioConverterService } from './stt/audio-converter.service';
-import { HumanInput, HumanInputSchema } from './schemas/human-input.schema';
-import { TestInput, TestInputSchema } from './schemas/test-input.schema';
-import { AppTerminal, AppTerminalSchema } from './schemas/app-terminal.schema';
-import { UserRights, UserRightsSchema } from './schemas/user-rights.schema';
+import { SpeechHumanInput } from '../speech-inputs/entities/speech-human-input.entity';
+import { SpeechTestInput } from '../speech-inputs/entities/speech-test-input.entity';
+import { AppTerminalEntity } from './entities/app-terminal.entity';
+import { UserRights } from '../auth/entities/user-rights.entity';
 import { UsersModule } from '../../users/users.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: HumanInput.name, schema: HumanInputSchema },
-      { name: TestInput.name, schema: TestInputSchema },
-      { name: AppTerminal.name, schema: AppTerminalSchema },
-      { name: UserRights.name, schema: UserRightsSchema },
+    TypeOrmModule.forFeature([
+      SpeechHumanInput,
+      SpeechTestInput,
+      AppTerminalEntity,
+      UserRights,
     ]),
     HttpModule.register({
       timeout: 30000,

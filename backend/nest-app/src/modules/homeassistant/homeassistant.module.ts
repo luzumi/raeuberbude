@@ -1,47 +1,33 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { HaImportService } from './services/ha-import.service';
-import { HaImportController } from './controllers/ha-import.controller';
-import { HaQueryService } from './services/ha-query.service';
-import { HaEntitiesController, HaAutomationsController, HaPersonsController, HaZonesController, HaMediaPlayersController, HaServicesController } from './controllers/ha-entities.controller';
-import { HaSnapshot, HaSnapshotSchema } from './schemas/ha-snapshot.schema';
-import { HaArea, HaAreaSchema } from './schemas/ha-area.schema';
-import { HaDevice, HaDeviceSchema } from './schemas/ha-device.schema';
-import { HaEntity, HaEntitySchema } from './schemas/ha-entity.schema';
-import { HaEntityState, HaEntityStateSchema } from './schemas/ha-entity-state.schema';
-import { HaEntityAttribute, HaEntityAttributeSchema } from './schemas/ha-entity-attribute.schema';
-import { HaPerson, HaPersonSchema } from './schemas/ha-person.schema';
-import { HaZone, HaZoneSchema } from './schemas/ha-zone.schema';
-import { HaAutomation, HaAutomationSchema } from './schemas/ha-automation.schema';
-import { HaMediaPlayer, HaMediaPlayerSchema } from './schemas/ha-media-player.schema';
-import { HaService, HaServiceSchema } from './schemas/ha-service.schema';
-import { HaBootstrapService } from './services/ha-bootstrap.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { HaEntityEntity } from './entities/ha-entity.entity';
-import { HaSyncService } from './services/ha-sync.service';
+import { HaImportController } from './controllers/ha-import.controller';
+import { HaEntitiesController, HaAutomationsController, HaPersonsController, HaZonesController, HaMediaPlayersController, HaServicesController } from './controllers/ha-entities.controller';
+import { HaBootstrapService } from './services/ha-bootstrap.service';
 import { HaLiveSyncService } from './services/ha-live-sync.service';
 import { HaLiveSyncController } from './controllers/ha-live-sync.controller';
-import { HaDevice as HaDeviceEntity } from './entities/ha-device.entity';
-import { HaArea as HaAreaEntity } from './entities/ha-area.entity';
 import { HaMariaDbQueryService } from './services/ha-mariadb-query.service';
 import { HaMariaDbController } from './controllers/ha-mariadb.controller';
+import { HaImportTypeOrmService } from './services/ha-import-typeorm.service';
+// TypeORM Entities
+import { HaSnapshot } from './entities/ha-snapshot.entity';
+import { HaArea } from './entities/ha-area.entity';
+import { HaDevice } from './entities/ha-device.entity';
+import { HaEntityEntity } from './entities/ha-entity.entity';
+import { HaEntityState } from './entities/ha-entity-state.entity';
+import { HaEntityAttribute } from './entities/ha-entity-attribute.entity';
+import { HaPerson } from './entities/ha-person.entity';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: HaSnapshot.name, schema: HaSnapshotSchema },
-      { name: HaArea.name, schema: HaAreaSchema },
-      { name: HaDevice.name, schema: HaDeviceSchema },
-      { name: HaEntity.name, schema: HaEntitySchema },
-      { name: HaEntityState.name, schema: HaEntityStateSchema },
-      { name: HaEntityAttribute.name, schema: HaEntityAttributeSchema },
-      { name: HaPerson.name, schema: HaPersonSchema },
-      { name: HaZone.name, schema: HaZoneSchema },
-      { name: HaAutomation.name, schema: HaAutomationSchema },
-      { name: HaMediaPlayer.name, schema: HaMediaPlayerSchema },
-      { name: HaService.name, schema: HaServiceSchema },
+    TypeOrmModule.forFeature([
+      HaSnapshot,
+      HaArea,
+      HaDevice,
+      HaEntityEntity,
+      HaEntityState,
+      HaEntityAttribute,
+      HaPerson,
     ]),
-    TypeOrmModule.forFeature([HaEntityEntity, HaDeviceEntity, HaAreaEntity]),
   ],
   controllers: [
     HaImportController,
@@ -54,7 +40,7 @@ import { HaMariaDbController } from './controllers/ha-mariadb.controller';
     HaLiveSyncController,
     HaMariaDbController
   ],
-  providers: [HaImportService, HaQueryService, HaBootstrapService, HaSyncService, HaLiveSyncService, HaMariaDbQueryService],
-  exports: [HaImportService, HaQueryService, HaSyncService, HaLiveSyncService, HaMariaDbQueryService]
+  providers: [HaImportTypeOrmService, HaBootstrapService, HaLiveSyncService, HaMariaDbQueryService],
+  exports: [HaImportTypeOrmService, HaLiveSyncService, HaMariaDbQueryService]
 })
 export class HomeAssistantModule {}

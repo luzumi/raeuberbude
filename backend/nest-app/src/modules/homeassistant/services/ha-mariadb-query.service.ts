@@ -2,8 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HaEntityEntity } from '../entities/ha-entity.entity';
-import { HaDevice } from '../entities/ha-device.entity';
-import { HaArea } from '../entities/ha-area.entity';
+import { HaDevice, HaArea, HaPerson } from '../entities';
 
 /**
  * Query Service for Home Assistant data from MariaDB (TypeORM)
@@ -19,6 +18,7 @@ export class HaMariaDbQueryService {
     @InjectRepository(HaEntityEntity) private readonly entityRepo: Repository<HaEntityEntity>,
     @InjectRepository(HaDevice) private readonly deviceRepo: Repository<HaDevice>,
     @InjectRepository(HaArea) private readonly areaRepo: Repository<HaArea>,
+    @InjectRepository(HaPerson) private readonly personRepo: Repository<HaPerson>,
   ) {}
 
   /**
@@ -117,6 +117,13 @@ export class HaMariaDbQueryService {
   }
 
   /**
+   * Get devices by area
+   */
+  async getDevicesByArea(areaId: string): Promise<HaDevice[]> {
+    return this.deviceRepo.find({ where: { areaId } });
+  }
+
+  /**
    * Get statistics about entities, devices, and areas
    */
   async getStatistics(): Promise<any> {
@@ -146,5 +153,143 @@ export class HaMariaDbQueryService {
       }, {} as Record<string, number>),
     };
   }
-}
 
+  /**
+   * Get all persons
+   */
+  async getAllPersons(): Promise<HaPerson[]> {
+    return this.personRepo.find();
+  }
+
+  /**
+   * Get person by person_id
+   */
+  async getPersonById(personId: string): Promise<HaPerson | null> {
+    return this.personRepo.findOne({ where: { personId } });
+  }
+
+  /**
+   * Get person location (returns the person with location attributes)
+   */
+  async getPersonLocation(personId: string): Promise<any> {
+    const person = await this.getPersonById(personId);
+    if (!person) return null;
+    return {
+      personId: person.personId,
+      name: person.name,
+      // TODO: Add latitude, longitude, gpsAccuracy when HaPerson entity is extended
+    };
+  }
+
+  /**
+   * Get all zones (stub - needs Zone entity)
+   */
+  async getAllZones(): Promise<any[]> {
+    // TODO: Implement when HaZone entity is created
+    return [];
+  }
+
+  /**
+   * Get zone by ID (stub)
+   */
+  async getZoneById(zoneId: string): Promise<any> {
+    // TODO: Implement when HaZone entity is created
+    return null;
+  }
+
+  /**
+   * Get persons in zone (stub)
+   */
+  async getPersonsInZone(zoneName: string): Promise<any[]> {
+    // TODO: Implement when HaZone entity is created
+    return [];
+  }
+
+  /**
+   * Get all automations (stub)
+   */
+  async getAllAutomations(): Promise<any[]> {
+    // TODO: Implement when HaAutomation entity is created
+    return [];
+  }
+
+  /**
+   * Get active automations (stub)
+   */
+  async getActiveAutomations(): Promise<any[]> {
+    // TODO: Implement when HaAutomation entity is created
+    return [];
+  }
+
+  /**
+   * Get automation by ID (stub)
+   */
+  async getAutomationById(automationId: string): Promise<any> {
+    // TODO: Implement when HaAutomation entity is created
+    return null;
+  }
+
+  /**
+   * Get all media players (stub)
+   */
+  async getAllMediaPlayers(): Promise<any[]> {
+    // TODO: Implement when HaMediaPlayer entity is created
+    return [];
+  }
+
+  /**
+   * Get active media players (stub)
+   */
+  async getActiveMediaPlayers(): Promise<any[]> {
+    // TODO: Implement when HaMediaPlayer entity is created
+    return [];
+  }
+
+  /**
+   * Get media player by ID (stub)
+   */
+  async getMediaPlayerById(entityId: string): Promise<any> {
+    // TODO: Implement when HaMediaPlayer entity is created
+    return null;
+  }
+
+  /**
+   * Get all services (stub)
+   */
+  async getAllServices(): Promise<any[]> {
+    // TODO: Implement when HaService entity is created
+    return [];
+  }
+
+  /**
+   * Get services by domain (stub)
+   */
+  async getServicesByDomain(domain: string): Promise<any[]> {
+    // TODO: Implement when HaService entity is created
+    return [];
+  }
+
+  /**
+   * Get service (stub)
+   */
+  async getService(domain: string, service: string): Promise<any> {
+    // TODO: Implement when HaService entity is created
+    return null;
+  }
+
+  /**
+   * Get entity current state (stub - needs HaEntityState support)
+   */
+  async getEntityCurrentState(entityId: string): Promise<any> {
+    // TODO: Implement when state tracking is added
+    return null;
+  }
+
+  /**
+   * Get entity state history (stub)
+   */
+  async getEntityStateHistory(entityId: string, startDate?: Date, endDate?: Date): Promise<any[]> {
+    // TODO: Implement when state history tracking is added
+    return [];
+  }
+}

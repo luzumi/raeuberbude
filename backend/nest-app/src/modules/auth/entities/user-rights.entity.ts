@@ -60,6 +60,7 @@ export class UserRights {
   /**
    * Custom Permissions als JSON-Array
    * Beispiel: ['read:transcripts', 'write:terminals']
+   * TypeORM automatically serializes/deserializes JSON
    */
   @Column({ type: 'json', nullable: true, name: 'permissions_json' })
   permissionsJson: string[] | null;
@@ -127,18 +128,12 @@ export class UserRights {
   // =========================
 
   /**
-   * 1:1 Relation zu User
-   * ON DELETE CASCADE: Wenn User gelöscht wird, werden auch Rights gelöscht
+   * 1:1 Relation to User (back-reference)
    */
-  @OneToOne(() => User, (user) => user.rights, {
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE',
-  })
-  @JoinColumn({
-    name: 'user_id',
-    referencedColumnName: 'id',
-    foreignKeyConstraintName: 'fk_user_rights__users__user_id',
-  })
+  @OneToOne(() => User, (user) => user.userRights)
+  @JoinColumn({ name: 'user_id' })
   user: User;
 }
 
+// Re-export enums for convenience
+export { UserStatus, UserRole };

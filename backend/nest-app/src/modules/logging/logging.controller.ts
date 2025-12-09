@@ -1,9 +1,13 @@
-import { Controller, Get, Post, Body, Param, Query, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Put, Delete } from '@nestjs/common';
 import { LoggingService } from './logging.service';
 
 @Controller('/api')
 export class LoggingController {
   constructor(private readonly svc: LoggingService) {}
+
+  // ============================================================================
+  // TRANSCRIPT ENDPOINTS
+  // ============================================================================
 
   @Post('/transcripts')
   createTranscript(@Body() body: any) {
@@ -25,12 +29,12 @@ export class LoggingController {
       if (query.startDate) q.createdAt.$gte = new Date(query.startDate);
       if (query.endDate) q.createdAt.$lte = new Date(query.endDate);
     }
-    return this.svc.listTranscripts(q, page, limit);
+    return this.svc.getTranscripts(page, limit, q);
   }
 
   @Get('/transcripts/:id')
   getTranscript(@Param('id') id: string) {
-    return this.svc.getTranscript(id);
+    return this.svc.getTranscriptById(id);
   }
 
   @Put('/transcripts/:id')
@@ -41,33 +45,40 @@ export class LoggingController {
   @Post('/transcripts/bulk-update')
   bulkUpdate(@Body() body: any) {
     const { ids, updates } = body;
-    return this.svc.bulkUpdate(ids, updates);
+    return this.svc.updateManyTranscripts(ids, updates);
   }
 
   @Get('/transcripts/stats/summary')
   stats(@Query() query: any) {
-    const q: any = {};
-    if (query.startDate || query.endDate) {
-      q.createdAt = {};
-      if (query.startDate) q.createdAt.$gte = new Date(query.startDate);
-      if (query.endDate) q.createdAt.$lte = new Date(query.endDate);
-    }
-    return this.svc.statsSummary(q);
+    return this.svc.getTranscriptStats();
   }
 
+  // ============================================================================
+  // LLM CONFIG ENDPOINTS (Placeholder)
+  // ============================================================================
+
   @Get('/llm-config')
-  async llmConfig() {
-    return this.svc.getLlmConfig();
+  getLlmConfig() {
+    return { message: 'LLM config not implemented - MongoDB removed' };
   }
 
   @Post('/llm-config')
-  async saveLlmConfig(@Body() body: any) {
-    return this.svc.saveLlmConfig(body);
+  saveLlmConfig(@Body() body: any) {
+    return { message: 'LLM config save not implemented - MongoDB removed' };
   }
 
-  @Get('/llm-config/runtime')
-  async runtimeConfig() {
-    return this.svc.getRuntimeConfig();
+  @Get('/runtime-config')
+  getRuntimeConfig() {
+    return { message: 'Runtime config not implemented - MongoDB removed' };
+  }
+
+  // ============================================================================
+  // INTENT LOG ENDPOINTS
+  // ============================================================================
+
+  @Post('/intent-logs')
+  createIntentLog(@Body() body: any) {
+    return this.svc.createIntentLog(body);
   }
 
   @Get('/intent-logs')
@@ -75,29 +86,23 @@ export class LoggingController {
     const page = parseInt(query.page || '1', 10);
     const limit = parseInt(query.limit || '50', 10);
     const q: any = {};
-    if (query.intent) q.intent = query.intent;
+    if (query.userId) q.userId = query.userId;
     if (query.terminalId) q.terminalId = query.terminalId;
-    if (query.startDate || query.endDate) {
-      q.createdAt = {};
-      if (query.startDate) q.createdAt.$gte = new Date(query.startDate);
-      if (query.endDate) q.createdAt.$lte = new Date(query.endDate);
-    }
-    return this.svc.listIntentLogs(q, page, limit);
-  }
-
-  @Post('/intent-logs')
-  createIntentLog(@Body() body: any) {
-    return this.svc.createIntentLog(body);
+    return this.svc.getIntentLogs(page, limit, q);
   }
 
   @Get('/intent-logs/stats')
   intentStats() {
-    return this.svc.intentStats();
+    return this.svc.getIntentLogStats();
   }
 
+  // ============================================================================
+  // CATEGORY ENDPOINTS
+  // ============================================================================
+
   @Get('/categories')
-  categories() {
-    return this.svc.listCategories();
+  listCategories() {
+    return this.svc.getCategories();
   }
 
   @Post('/categories')
@@ -105,74 +110,102 @@ export class LoggingController {
     return this.svc.createCategory(body);
   }
 
-  @Get('/dbinfo')
-  dbinfo() {
-    return this.svc.dbInfo();
+  // ============================================================================
+  // DATABASE ENDPOINTS
+  // ============================================================================
+
+  @Get('/db-info')
+  dbInfo() {
+    return this.svc.getDbStats();
   }
 
+  // ============================================================================
+  // LLM INSTANCE ENDPOINTS
+  // ============================================================================
+
   @Get('/llm-instances')
-  llmInstances() {
-    return this.svc.listLlmInstances();
+  listLlmInstances() {
+    return this.svc.getLlmInstances();
   }
 
   @Post('/llm-instances/scan')
   scanLlmInstances(@Body() body: any) {
-    return this.svc.scanLlmInstances(body?.llmUrls, body?.defaultModel);
+    return { message: 'Scan LLM instances not implemented - MongoDB removed' };
   }
 
   @Post('/llm-instances/cleanup')
   cleanupLlmInstances() {
-    return this.svc.cleanupLlmInstances();
+    return this.svc.cleanupOldInstances();
   }
 
   @Post('/llm-instances/:id/load')
-  loadModel(@Param('id') id: string) {
-    return this.svc.loadLlmInstance(id);
+  loadLlmInstance(@Param('id') id: string) {
+    return { message: 'Load LLM instance not implemented - MongoDB removed' };
   }
 
   @Post('/llm-instances/:id/eject')
-  ejectModel(@Param('id') id: string) {
-    return this.svc.ejectLlmInstance(id);
+  ejectLlmInstance(@Param('id') id: string) {
+    return { message: 'Eject LLM instance not implemented - MongoDB removed' };
   }
 
-  @Post('/llm-instances/:id/delete')
-  deleteInstance(@Param('id') id: string) {
-    return this.svc.deleteLlmInstance(id);
+  @Delete('/llm-instances/:id')
+  deleteLlmInstance(@Param('id') id: string) {
+    return this.svc.deleteInstance(id);
   }
 
-  @Post('/llm-instances/normalize-cleanup')
-  normalizeAndCleanup() {
-    return this.svc.normalizeAndCleanupInstances();
+  @Post('/llm-instances/normalize')
+  normalizeAndCleanupInstances() {
+    return { message: 'Normalize instances not implemented - MongoDB removed' };
   }
 
   @Get('/llm-instances/:id/system-prompt')
   getSystemPrompt(@Param('id') id: string) {
-    return this.svc.getSystemPrompt(id);
+    return { message: 'Get system prompt not implemented - MongoDB removed' };
   }
 
   @Get('/llm-instances/:id/model-status')
-  async getModelStatus(@Param('id') id: string) {
-    return this.svc.getModelStatusForInstance(id);
+  getModelStatusForInstance(@Param('id') id: string) {
+    return { message: 'Get model status not implemented - MongoDB removed' };
   }
 
   @Put('/llm-instances/:id/system-prompt')
   updateSystemPrompt(@Param('id') id: string, @Body() body: any) {
-    return this.svc.updateSystemPrompt(id, body.systemPrompt);
+    return this.svc.updateInstanceSystemPrompt(id, body.systemPrompt);
   }
 
   @Put('/llm-instances/:id/config')
-  updateInstanceConfig(@Param('id') id: string, @Body() body: any) {
-    const { autoReload, ...config } = body;
-    return this.svc.updateInstanceConfig(id, config, autoReload !== false);
+  updateInstanceConfig(@Param('id') id: string, @Body() body: any, @Query('autoReload') autoReload?: string) {
+    const config = body;
+    return this.svc.updateInstanceSamplingParams(id, config);
   }
 
-  @Get('/llm-instances/default-prompt')
-  getDefaultPrompt() {
-    return this.svc.getDefaultSystemPrompt();
+  @Get('/system-prompt/default')
+  getDefaultSystemPrompt() {
+    return { prompt: 'Default system prompt' };
   }
 
-  @Post('/llm-instances/test-request')
-  testLlmRequest(@Body() body: { prompt?: string; instanceId?: string }) {
-    return this.svc.testLlmRequest(body.prompt, body.instanceId);
+  @Post('/test-llm')
+  testLlmRequest(@Body() body: any) {
+    return this.svc.testInstance(body.instanceId);
+  }
+
+  // ============================================================================
+  // AI PROCESSING ENDPOINTS (Still working)
+  // ============================================================================
+
+  @Post('/categorize')
+  async categorize(@Body() body: { text: string; categories: any[] }) {
+    return this.svc.categorizeTranscript(body.text, body.categories);
+  }
+
+  @Post('/parse-intent')
+  async parseIntent(@Body() body: { text: string }) {
+    return this.svc.parseUserIntentNew(body.text);
+  }
+
+  @Post('/sync-models')
+  async syncModels() {
+    return this.svc.syncLmStudioModels();
   }
 }
+

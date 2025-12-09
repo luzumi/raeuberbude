@@ -25,7 +25,6 @@ export class LlmInstanceEntity {
   enabled: boolean;
 
   @Column({ type: 'boolean', default: false })
-  @Index()
   isActive: boolean;
 
   @Column({ type: 'text', nullable: true, name: 'system_prompt' })

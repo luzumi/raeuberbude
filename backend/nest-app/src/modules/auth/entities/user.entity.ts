@@ -77,7 +77,7 @@ export class User {
   @OneToOne(() => UserRights, (userRights) => userRights.user, {
     cascade: true,
   })
-  rights: UserRights;
+  userRights: UserRights;
 
   /**
    * 1:n Relation zu UserAllowedTerminal (M:N Join-Table)

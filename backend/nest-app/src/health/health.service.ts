@@ -1,26 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/mongoose';
-import { Connection } from 'mongoose';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class HealthService {
-  constructor(@InjectConnection() private readonly connection: Connection) {}
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   async check() {
     const now = new Date();
     let db: 'up' | 'down' = 'down';
     try {
-      if ( this.connection?.readyState === 1 && this.connection.db) {
-        await this.connection.db.admin().ping();
+      // Check if TypeORM connection is active
+      if (this.dataSource?.isInitialized) {
+        // Execute a simple query to verify database is responsive
+        await this.dataSource.query('SELECT 1');
         db = 'up';
       }
-        } catch (error) {
+    } catch (error) {
       console.error('Database health check failed:', error);
       db = 'down';
     }
     return {
       status: db === 'up' ? 'ok' : 'error',
       db,
+      database: 'MariaDB',
       uptime: process.uptime(),
       timestamp: now.toISOString(),
     };

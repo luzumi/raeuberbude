@@ -41,6 +41,24 @@ export class SpeechTestInput {
   text: string;
 
   /**
+   * Transcript (transcribed text from audio)
+   */
+  @Column({ type: 'text', nullable: true })
+  transcript: string | null;
+
+  /**
+   * Audio Data (base64 encoded)
+   */
+  @Column({ type: 'text', nullable: true, name: 'audio_data' })
+  audioData: string | null;
+
+  /**
+   * MIME Type of audio data
+   */
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'mime_type' })
+  mimeType: string | null;
+
+  /**
    * Erwarteter Intent
    */
   @Column({ type: 'varchar', length: 255, nullable: true, name: 'expected_intent' })

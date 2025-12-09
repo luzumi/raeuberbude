@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { AppTerminal, AppTerminalDocument } from './schemas/app-terminal.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AppTerminal, TerminalType, TerminalStatus } from './entities/app-terminal.entity';
 import { CreateAppTerminalDto } from './dto/create-app-terminal.dto';
 import { UpdateAppTerminalDto } from './dto/update-app-terminal.dto';
 
@@ -10,28 +10,37 @@ export class TerminalsService {
   private readonly logger = new Logger(TerminalsService.name);
 
   constructor(
-    @InjectModel(AppTerminal.name)
-    private appTerminalModel: Model<AppTerminalDocument>,
+    @InjectRepository(AppTerminal)
+    private readonly appTerminalRepo: Repository<AppTerminal>,
   ) {}
 
-  async create(createDto: CreateAppTerminalDto): Promise<AppTerminalDocument> {
+  async create(createDto: CreateAppTerminalDto): Promise<AppTerminal> {
     try {
       // Check if terminal ID already exists
-      const existing = await this.appTerminalModel.findOne({
-        terminalId: createDto.terminalId,
+      const existing = await this.appTerminalRepo.findOne({
+        where: { terminalId: createDto.terminalId },
       });
 
       if (existing) {
         throw new ConflictException(`Terminal with ID ${createDto.terminalId} already exists`);
       }
 
-      const terminal = new this.appTerminalModel({
-        ...createDto,
-        assignedUserId: createDto.assignedUserId ? new Types.ObjectId(createDto.assignedUserId) : undefined,
+      const terminal = this.appTerminalRepo.create({
+        terminalId: createDto.terminalId,
+        name: createDto.name,
+        description: createDto.description,
+        type: createDto.type as any as TerminalType,
+        location: createDto.location,
+        capabilities: createDto.capabilities,
+        status: createDto.status as any as TerminalStatus,
+        assignedUserId: createDto.assignedUserId,
+        allowedActions: createDto.allowedActions,
+        settings: createDto.settings,
+        metadata: createDto.metadata,
         lastActiveAt: new Date(),
       });
 
-      const saved = await terminal.save();
+      const saved = await this.appTerminalRepo.save(terminal);
       this.logger.log(`Created terminal: ${saved.terminalId}`);
 
       return saved;
@@ -42,38 +51,33 @@ export class TerminalsService {
     }
   }
 
-  async findAll(filters: any = {}): Promise<AppTerminalDocument[]> {
+  async findAll(filters: any = {}): Promise<AppTerminal[]> {
     const { type, status, location } = filters;
-    const query: any = {};
 
-    if (type) query.type = type;
-    if (status) query.status = status;
-    if (location) query.location = new RegExp(location, 'i');
+    const queryBuilder = this.appTerminalRepo.createQueryBuilder('terminal');
 
-    return this.appTerminalModel
-      .find(query)
-      .populate('assignedUserId', 'name email')
-      .sort({ createdAt: -1 })
-      .exec();
+    if (type) queryBuilder.andWhere('terminal.type = :type', { type });
+    if (status) queryBuilder.andWhere('terminal.status = :status', { status });
+    if (location) queryBuilder.andWhere('terminal.location LIKE :location', { location: `%${location}%` });
+
+    queryBuilder.orderBy('terminal.createdAt', 'DESC');
+
+    return queryBuilder.getMany();
   }
 
-  async findOne(id: string): Promise<AppTerminalDocument> {
-    let terminal: AppTerminalDocument | null;
-
-    // Try to find by MongoDB _id first
-    if (Types.ObjectId.isValid(id)) {
-      terminal = await this.appTerminalModel
-        .findById(id)
-        .populate('assignedUserId', 'name email')
-        .exec();
-    }
+  async findOne(id: string): Promise<AppTerminal> {
+    // Try to find by id first
+    let terminal = await this.appTerminalRepo.findOne({
+      where: { id },
+      relations: ['assignedUser'],
+    });
 
     // If not found, try to find by terminalId
     if (!terminal) {
-      terminal = await this.appTerminalModel
-        .findOne({ terminalId: id })
-        .populate('assignedUserId', 'name email')
-        .exec();
+      terminal = await this.appTerminalRepo.findOne({
+        where: { terminalId: id },
+        relations: ['assignedUser'],
+      });
     }
 
     if (!terminal) {
@@ -83,11 +87,11 @@ export class TerminalsService {
     return terminal;
   }
 
-  async findByTerminalId(terminalId: string): Promise<AppTerminalDocument> {
-    const terminal = await this.appTerminalModel
-      .findOne({ terminalId })
-      .populate('assignedUserId', 'name email')
-      .exec();
+  async findByTerminalId(terminalId: string): Promise<AppTerminal> {
+    const terminal = await this.appTerminalRepo.findOne({
+      where: { terminalId },
+      relations: ['assignedUser'],
+    });
 
     if (!terminal) {
       throw new NotFoundException(`Terminal with ID '${terminalId}' not found`);
@@ -96,224 +100,149 @@ export class TerminalsService {
     return terminal;
   }
 
-  async update(id: string, updateDto: UpdateAppTerminalDto): Promise<AppTerminalDocument> {
-    const updateData: any = { ...updateDto };
+  async update(id: string, updateDto: UpdateAppTerminalDto): Promise<AppTerminal> {
+    // Try to find by id first
+    let terminal = await this.appTerminalRepo.findOne({ where: { id } });
 
-    if (updateDto.assignedUserId !== undefined) {
-      updateData.assignedUserId = updateDto.assignedUserId 
-        ? new Types.ObjectId(updateDto.assignedUserId) 
-        : null;
+    // If not found, try by terminalId
+    if (!terminal) {
+      terminal = await this.appTerminalRepo.findOne({ where: { terminalId: id } });
     }
 
-    let updated: AppTerminalDocument | null;
-
-    // Try to update by MongoDB _id first
-    if (Types.ObjectId.isValid(id)) {
-      updated = await this.appTerminalModel
-        .findByIdAndUpdate(
-          id,
-          updateData,
-          { new: true, runValidators: true }
-        )
-        .populate('assignedUserId', 'name email')
-        .exec();
-    }
-
-    // If not found, try to update by terminalId
-    if (!updated) {
-      updated = await this.appTerminalModel
-        .findOneAndUpdate(
-          { terminalId: id },
-          updateData,
-          { new: true, runValidators: true }
-        )
-        .populate('assignedUserId', 'name email')
-        .exec();
-    }
-
-    if (!updated) {
+    if (!terminal) {
       throw new NotFoundException(`Terminal with ID ${id} not found`);
     }
+
+    Object.assign(terminal, updateDto);
+    const updated = await this.appTerminalRepo.save(terminal);
 
     this.logger.log(`Updated terminal: ${updated.terminalId}`);
     return updated;
   }
 
   async delete(id: string): Promise<void> {
-    let result: any;
-
-    // Try to delete by MongoDB _id first
-    if (Types.ObjectId.isValid(id)) {
-      result = await this.appTerminalModel.deleteOne({ _id: id }).exec();
-    }
+    // Try to delete by id first
+    let result = await this.appTerminalRepo.delete({ id });
 
     // If not deleted, try by terminalId
-    if (!result || result.deletedCount === 0) {
-      result = await this.appTerminalModel.deleteOne({ terminalId: id }).exec();
+    if (result.affected === 0) {
+      result = await this.appTerminalRepo.delete({ terminalId: id });
     }
 
-    if (result.deletedCount === 0) {
+    if (result.affected === 0) {
       throw new NotFoundException(`Terminal with ID ${id} not found`);
     }
 
     this.logger.log(`Deleted terminal: ${id}`);
   }
 
-  async updateActivity(terminalId: string): Promise<AppTerminalDocument> {
-    const terminal = await this.appTerminalModel
-      .findOneAndUpdate(
-        { terminalId },
-        { lastActiveAt: new Date() },
-        { new: true }
-      )
-      .exec();
+  async updateActivity(terminalId: string): Promise<AppTerminal> {
+    const terminal = await this.appTerminalRepo.findOne({ where: { terminalId } });
 
     if (!terminal) {
       throw new NotFoundException(`Terminal with ID ${terminalId} not found`);
     }
 
-    return terminal;
+    terminal.lastActiveAt = new Date();
+    return this.appTerminalRepo.save(terminal);
   }
 
-  async assignUser(terminalId: string, userId: string | null): Promise<AppTerminalDocument> {
-    const updateData: any = {
-      assignedUserId: userId ? new Types.ObjectId(userId) : null,
-    };
-
-    const terminal = await this.appTerminalModel
-      .findOneAndUpdate(
-        { terminalId },
-        updateData,
-        { new: true }
-      )
-      .populate('assignedUserId', 'name email')
-      .exec();
+  async assignUser(terminalId: string, userId: string | null): Promise<AppTerminal> {
+    const terminal = await this.appTerminalRepo.findOne({
+      where: { terminalId },
+      relations: ['assignedUser'],
+    });
 
     if (!terminal) {
       throw new NotFoundException(`Terminal with ID ${terminalId} not found`);
     }
+
+    terminal.assignedUserId = userId;
+    const updated = await this.appTerminalRepo.save(terminal);
 
     this.logger.log(`Assigned user ${userId} to terminal ${terminalId}`);
-    return terminal;
+    return updated;
   }
 
-  async setStatus(terminalId: string, status: 'active' | 'inactive' | 'maintenance'): Promise<AppTerminalDocument> {
-    const terminal = await this.appTerminalModel
-      .findOneAndUpdate(
-        { terminalId },
-        { status },
-        { new: true }
-      )
-      .exec();
+  async setStatus(terminalId: string, status: 'active' | 'inactive' | 'maintenance'): Promise<AppTerminal> {
+    const terminal = await this.appTerminalRepo.findOne({ where: { terminalId } });
 
     if (!terminal) {
       throw new NotFoundException(`Terminal with ID ${terminalId} not found`);
     }
 
+    // Map string to enum
+    const statusMap: any = {
+      'active': 'ACTIVE',
+      'inactive': 'INACTIVE',
+      'maintenance': 'MAINTENANCE',
+    };
+    terminal.status = statusMap[status];
+    const updated = await this.appTerminalRepo.save(terminal);
+
     this.logger.log(`Set terminal ${terminalId} status to ${status}`);
-    return terminal;
+    return updated;
   }
 
   async getStatistics(): Promise<any> {
-    const stats = await this.appTerminalModel.aggregate([
-      {
-        $facet: {
-          byType: [
-            {
-              $group: {
-                _id: '$type',
-                count: { $sum: 1 },
-                activeCount: {
-                  $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] },
-                },
-              },
-            },
-            {
-              $project: {
-                type: '$_id',
-                _id: 0,
-                total: '$count',
-                active: '$activeCount',
-              },
-            },
-          ],
-          byStatus: [
-            {
-              $group: {
-                _id: '$status',
-                count: { $sum: 1 },
-              },
-            },
-            {
-              $project: {
-                status: '$_id',
-                _id: 0,
-                count: 1,
-              },
-            },
-          ],
-          totals: [
-            {
-              $group: {
-                _id: null,
-                total: { $sum: 1 },
-                assigned: {
-                  $sum: { $cond: [{ $ne: ['$assignedUserId', null] }, 1, 0] },
-                },
-                withMicrophone: {
-                  $sum: { $cond: ['$capabilities.hasMicrophone', 1, 0] },
-                },
-                supportsSpeech: {
-                  $sum: { $cond: ['$capabilities.supportsSpeechRecognition', 1, 0] },
-                },
-              },
-            },
-            {
-              $project: {
-                _id: 0,
-                total: 1,
-                assigned: 1,
-                unassigned: { $subtract: ['$total', '$assigned'] },
-                withMicrophone: 1,
-                supportsSpeech: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $project: {
-          byType: 1,
-          byStatus: 1,
-          totals: { $arrayElemAt: ['$totals', 0] },
-        },
-      },
-    ]).exec();
+    const allTerminals = await this.appTerminalRepo.find();
 
-    return stats[0] || {
-      byType: [],
-      byStatus: [],
+    const byType: any = {};
+    const byStatus: any = {};
+    let total = 0;
+    let assigned = 0;
+    let withMicrophone = 0;
+    let supportsSpeech = 0;
+
+    for (const terminal of allTerminals) {
+      total++;
+
+      // By type
+      const type = terminal.type;
+      if (!byType[type]) {
+        byType[type] = { type, total: 0, active: 0 };
+      }
+      byType[type].total++;
+      if (terminal.status === 'active') {
+        byType[type].active++;
+      }
+
+      // By status
+      const status = terminal.status;
+      if (!byStatus[status]) {
+        byStatus[status] = { status, count: 0 };
+      }
+      byStatus[status].count++;
+
+      // Totals
+      if (terminal.assignedUserId) assigned++;
+      if (terminal.capabilities?.hasMicrophone) withMicrophone++;
+      if (terminal.capabilities?.supportsSpeechRecognition) supportsSpeech++;
+    }
+
+    return {
+      byType: Object.values(byType),
+      byStatus: Object.values(byStatus),
       totals: {
-        total: 0,
-        assigned: 0,
-        unassigned: 0,
-        withMicrophone: 0,
-        supportsSpeech: 0,
+        total,
+        assigned,
+        unassigned: total - assigned,
+        withMicrophone,
+        supportsSpeech,
       },
     };
   }
 
-  async getActiveTerminals(): Promise<AppTerminalDocument[]> {
+  async getActiveTerminals(): Promise<AppTerminal[]> {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
-    return this.appTerminalModel
-      .find({
-        status: 'active',
-        lastActiveAt: { $gte: oneHourAgo },
-      })
-      .populate('assignedUserId', 'name email')
-      .sort({ lastActiveAt: -1 })
-      .exec();
+    return this.appTerminalRepo
+      .createQueryBuilder('terminal')
+      .where('terminal.status = :status', { status: 'active' })
+      .andWhere('terminal.lastActiveAt >= :oneHourAgo', { oneHourAgo })
+      .leftJoinAndSelect('terminal.assignedUser', 'user')
+      .orderBy('terminal.lastActiveAt', 'DESC')
+      .getMany();
   }
 
   async registerTerminal(terminalData: {
@@ -322,34 +251,28 @@ export class TerminalsService {
     type: string;
     capabilities?: any;
     metadata?: any;
-  }): Promise<AppTerminalDocument> {
+  }): Promise<AppTerminal> {
     // Check if terminal exists
-    let terminal: AppTerminalDocument | null = await this.appTerminalModel.findOne({
-      terminalId: terminalData.terminalId,
-    }) as unknown as AppTerminalDocument | null;
+    let terminal = await this.appTerminalRepo.findOne({
+      where: { terminalId: terminalData.terminalId },
+    });
 
     if (terminal) {
       // Update existing terminal
-      terminal = await this.appTerminalModel
-        .findOneAndUpdate(
-          { terminalId: terminalData.terminalId },
-          {
-            ...terminalData,
-            status: 'active',
-            lastActiveAt: new Date(),
-          },
-          { new: true }
-        )
-        .exec() as unknown as AppTerminalDocument;
+      Object.assign(terminal, {
+        ...terminalData,
+        status: 'active',
+        lastActiveAt: new Date(),
+      });
+      return this.appTerminalRepo.save(terminal);
     } else {
       // Create new terminal
-      terminal = await this.create({
+      return this.create({
         ...terminalData,
         status: 'active',
         allowedActions: ['speech.use'],
       });
     }
-
-    return terminal;
   }
 }
+
