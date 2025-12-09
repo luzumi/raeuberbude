@@ -19,6 +19,12 @@ import { HaBootstrapService } from './services/ha-bootstrap.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HaEntityEntity } from './entities/ha-entity.entity';
 import { HaSyncService } from './services/ha-sync.service';
+import { HaLiveSyncService } from './services/ha-live-sync.service';
+import { HaLiveSyncController } from './controllers/ha-live-sync.controller';
+import { HaDevice as HaDeviceEntity } from './entities/ha-device.entity';
+import { HaArea as HaAreaEntity } from './entities/ha-area.entity';
+import { HaMariaDbQueryService } from './services/ha-mariadb-query.service';
+import { HaMariaDbController } from './controllers/ha-mariadb.controller';
 
 @Module({
   imports: [
@@ -35,7 +41,7 @@ import { HaSyncService } from './services/ha-sync.service';
       { name: HaMediaPlayer.name, schema: HaMediaPlayerSchema },
       { name: HaService.name, schema: HaServiceSchema },
     ]),
-    TypeOrmModule.forFeature([HaEntityEntity]),
+    TypeOrmModule.forFeature([HaEntityEntity, HaDeviceEntity, HaAreaEntity]),
   ],
   controllers: [
     HaImportController,
@@ -44,9 +50,11 @@ import { HaSyncService } from './services/ha-sync.service';
     HaPersonsController,
     HaZonesController,
     HaMediaPlayersController,
-    HaServicesController
+    HaServicesController,
+    HaLiveSyncController,
+    HaMariaDbController
   ],
-  providers: [HaImportService, HaQueryService, HaBootstrapService, HaSyncService],
-  exports: [HaImportService, HaQueryService, HaSyncService]
+  providers: [HaImportService, HaQueryService, HaBootstrapService, HaSyncService, HaLiveSyncService, HaMariaDbQueryService],
+  exports: [HaImportService, HaQueryService, HaSyncService, HaLiveSyncService, HaMariaDbQueryService]
 })
 export class HomeAssistantModule {}

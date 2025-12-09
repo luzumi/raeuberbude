@@ -67,7 +67,10 @@
           <app-generic-data-table [config]="servicesConfig"></app-generic-data-table>
         </div>
       </mat-tab>
-    </mat-tab-group>
-  </div>
-</div>
 
+      <!-- Synchronisation Tab -->
+      <mat-tab label="Synchronisation">
+        <div class="admin-tab-content">
+          <app-ha-sync></app-ha-sync>
+        </div>
+      </mat-tab>

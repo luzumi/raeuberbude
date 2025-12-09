@@ -7,6 +7,7 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
 import {MatTabsModule} from '@angular/material/tabs';
+import {HaSyncComponent} from '@components/ha-sync/ha-sync.component';
 import {GenericDataTableComponent} from '@shared/components/generic-data-table/generic-data-table.component';
 import {DataTableConfig,} from '@shared/components/generic-data-table/generic-data-table.config';
 import {HeaderComponent} from '@shared/components/header/header.component';
@@ -30,6 +31,7 @@ import {HaStatisticsDialogComponent} from './ha-statistics-dialog.component';
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatDialogModule,
+    HaSyncComponent,
   ],
   templateUrl: './admin-homeassistant.component.html',
   styleUrls: ['./admin-homeassistant.component.scss'],

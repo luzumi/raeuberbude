@@ -105,14 +105,79 @@ function parseArgs(argv) {
   // Devices/Areas: per REST meist nicht verfügbar; best-effort (leer, wenn nicht vorhanden)
   let areas = [];
   let devices = [];
-  // Optionaler Versuch, falls Installation REST-Helper-Endpunkte bereitstellt
-  for (const tryUrl of ['/api/area_registry/list', '/api/areas']) {
-    const a = await getJson(tryUrl);
-    if (Array.isArray(a)) { areas = a; break; }
-  }
-  for (const tryUrl of ['/api/device_registry/list', '/api/devices']) {
-    const d = await getJson(tryUrl);
-    if (Array.isArray(d)) { devices = d; break; }
+  // Try to fetch areas and devices via WebSocket API
+  try {
+    const WebSocket = require('ws');
+    const ws = new WebSocket(`${BASE.replace(/^http/, 'ws')}/api/websocket`);
+
+    await new Promise((resolve, reject) => {
+      let msgId = 1;
+      const timeout = setTimeout(() => {
+        ws.close();
+        resolve(); // Continue even if WebSocket fails
+      }, 10000);
+
+      ws.on('open', () => {
+        console.log('WebSocket connected to Home Assistant');
+      });
+
+      ws.on('message', (data) => {
+        try {
+          const msg = JSON.parse(data.toString());
+
+          if (msg.type === 'auth_required') {
+            ws.send(JSON.stringify({ type: 'auth', access_token: TOKEN }));
+          } else if (msg.type === 'auth_ok') {
+            // Fetch areas
+            ws.send(JSON.stringify({ id: msgId++, type: 'config/area_registry/list' }));
+            // Fetch devices
+            ws.send(JSON.stringify({ id: msgId++, type: 'config/device_registry/list' }));
+          } else if (msg.type === 'result' && msg.success && msg.result) {
+            // Check if this is areas or devices based on the result structure
+            if (Array.isArray(msg.result)) {
+              if (msg.result.length > 0 && msg.result[0].area_id) {
+                areas = msg.result;
+                console.log(`Fetched ${areas.length} areas via WebSocket`);
+              } else if (msg.result.length > 0 && (msg.result[0].id || msg.result[0].identifiers)) {
+                devices = msg.result;
+                console.log(`Fetched ${devices.length} devices via WebSocket`);
+              }
+            }
+
+            // Close after receiving both responses (or timeout)
+            if (areas.length > 0 && devices.length > 0) {
+              clearTimeout(timeout);
+              ws.close();
+              resolve();
+            }
+          }
+        } catch (e) {
+          console.error('WebSocket message parse error:', e.message);
+        }
+      });
+
+      ws.on('error', (err) => {
+        console.warn('WebSocket error:', err.message);
+        clearTimeout(timeout);
+        resolve(); // Continue even if WebSocket fails
+      });
+
+      ws.on('close', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+  } catch (wsError) {
+    console.warn('WebSocket device/area fetch failed, trying REST fallback:', wsError.message);
+    // Fallback to REST attempts
+    for (const tryUrl of ['/api/area_registry/list', '/api/areas']) {
+      const a = await getJson(tryUrl);
+      if (Array.isArray(a)) { areas = a; break; }
+    }
+    for (const tryUrl of ['/api/device_registry/list', '/api/devices']) {
+      const d = await getJson(tryUrl);
+      if (Array.isArray(d)) { devices = d; break; }
+    }
   }
 
   const out = {

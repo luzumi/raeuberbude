@@ -64,8 +64,8 @@ export class HaBootstrapService implements OnApplicationBootstrap {
       const syncMode = (this.config.get<string>('HA_SYNC_AFTER_IMPORT') || 'true').toLowerCase();
       if (syncMode === 'true' || syncMode === '1' || syncMode === 'always') {
         this.logger.log('Starte HA Sync nach Import (Mongo -> MariaDB)');
-        const result = await this.syncService.syncEntities();
-        this.logger.log(`HA Sync result: ${result.upserted} entities upserted`);
+        const result = await this.syncService.syncAll();
+        this.logger.log(`HA Sync result: ${result.areas.upserted} areas, ${result.devices.upserted} devices, ${result.entities.upserted} entities upserted`);
       }
     } catch (e: any) {
       const failOnError = (this.config.get<string>('HA_IMPORT_FAIL_ON_ERROR') || 'false').toLowerCase() === 'true';
