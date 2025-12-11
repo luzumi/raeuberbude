@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import {HaDomainEntitiesDialogComponent} from '@components/ha-sync/HaDomainEntitiesDialogComponent';
 import { HaSyncService, SyncResult } from '@services/home-assistant/ha-sync.service';
 import { HomeAssistantService } from '../../core/services/homeassistant.service';
-import { HaDomainEntitiesDialogComponent } from '../../features/admin/homeassistant/ha-domain-entities-dialog.component';
 import { firstValueFrom } from 'rxjs';
 
 @Component({

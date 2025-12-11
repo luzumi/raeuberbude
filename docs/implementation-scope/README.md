@@ -191,10 +191,10 @@ export class HaEntity {
 
 ## 🔗 Verwandte Dokumente
 
-- **[database/README.md](../../database/README.md)** - Schema-Dokumentation Übersicht
-- **[database/DBM-SCHEMA-01](../../database/DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md)** - Relationales Modell
-- **[database/DBM-SCHEMA-02](../../database/DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md)** - Schlüssel & Constraints
-- **[database/DBM-SCHEMA-03](../../database/DBM-SCHEMA-03-TypeORM-Mapping.md)** - TypeORM-Mapping (Draft)
+- **[database/README.md](../database/README.md)** - Schema-Dokumentation Übersicht
+- **[database/DBM-SCHEMA-01](../database/DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md)** - Relationales Modell
+- **[database/DBM-SCHEMA-02](../database/DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md)** - Schlüssel & Constraints
+- **[database/DBM-SCHEMA-03](../database/DBM-SCHEMA-03-TypeORM-Mapping.md)** - TypeORM-Mapping (Draft)
 
 ---
 

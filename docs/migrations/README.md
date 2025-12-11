@@ -21,9 +21,9 @@
 
 | Dokument | Beschreibung | Pfad |
 |----------|-------------|------|
-| **TypeORM-Mapping** | Entity-Definitionen und Relationen | [`database/DBM-SCHEMA-03-TypeORM-Mapping.md`](../../database/DBM-SCHEMA-03-TypeORM-Mapping.md) |
-| **Schlüssel & Constraints** | FK-/Index-Namenskonventionen | [`database/DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md`](../../database/DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md) |
-| **ER-Modell** | Relationales Datenmodell | [`database/DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md`](../../database/DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md) |
+| **TypeORM-Mapping** | Entity-Definitionen und Relationen | [`database/DBM-SCHEMA-03-TypeORM-Mapping.md`](../database/DBM-SCHEMA-03-TypeORM-Mapping.md) |
+| **Schlüssel & Constraints** | FK-/Index-Namenskonventionen | [`database/DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md`](../database/DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md) |
+| **ER-Modell** | Relationales Datenmodell | [`database/DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md`](../database/DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md) |
 
 ---
 
@@ -151,7 +151,7 @@ npm run migration:show
 
 - 🚀 **Los geht's:** [Quick Start Guide](./LUD28-109-quick-start.md)
 - 📋 **Vollständiger Plan:** [Migrations-Plan](./LUD28-109-migrations-plan.md)
-- 📚 **Schema-Dokumentation:** [DBM-SCHEMA-03](../../database/DBM-SCHEMA-03-TypeORM-Mapping.md)
+- 📚 **Schema-Dokumentation:** [DBM-SCHEMA-03](../database/DBM-SCHEMA-03-TypeORM-Mapping.md)
 - 🔗 **YouTrack:** [LUD28-109](https://luzumi.youtrack.cloud/issue/LUD28-109)
 
 ---

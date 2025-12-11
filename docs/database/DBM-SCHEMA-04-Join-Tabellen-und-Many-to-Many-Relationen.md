@@ -823,9 +823,9 @@ WHERE t.id IS NULL OR k.id IS NULL;
 
 ## 14. Referenzen
 
-- [DBM-SCHEMA-01: Relationales ER-Modell](./DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md)
-- [DBM-SCHEMA-02: Schlüssel und Indizes](./DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md)
-- [DBM-SCHEMA-03: TypeORM Mapping](./DBM-SCHEMA-03-TypeORM-Mapping.md)
+- [DBM-SCHEMA-01: Relationales ER-Modell](DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md)
+- [DBM-SCHEMA-02: Schlüssel und Indizes](DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md)
+- [DBM-SCHEMA-03: TypeORM Mapping](DBM-SCHEMA-03-TypeORM-Mapping.md)
 - [TypeORM Many-to-Many Relations](https://typeorm.io/many-to-many-relations)
 - [MariaDB Foreign Keys](https://mariadb.com/kb/en/foreign-keys/)
 

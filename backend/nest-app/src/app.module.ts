@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppUsersModule } from './modules/auth/app-users.module';
 import { HealthModule } from './health/health.module';
 import { HomeAssistantModule } from './modules/homeassistant/homeassistant.module';
 import { SpeechModule } from './modules/speech/speech.module';
 import { BootstrapService } from './bootstrap/bootstrap.service';
 import { LoggingModule } from './modules/logging/logging.module';
 import databaseConfig from './config/database.config';
+import { AppUsersModule } from './modules/auth/app-users.module';
 
 
 @Module({

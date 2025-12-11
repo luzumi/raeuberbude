@@ -12,9 +12,9 @@
 
 | Dokument | Status | Beschreibung | Ticket |
 |----------|--------|--------------|--------|
-| **[DBM-SCHEMA-01](./DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md)** | ✅ Fertig | Relationales ER-Modell, Entitäten, Beziehungen, Normalisierung | LUD28-57 |
-| **[DBM-SCHEMA-02](./DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md)** | ✅ Fertig | Schlüsselstrategie, FK-Definitionen, Constraints, Indizes | LUD28-58 |
-| **[DBM-SCHEMA-03](./DBM-SCHEMA-03-TypeORM-Mapping.md)** | 🔶 Draft | TypeORM-Entity-Definitionen, Decorators, Migrations-Hinweise | LUD28-59.1 (LUD28-106) |
+| **[DBM-SCHEMA-01](DBM-SCHEMA-01-Relationales-ER-Modell-und-Normalisierung.md)** | ✅ Fertig | Relationales ER-Modell, Entitäten, Beziehungen, Normalisierung | LUD28-57 |
+| **[DBM-SCHEMA-02](DBM-SCHEMA-02-Schluessel-Indizes-Constraints.md)** | ✅ Fertig | Schlüsselstrategie, FK-Definitionen, Constraints, Indizes | LUD28-58 |
+| **[DBM-SCHEMA-03](DBM-SCHEMA-03-TypeORM-Mapping.md)** | 🔶 Draft | TypeORM-Entity-Definitionen, Decorators, Migrations-Hinweise | LUD28-59.1 (LUD28-106) |
 
 ### Phase 2: Technische Spezifikation (geplant)
 
@@ -29,7 +29,7 @@
 | Dokument | Beschreibung |
 |----------|--------------|
 | **[backend/.../homeassistant/schemas/database-design.md](../backend/nest-app/src/modules/homeassistant/schemas/database-design.md)** | PostgreSQL-orientiertes HA-Modell (Referenz) |
-| **[docs/implementation-scope/LUD28-59-prep-checklist.md](../docs/implementation-scope/LUD28-59-prep-checklist.md)** | Preparation Checklist für LUD28-59 |
+| **[docs/implementation-scope/LUD28-59-prep-checklist.md](../implementation-scope/LUD28-59-prep-checklist.md)** | Preparation Checklist für LUD28-59 |
 
 ---
 
