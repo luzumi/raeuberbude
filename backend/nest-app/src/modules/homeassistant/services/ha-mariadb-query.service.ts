@@ -155,7 +155,7 @@ export class HaMariaDbQueryService {
   }
 
   /**
-   * Get all persons
+   * Get all persons (from HaPerson table)
    */
   async getAllPersons(): Promise<HaPerson[]> {
     return this.personRepo.find();
@@ -182,98 +182,159 @@ export class HaMariaDbQueryService {
   }
 
   /**
-   * Get all zones (stub - needs Zone entity)
+   * Get all zones (from ha_entities with domain=zone)
    */
-  async getAllZones(): Promise<any[]> {
-    // TODO: Implement when HaZone entity is created
-    return [];
+  async getAllZones(): Promise<HaEntityEntity[]> {
+    return this.entityRepo.find({ where: { domain: 'zone' } });
   }
 
   /**
-   * Get zone by ID (stub)
+   * Get all entities for a specific domain
+   * Unterstützt alle 27 Domänen: automation, binary_sensor, button, calendar, conversation,
+   * device_tracker, event, image, input_boolean, input_number, input_select, light,
+   * media_player, number, person, remote, script, select, sensor, stt, sun, switch,
+   * todo, tts, update, weather, zone
    */
-  async getZoneById(zoneId: string): Promise<any> {
-    // TODO: Implement when HaZone entity is created
-    return null;
+  async getEntitiesByDomain(domain: string): Promise<HaEntityEntity[]> {
+    return this.entityRepo.find({
+      where: { domain },
+      order: { friendlyName: 'ASC' }
+    });
   }
 
   /**
-   * Get persons in zone (stub)
+   * Get all lights (domain=light)
    */
-  async getPersonsInZone(zoneName: string): Promise<any[]> {
-    // TODO: Implement when HaZone entity is created
-    return [];
+  async getAllLights(): Promise<HaEntityEntity[]> {
+    return this.getEntitiesByDomain('light');
   }
 
   /**
-   * Get all automations (stub)
+   * Get all switches (domain=switch)
    */
-  async getAllAutomations(): Promise<any[]> {
-    // TODO: Implement when HaAutomation entity is created
-    return [];
+  async getAllSwitches(): Promise<HaEntityEntity[]> {
+    return this.getEntitiesByDomain('switch');
   }
 
   /**
-   * Get active automations (stub)
+   * Get all sensors (domain=sensor)
    */
-  async getActiveAutomations(): Promise<any[]> {
-    // TODO: Implement when HaAutomation entity is created
-    return [];
+  async getAllSensors(): Promise<HaEntityEntity[]> {
+    return this.getEntitiesByDomain('sensor');
   }
 
   /**
-   * Get automation by ID (stub)
+   * Get all binary sensors (domain=binary_sensor)
    */
-  async getAutomationById(automationId: string): Promise<any> {
-    // TODO: Implement when HaAutomation entity is created
-    return null;
+  async getAllBinarySensors(): Promise<HaEntityEntity[]> {
+    return this.getEntitiesByDomain('binary_sensor');
   }
 
   /**
-   * Get all media players (stub)
+   * Get all available domains from the database
    */
-  async getAllMediaPlayers(): Promise<any[]> {
-    // TODO: Implement when HaMediaPlayer entity is created
-    return [];
+  async getAllDomains(): Promise<{ domain: string; count: number }[]> {
+    const result = await this.entityRepo
+      .createQueryBuilder('entity')
+      .select('entity.domain', 'domain')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('entity.domain')
+      .orderBy('COUNT(*)', 'DESC')
+      .getRawMany();
+
+    return result.map(row => ({
+      domain: row.domain,
+      count: parseInt(row.count, 10)
+    }));
   }
 
   /**
-   * Get active media players (stub)
+   * Get zone by entity_id
    */
-  async getActiveMediaPlayers(): Promise<any[]> {
-    // TODO: Implement when HaMediaPlayer entity is created
-    return [];
+  async getZoneById(zoneId: string): Promise<HaEntityEntity | null> {
+    return this.entityRepo.findOne({ where: { entityId: zoneId, domain: 'zone' } });
   }
 
   /**
-   * Get media player by ID (stub)
+   * Get persons in zone (from ha_entities with domain=person, filtered by area)
    */
-  async getMediaPlayerById(entityId: string): Promise<any> {
-    // TODO: Implement when HaMediaPlayer entity is created
-    return null;
+  async getPersonsInZone(zoneName: string): Promise<HaEntityEntity[]> {
+    return this.entityRepo.find({ where: { domain: 'person', area: zoneName } });
   }
 
   /**
-   * Get all services (stub)
+   * Get all automations (from ha_entities with domain=automation)
+   */
+  async getAllAutomations(): Promise<HaEntityEntity[]> {
+    return this.entityRepo.find({ where: { domain: 'automation' } });
+  }
+
+  /**
+   * Get active automations (from ha_entities with domain=automation)
+   * Note: State info would need to be checked in ha_entity_states table
+   */
+  async getActiveAutomations(): Promise<HaEntityEntity[]> {
+    // TODO: Join with ha_entity_states to filter by state='on'
+    return this.entityRepo.find({ where: { domain: 'automation' } });
+  }
+
+  /**
+   * Get automation by entity_id
+   */
+  async getAutomationById(automationId: string): Promise<HaEntityEntity | null> {
+    return this.entityRepo.findOne({ where: { entityId: automationId, domain: 'automation' } });
+  }
+
+  /**
+   * Get all media players (from ha_entities with domain=media_player)
+   */
+  async getAllMediaPlayers(): Promise<HaEntityEntity[]> {
+    return this.entityRepo.find({ where: { domain: 'media_player' } });
+  }
+
+  /**
+   * Get active media players (from ha_entities with domain=media_player)
+   * Note: State info would need to be checked in ha_entity_states table
+   */
+  async getActiveMediaPlayers(): Promise<HaEntityEntity[]> {
+    // TODO: Join with ha_entity_states to filter by state='playing'
+    return this.entityRepo.find({ where: { domain: 'media_player' } });
+  }
+
+  /**
+   * Get media player by entity_id
+   */
+  async getMediaPlayerById(entityId: string): Promise<HaEntityEntity | null> {
+    return this.entityRepo.findOne({ where: { entityId, domain: 'media_player' } });
+  }
+
+  /**
+   * Get all services
+   * Note: Services are not stored in the database, they come from Home Assistant API
    */
   async getAllServices(): Promise<any[]> {
-    // TODO: Implement when HaService entity is created
+    // TODO: Fetch from Home Assistant API /api/services
+    this.logger.warn('getAllServices not implemented - services are not stored in DB');
     return [];
   }
 
   /**
-   * Get services by domain (stub)
+   * Get services by domain
+   * Note: Services are not stored in the database, they come from Home Assistant API
    */
   async getServicesByDomain(domain: string): Promise<any[]> {
-    // TODO: Implement when HaService entity is created
+    // TODO: Fetch from Home Assistant API /api/services/${domain}
+    this.logger.warn(`getServicesByDomain(${domain}) not implemented - services are not stored in DB`);
     return [];
   }
 
   /**
-   * Get service (stub)
+   * Get service
+   * Note: Services are not stored in the database, they come from Home Assistant API
    */
   async getService(domain: string, service: string): Promise<any> {
-    // TODO: Implement when HaService entity is created
+    // TODO: Fetch from Home Assistant API /api/services/${domain}/${service}
+    this.logger.warn(`getService(${domain}, ${service}) not implemented - services are not stored in DB`);
     return null;
   }
 

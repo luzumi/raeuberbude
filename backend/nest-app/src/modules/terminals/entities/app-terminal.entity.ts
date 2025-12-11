@@ -14,6 +14,9 @@ import { User, UserAllowedTerminal } from '../../auth/entities';
 import { TerminalType, TerminalStatus } from '../enums';
 import { TerminalRights } from './terminal-rights.entity';
 
+// Re-export enums for external modules
+export { TerminalType, TerminalStatus } from '../enums';
+
 /**
  * Terminal Capabilities Interface
  */
@@ -35,10 +38,10 @@ export interface TerminalCapabilities {
  *
  * @see database/entities-spec/terminals/app-terminal.entity.spec.md
  */
-@Entity('app_terminals')
-@Index('ix_app_terminals__terminal_id', ['terminalId'])
-@Index('ix_app_terminals__status', ['status'])
-@Index('ix_app_terminals__last_active_at', ['lastActiveAt'])
+@Entity('appterminals')
+@Index('ix_appterminals__terminal_id', ['terminalId'])
+@Index('ix_appterminals__status', ['status'])
+@Index('ix_appterminals__last_active_at', ['lastActiveAt'])
 export class AppTerminal {
   /**
    * Primärschlüssel (UUID)
@@ -152,7 +155,7 @@ export class AppTerminal {
   @JoinColumn({
     name: 'assigned_user_id',
     referencedColumnName: 'id',
-    foreignKeyConstraintName: 'fk_app_terminals__users__assigned_user_id',
+    foreignKeyConstraintName: 'fk_appterminals__users__assigned_user_id',
   })
   assignedUser: User | null;
 

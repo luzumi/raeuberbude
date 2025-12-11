@@ -33,7 +33,7 @@ export interface DomainsResult {
  */
 @Injectable({ providedIn: 'root' })
 export class HaSyncService {
-  private readonly apiUrl = `${environment.homeAssistantUrl}/api/ha/sync`;
+  private readonly homeAssistantUrl = `${environment.backendApiUrl}/api/ha/sync`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -41,7 +41,7 @@ export class HaSyncService {
    * Synchronisiert alle Daten (Areas, Devices, Entities) von Home Assistant
    */
   syncAll(): Observable<SyncResult> {
-    return this.http.post<SyncResult>(`${this.apiUrl}/all`, {}).pipe(
+    return this.http.post<SyncResult>(`${this.homeAssistantUrl}/all`, {}).pipe(
       tap(result => {
         if (result.success) {
           console.log('✅ HA Sync erfolgreich:', result.data);
@@ -56,7 +56,7 @@ export class HaSyncService {
    * Synchronisiert nur Areas von Home Assistant
    */
   syncAreas(): Observable<SyncResult> {
-    return this.http.post<SyncResult>(`${this.apiUrl}/areas`, {}).pipe(
+    return this.http.post<SyncResult>(`${this.homeAssistantUrl}/areas`, {}).pipe(
       tap(result => console.log('Areas synchronisiert:', result.count))
     );
   }
@@ -65,7 +65,7 @@ export class HaSyncService {
    * Synchronisiert nur Devices von Home Assistant
    */
   syncDevices(): Observable<SyncResult> {
-    return this.http.post<SyncResult>(`${this.apiUrl}/devices`, {}).pipe(
+    return this.http.post<SyncResult>(`${this.homeAssistantUrl}/devices`, {}).pipe(
       tap(result => console.log('Devices synchronisiert:', result.count))
     );
   }
@@ -74,7 +74,7 @@ export class HaSyncService {
    * Synchronisiert nur Entities von Home Assistant
    */
   syncEntities(): Observable<SyncResult> {
-    return this.http.post<SyncResult>(`${this.apiUrl}/entities`, {}).pipe(
+    return this.http.post<SyncResult>(`${this.homeAssistantUrl}/entities`, {}).pipe(
       tap(result => console.log('Entities synchronisiert:', result.count))
     );
   }
@@ -83,14 +83,14 @@ export class HaSyncService {
    * Testet die Verbindung zum Home Assistant
    */
   testConnection(): Observable<ConnectionTestResult> {
-    return this.http.get<ConnectionTestResult>(`${this.apiUrl}/test`);
+    return this.http.get<ConnectionTestResult>(`${this.homeAssistantUrl}/test`);
   }
 
   /**
    * Ruft alle verfügbaren Entity-Domains ab (light, switch, sensor, etc.)
    */
   getDomains(): Observable<DomainsResult> {
-    return this.http.get<DomainsResult>(`${this.apiUrl}/domains`);
+    return this.http.get<DomainsResult>(`${this.homeAssistantUrl}/domains`);
   }
 
   /**

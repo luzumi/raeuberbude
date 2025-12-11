@@ -60,33 +60,33 @@ npm run start:dev
 
 Die API läuft anschließend standardmäßig unter `http://localhost:3001` (über `NEST_PORT` anpassbar).
 
-## Users CRUD (Beispiel)
-- POST `/users`  -> User anlegen, Body: `{ "username": "alice", "email": "alice@example.com" }`
-- GET  `/users`  -> Alle User
-- GET  `/users/:id` -> Einzelner User
-- PATCH `/users/:id` -> Teil-Update
-- DELETE `/users/:id` -> Löschen
+## AppUsers CRUD (Beispiel)
+- POST `/appusers`  -> User anlegen, Body: `{ "username": "alice", "email": "alice@example.com" }`
+- GET  `/appusers`  -> Alle User
+- GET  `/appusers/:id` -> Einzelner User
+- PATCH `/appusers/:id` -> Teil-Update
+- DELETE `/appusers/:id` -> Löschen
 
 ### Beispiel-Requests
 ```bash
 # Create
-curl -X POST http://localhost:3001/users \
+curl -X POST http://localhost:3001/appusers \
   -H "Content-Type: application/json" \
   -d '{"username":"alice","email":"alice@example.com"}'
 
 # List
-curl http://localhost:3001/users
+curl http://localhost:3001/appusers
 
 # Get by id
-curl http://localhost:3001/users/<id>
+curl http://localhost:3001/appusers/<id>
 
 # Update
-curl -X PATCH http://localhost:3001/users/<id> \
+curl -X PATCH http://localhost:3001/appusers/<id> \
   -H "Content-Type: application/json" \
   -d '{"email":"alice+new@example.com"}'
 
 # Delete
-curl -X DELETE http://localhost:3001/users/<id>
+curl -X DELETE http://localhost:3001/appusers/<id>
 ```
 
 ## Hinweise

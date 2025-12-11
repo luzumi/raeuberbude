@@ -24,7 +24,7 @@ import { UserRole, UserStatus } from '../enums';
 @Index('ix_user_rights__status', ['status'])
 export class UserRights {
   /**
-   * Primärschlüssel = Foreign Key zu users.id
+   * Primärschlüssel = Foreign Key zu app_users.id
    */
   @PrimaryColumn('uuid', { name: 'user_id' })
   userId: string;

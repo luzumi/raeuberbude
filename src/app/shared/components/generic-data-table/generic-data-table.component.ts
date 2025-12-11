@@ -15,7 +15,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import {MatFormFieldAppearance, MatFormFieldModule} from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -61,7 +61,7 @@ import {
       <div class="table-toolbar" *ngIf="config.toolbarButtons || config.search">
         <!-- Search Field -->
         <div class="toolbar-search" *ngIf="config.search?.enabled">
-          <mat-form-field appearance="outline">
+          <mat-form-field [appearance]="appearanceType">
             <mat-label>{{ config.search?.placeholder || 'Suchen...' }}</mat-label>
             <input
               matInput
@@ -120,7 +120,7 @@ import {
                   <button
                     mat-menu-item
                     *ngFor="let action of config.rowMenuActions"
-                    (click)="action.handler(row)"
+                    (click)="action?.handler(row)"
                   >
                     <mat-icon *ngIf="action.icon" [color]="action.color">{{ action.icon }}</mat-icon>
                     <span>{{ action.label }}</span>
@@ -253,6 +253,7 @@ import {
 })
 export class GenericDataTableComponent<T extends Record<string, any>> implements OnInit, DoCheck {
   @Input() config!: DataTableConfig<T>;
+  @Input() appearanceType: 'fill' | 'outline' = 'outline';
 
   @Output() rowSelected = new EventEmitter<T[]>();
   @Output() rowActionTriggered = new EventEmitter<{ action: string; row: T }>();

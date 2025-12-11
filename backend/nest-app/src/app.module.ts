@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from './users/users.module';
+import { AppUsersModule } from './modules/auth/app-users.module';
 import { HealthModule } from './health/health.module';
 import { HomeAssistantModule } from './modules/homeassistant/homeassistant.module';
 import { SpeechModule } from './modules/speech/speech.module';
@@ -26,7 +26,7 @@ import databaseConfig from './config/database.config';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => config.get('database'),
     }),
-    UsersModule,
+    AppUsersModule,
     HealthModule,
     HomeAssistantModule,
     SpeechModule,

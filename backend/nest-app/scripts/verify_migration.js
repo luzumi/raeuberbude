@@ -17,7 +17,7 @@ const MYSQL_CFG = {
 
 const MAPPINGS = [
   { mongo: 'users', maria: 'app_users' },
-  { mongo: 'app_terminals', maria: 'app_terminals' },
+  { mongo: 'appterminals', maria: 'appterminals' },
   { mongo: 'categories', maria: 'categories' },
   { mongo: 'llminstances', maria: 'llminstances' },
   { mongo: 'transcripts', maria: 'transcripts' },

@@ -126,7 +126,7 @@ export class RightsManagementComponent implements OnInit {
     const port = 3001;
     this.nestBase = `http://${host}:${port}`;
     this.speechApiBase = `${this.nestBase}/api/speech`;
-    this.usersApiBase = `${this.nestBase}/users`;
+    this.usersApiBase = `${this.nestBase}/appusers`;
     this.permissionsCtrl.valueChanges.subscribe((q) => this.applyPermFilter(q || ''));
     this.applyPermFilter('');
   }
@@ -408,7 +408,7 @@ export class RightsManagementComponent implements OnInit {
   // Helper Methods
   getUserName(userId: any): string {
     const id = userId?._id || userId;
-    const user = this.users.find(u => u._id === id);
+    const user = this.users.find(u => u.id === id);
     return user ? user.username || user.email : 'Unbekannt';
   }
 

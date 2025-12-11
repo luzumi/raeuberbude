@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
-import { UserEntity } from './users/entities/user.entity';
-import { AppTerminalEntity } from './modules/speech/entities/app-terminal.entity';
+import { User } from './modules/auth/entities';
+import { AppTerminal } from './modules/terminals/entities';
 import { IntentLogEntity } from './modules/logging/entities/intentlog.entity';
 import { HaEntityEntity } from './modules/homeassistant/entities/ha-entity.entity';
 import { LlmInstanceEntity } from './modules/llm/entities/llm-instance.entity';
@@ -27,8 +27,8 @@ export const AppDataSource = new DataSource({
   password: process.env['MARIADB_PASSWORD'] || 'rb_user_secret',
   database: process.env['MARIADB_DATABASE'] || 'raueberbude',
   entities: [
-    UserEntity,
-    AppTerminalEntity,
+    User,
+    AppTerminal,
     TranscriptEntity,
     IntentLogEntity,
     IntentLog,

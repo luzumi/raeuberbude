@@ -40,7 +40,7 @@ export class AuthService {
   async login(identifier: string, password: string): Promise<boolean> {
     try {
       const res: any = await firstValueFrom(
-        this.http.post(`${this.apiBase}/users/login`, { identifier, password }, { withCredentials: true })
+        this.http.post(`${this.apiBase}/appusers/login`, { identifier, password }, { withCredentials: true })
       );
       if (res?.data) {
         localStorage.setItem(this.tokenKey, 'logged_in');
@@ -51,8 +51,8 @@ export class AuthService {
           // store in both storages to cover different read paths
           localStorage.setItem('currentUser', serialized);
           sessionStorage.setItem('currentUser', serialized);
-          // zusätzlich userId separat speichern (Backend verwendet häufig _id)
-          const uid = this.currentUser?._id || this.currentUser?.id || null;
+          // zusätzlich userId separat speichern (MariaDB verwendet id, nicht _id)
+          const uid = this.currentUser?.id || this.currentUser?._id || null;
           if (uid) {
             localStorage.setItem('userId', uid);
             try { sessionStorage.setItem('userId', uid); } catch {}
@@ -78,13 +78,14 @@ export class AuthService {
   async register(email: string, username: string, password: string): Promise<boolean> {
     try {
       const reg: any = await firstValueFrom(
-        this.http.post(`${this.apiBase}/users/register`, { email, username, password }, { withCredentials: true })
+        this.http.post(`${this.apiBase}/appusers/register`, { email, username, password }, { withCredentials: true })
       );
       const user = reg?.data;
-      if (!user?._id) return false;
+      const userId = user?.id || user?._id;
+      if (!userId) return false;
       // Standardrechte setzen (regular). Upsert im Backend aktiv.
       await firstValueFrom(
-        this.http.put(`${this.apiBase}/api/speech/rights/user/${user._id}`, { role: 'regular' }, { withCredentials: true })
+        this.http.put(`${this.apiBase}/api/speech/rights/user/${userId}`, { role: 'regular' }, { withCredentials: true })
       );
       // Optional: auto-login
       return await this.login(email, password);
@@ -125,7 +126,7 @@ export class AuthService {
 
   getUserId(): string | null {
     // bevorzugt aus currentUser, sonst aus Storage (falls nur userId gespeichert wurde)
-    const uid = this.currentUser?._id || this.currentUser?.id || null;
+    const uid = this.currentUser?.id || this.currentUser?._id || null;
     if (uid) return uid;
     try {
       return localStorage.getItem('userId') || sessionStorage.getItem('userId');
@@ -153,7 +154,7 @@ export class AuthService {
       try {
         const uid = localStorage.getItem('userId') || sessionStorage.getItem('userId');
         if (uid) {
-          this.currentUser = { _id: uid };
+          this.currentUser = { id: uid };
         }
       } catch { /* ignore */ }
     } catch (e) {
@@ -163,7 +164,7 @@ export class AuthService {
 
   private parsePersitedCurrentUser( serialized: string ): void {
     this.currentUser = JSON.parse( serialized );
-    const uid = this.currentUser?._id || this.currentUser?.id || null;
+    const uid = this.currentUser?.id || this.currentUser?._id || null;
     if ( uid ) {
       try { localStorage.setItem( 'userId', uid ); } catch {}
       try { sessionStorage.setItem( 'userId', uid ); } catch {}

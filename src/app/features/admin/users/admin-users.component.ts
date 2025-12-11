@@ -146,7 +146,7 @@ export class AdminUsersComponent implements OnInit {
 
   private async load() {
     try {
-      this.users = await firstValueFrom(this.http.get<any[]>(`${this.nestBase}/users`, { withCredentials: true }));
+      this.users = await firstValueFrom(this.http.get<any[]>(`${this.nestBase}/appusers`, { withCredentials: true }));
     } catch (e) {
       console.error(e);
       this.snack.open('Fehler beim Laden der Benutzer', 'Schließen', { duration: 3000, panelClass: 'snackbar-error' });
@@ -166,11 +166,12 @@ export class AdminUsersComponent implements OnInit {
   async save() {
     const val = this.form.value;
     try {
-      if (this.selectedUser?._id) {
-        await firstValueFrom(this.http.patch(`${this.nestBase}/users/${this.selectedUser._id}`, val, { withCredentials: true }));
+      const userId = this.selectedUser?.id || this.selectedUser?._id;
+      if (userId) {
+        await firstValueFrom(this.http.patch(`${this.nestBase}/appusers/${userId}`, val, { withCredentials: true }));
         this.snack.open('Benutzer aktualisiert', 'Schließen', { duration: 2500 });
       } else {
-        await firstValueFrom(this.http.post(`${this.nestBase}/users`, val, { withCredentials: true }));
+        await firstValueFrom(this.http.post(`${this.nestBase}/appusers`, val, { withCredentials: true }));
         this.snack.open('Benutzer erstellt', 'Schließen', { duration: 2500 });
       }
       this.startCreate();
@@ -184,7 +185,8 @@ export class AdminUsersComponent implements OnInit {
   async remove(u: any) {
     if (!confirm(`Benutzer "${u.username}" löschen?`)) return;
     try {
-      await firstValueFrom(this.http.delete(`${this.nestBase}/users/${u._id}`, { withCredentials: true }));
+      const userId = u.id || u._id;
+      await firstValueFrom(this.http.delete(`${this.nestBase}/appusers/${userId}`, { withCredentials: true }));
       this.snack.open('Benutzer gelöscht', 'Schließen', { duration: 2500 });
       await this.load();
     } catch (e) {

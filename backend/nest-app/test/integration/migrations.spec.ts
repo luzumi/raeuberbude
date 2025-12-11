@@ -82,7 +82,7 @@ describe('Database Migrations Integration Tests', () => {
         expect(tableNames).toContain('user_allowed_terminals');
 
         // Terminal tables
-        expect(tableNames).toContain('app_terminals');
+        expect(tableNames).toContain('appterminals');
         expect(tableNames).toContain('terminal_rights');
 
         // Speech input tables

@@ -40,6 +40,7 @@ export class AdminHomeAssistantComponent implements OnInit {
   selectedTabIndex = 0;
 
   // Loading states
+  loadingDomains = false;
   loadingEntities = false;
   loadingDevices = false;
   loadingAreas = false;
@@ -50,6 +51,7 @@ export class AdminHomeAssistantComponent implements OnInit {
   loadingServices = false;
 
   // Data
+  domains: { domain: string; count: number }[] = [];
   entities: any[] = [];
   devices: any[] = [];
   areas: any[] = [];
@@ -77,7 +79,74 @@ export class AdminHomeAssistantComponent implements OnInit {
 
   ngOnInit(): void {
     this.initializeTableConfigs();
+    this.loadDomains();
     this.loadAllData();
+  }
+
+  async loadDomains(): Promise<void> {
+    this.loadingDomains = true;
+    try {
+      const response = await firstValueFrom(this.haService.getAllDomains());
+      this.domains = response.domainCounts;
+      this.showMessage(`${response.count} Domänen geladen`, 'success');
+    } catch (error) {
+      console.error('Fehler beim Laden der Domänen:', error);
+      this.showMessage('Fehler beim Laden der Domänen', 'error');
+    } finally {
+      this.loadingDomains = false;
+    }
+  }
+
+  // openDomainDialog(domain?: string): void {
+  //   this.dialog.open(HaDomainEntitiesDialogComponent, {
+  //     data: {
+  //       domains: this.domains,
+  //       selectedDomain: domain
+  //     },
+  //     width: '95vw',
+  //     maxWidth: '1400px',
+  //     height: '90vh',
+  //     maxHeight: '900px',
+  //     panelClass: 'domain-entities-dialog',
+  //   });
+  // }
+
+  getDomainIcon(domain: string): string {
+    const icons: Record<string, string> = {
+      light: 'lightbulb',
+      switch: 'toggle_on',
+      sensor: 'sensors',
+      binary_sensor: 'sensor_door',
+      automation: 'auto_mode',
+      media_player: 'speaker',
+      climate: 'thermostat',
+      camera: 'videocam',
+      lock: 'lock',
+      cover: 'roller_shades',
+      fan: 'mode_fan',
+      person: 'person',
+      device_tracker: 'location_on',
+      zone: 'place',
+      script: 'code',
+      button: 'smart_button',
+      number: 'tag',
+      select: 'arrow_drop_down_circle',
+      input_boolean: 'toggle_off',
+      input_number: 'dialpad',
+      input_select: 'list',
+      calendar: 'calendar_month',
+      weather: 'wb_sunny',
+      update: 'system_update',
+      todo: 'checklist',
+      tts: 'record_voice_over',
+      stt: 'mic',
+      conversation: 'chat',
+      event: 'event',
+      image: 'image',
+      sun: 'wb_sunny',
+      remote: 'settings_remote',
+    };
+    return icons[domain] || 'devices';
   }
 
   /**
@@ -224,6 +293,7 @@ export class AdminHomeAssistantComponent implements OnInit {
     };
 
     // Devices Config
+
     this.devicesConfig = {
       columns: [
         { field: 'deviceId', header: 'Device ID', sortable: true, filterable: true },
@@ -323,10 +393,10 @@ export class AdminHomeAssistantComponent implements OnInit {
     // Automations Config
     this.automationsConfig = {
       columns: [
-        { field: 'automationId', header: 'Automation ID', sortable: true, filterable: true },
-        { field: 'alias', header: 'Name', sortable: true, filterable: true },
+        { field: 'entityId', header: 'Automation ID', sortable: true, filterable: true },
+        { field: 'friendlyName', header: 'Name', sortable: true, filterable: true },
         { field: 'description', header: 'Beschreibung', sortable: true },
-        { field: 'mode', header: 'Modus', type: 'badge', sortable: true },
+        { field: 'domain', header: 'Domain', type: 'badge', sortable: true },
         { field: 'current', header: 'Aktuell', sortable: true },
         { field: 'max', header: 'Maximum', sortable: true },
         { field: 'updatedAt', header: 'Aktualisiert', type: 'date', sortable: true },
@@ -372,9 +442,10 @@ export class AdminHomeAssistantComponent implements OnInit {
     // Persons Config
     this.personsConfig = {
       columns: [
+        { field: 'id', header: 'ID', sortable: true, filterable: true },
         { field: 'personId', header: 'Person ID', sortable: true, filterable: true },
         { field: 'name', header: 'Name', sortable: true, filterable: true },
-        { field: 'userId', header: 'User ID', sortable: true },
+        { field: 'picture', header: 'Profilbild', sortable: true },
         { field: 'updatedAt', header: 'Aktualisiert', type: 'date', sortable: true },
       ],
       data: this.persons,
@@ -418,13 +489,13 @@ export class AdminHomeAssistantComponent implements OnInit {
     // Zones Config
     this.zonesConfig = {
       columns: [
-        { field: 'zoneId', header: 'Zone ID', sortable: true, filterable: true },
-        { field: 'name', header: 'Name', sortable: true, filterable: true },
-        { field: 'latitude', header: 'Breitengrad', sortable: true },
-        { field: 'longitude', header: 'Längengrad', sortable: true },
-        { field: 'radius', header: 'Radius (m)', sortable: true },
-        { field: 'icon', header: 'Icon', sortable: true },
-        { field: 'passive', header: 'Passiv', type: 'boolean', sortable: true },
+        { field: 'entityId', header: 'Zone ID', sortable: true, filterable: true },
+        { field: 'friendlyName', header: 'Name', sortable: true, filterable: true },
+        { field: 'domain', header: 'Domain', sortable: true },
+        { field: 'objectId', header: 'Object Id', sortable: true },
+        { field: 'entityType', header: 'Entity Type', sortable: true },
+        { field: 'entityCategory', header: 'Kategorie', sortable: true },
+        { field: 'supportedFeatures', header: 'Unterstützte Features', type: 'boolean', sortable: true },
         { field: 'updatedAt', header: 'Aktualisiert', type: 'date', sortable: true },
       ],
       data: this.zones,
@@ -469,9 +540,9 @@ export class AdminHomeAssistantComponent implements OnInit {
     this.mediaPlayersConfig = {
       columns: [
         { field: 'entityId', header: 'Entity ID', sortable: true, filterable: true },
-        { field: 'name', header: 'Name', sortable: true, filterable: true },
-        { field: 'state', header: 'Status', type: 'badge', sortable: true },
-        { field: 'volumeLevel', header: 'Lautstärke', sortable: true },
+        { field: 'friendlyName', header: 'Name', sortable: true, filterable: true },
+        { field: 'objectId', header: 'Objekt ID', type: 'badge', sortable: true },
+        { field: 'entityType', header: 'Typ', sortable: true },
         { field: 'mediaTitle', header: 'Medientitel', sortable: true },
         { field: 'mediaArtist', header: 'Künstler', sortable: true },
         { field: 'source', header: 'Quelle', sortable: true },

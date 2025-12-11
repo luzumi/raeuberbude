@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {UsersService} from '../users/users.service';
+import { AppUsersService } from '../modules/auth/app-users.service';
 import { RightsService } from '../modules/speech/rights.service';
 
 @Injectable()
@@ -8,7 +8,7 @@ export class BootstrapService implements OnModuleInit {
   private readonly logger = new Logger(BootstrapService.name);
   constructor(
     private readonly config: ConfigService,
-    private readonly users: UsersService,
+    private readonly users: AppUsersService,
     private readonly rights: RightsService,
   ) {}
 

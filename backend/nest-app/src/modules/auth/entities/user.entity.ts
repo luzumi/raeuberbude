@@ -15,13 +15,14 @@ import { UserAllowedTerminal } from './user-allowed-terminal.entity';
  * User Entity
  *
  * Zentrale Benutzerentität für App-Authentifizierung und Autorisierung.
+ * Nutzt app_users Tabelle in MariaDB (MongoDB deprecated).
  *
  * @see database/entities-spec/auth/user.entity.spec.md
  */
-@Entity('users')
-@Index('ix_users__username', ['username'])
-@Index('ix_users__email', ['email'])
-@Index('ix_users__created_at', ['createdAt'])
+@Entity('app_users')
+@Index('ix_app_users__username', ['username'])
+@Index('ix_app_users__email', ['email'])
+@Index('ix_app_users__created_at', ['createdAt'])
 export class User {
   /**
    * Primärschlüssel (UUID)
@@ -45,14 +46,15 @@ export class User {
    * bcrypt/argon2-Hash des Passworts
    */
   @Column({ type: 'varchar', length: 255, name: 'password_hash' })
-  passwordHash: string;
+  password: string;
 
   /**
    * Flexible Zusatzinfos (Name, Avatar, Theme, etc.)
    * Verwendet JSONB (PostgreSQL) oder JSON (MariaDB)
+   * ACHTUNG: Spalte existiert noch nicht in app_users Tabelle - daher select: false
    */
-  @Column({ type: 'json', nullable: true, name: 'profile_data' })
-  profileData: Record<string, any> | null;
+  @Column({ type: 'json', nullable: true, name: 'profile_data', select: false })
+  profileData?: Record<string, any> | null;
 
   /**
    * Erstellungszeitpunkt
@@ -96,4 +98,3 @@ export class User {
   // - eventLogs: EventLog[]
   // - assignedTerminals: AppTerminal[] (reverse side of assigned_user_id)
 }
-

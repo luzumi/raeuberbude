@@ -111,7 +111,7 @@ export class IntentLog {
   @JoinColumn({
     name: 'terminal_id',
     referencedColumnName: 'id',
-    foreignKeyConstraintName: 'fk_intent_logs__app_terminals__terminal_id',
+    foreignKeyConstraintName: 'fk_speech_transcripts__appterminals__terminal_id',
   })
   terminal: AppTerminal | null;
 

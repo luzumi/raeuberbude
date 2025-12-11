@@ -36,7 +36,7 @@ describe('AppTerminal Entity CRUD & FK Behavior Tests', () => {
 
   beforeEach(async () => {
     await dataSource.query('DELETE FROM user_allowed_terminals');
-    await dataSource.query('DELETE FROM app_terminals');
+    await dataSource.query('DELETE FROM appterminals');
     await dataSource.query('DELETE FROM users');
   });
 

@@ -1,7 +1,8 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AppTerminal, TerminalType, TerminalStatus } from './entities/app-terminal.entity';
+import { AppTerminal } from '../terminals/entities/app-terminal.entity';
+import { TerminalType, TerminalStatus } from '../terminals/enums';
 import { CreateAppTerminalDto } from './dto/create-app-terminal.dto';
 import { UpdateAppTerminalDto } from './dto/update-app-terminal.dto';
 
@@ -25,21 +26,22 @@ export class TerminalsService {
         throw new ConflictException(`Terminal with ID ${createDto.terminalId} already exists`);
       }
 
-      const terminal = this.appTerminalRepo.create({
+      const terminalData: Partial<AppTerminal> = {
         terminalId: createDto.terminalId,
         name: createDto.name,
         description: createDto.description,
-        type: createDto.type as any as TerminalType,
+        type: createDto.type as any,
         location: createDto.location,
-        capabilities: createDto.capabilities,
-        status: createDto.status as any as TerminalStatus,
+        capabilitiesJson: createDto.capabilities as any,
+        status: createDto.status as any,
         assignedUserId: createDto.assignedUserId,
-        allowedActions: createDto.allowedActions,
-        settings: createDto.settings,
-        metadata: createDto.metadata,
+        allowedActionsJson: createDto.allowedActions,
+        settingsJson: createDto.settings,
+        metadataJson: createDto.metadata,
         lastActiveAt: new Date(),
-      });
+      };
 
+      const terminal = this.appTerminalRepo.create(terminalData);
       const saved = await this.appTerminalRepo.save(terminal);
       this.logger.log(`Created terminal: ${saved.terminalId}`);
 
@@ -52,17 +54,23 @@ export class TerminalsService {
   }
 
   async findAll(filters: any = {}): Promise<AppTerminal[]> {
-    const { type, status, location } = filters;
+    try {
+      const { type, status, location } = filters;
 
-    const queryBuilder = this.appTerminalRepo.createQueryBuilder('terminal');
+      const queryBuilder = this.appTerminalRepo.createQueryBuilder('terminal');
 
-    if (type) queryBuilder.andWhere('terminal.type = :type', { type });
-    if (status) queryBuilder.andWhere('terminal.status = :status', { status });
-    if (location) queryBuilder.andWhere('terminal.location LIKE :location', { location: `%${location}%` });
+      // Use entity property names, TypeORM will map to column names
+      if (type) queryBuilder.andWhere('terminal.type = :type', { type });
+      if (status) queryBuilder.andWhere('terminal.status = :status', { status });
+      if (location) queryBuilder.andWhere('terminal.location LIKE :location', { location: `%${location}%` });
 
-    queryBuilder.orderBy('terminal.createdAt', 'DESC');
+      queryBuilder.orderBy('terminal.created_at', 'DESC');
 
-    return queryBuilder.getMany();
+      return await queryBuilder.getMany();
+    } catch (error) {
+      this.logger.error('Failed to find terminals:', error);
+      throw error;
+    }
   }
 
   async findOne(id: string): Promise<AppTerminal> {
@@ -216,8 +224,8 @@ export class TerminalsService {
 
       // Totals
       if (terminal.assignedUserId) assigned++;
-      if (terminal.capabilities?.hasMicrophone) withMicrophone++;
-      if (terminal.capabilities?.supportsSpeechRecognition) supportsSpeech++;
+      if (terminal.capabilitiesJson?.microphone) withMicrophone++;
+      if (terminal.capabilitiesJson?.wakeWord) supportsSpeech++;
     }
 
     return {
@@ -275,4 +283,3 @@ export class TerminalsService {
     }
   }
 }
-

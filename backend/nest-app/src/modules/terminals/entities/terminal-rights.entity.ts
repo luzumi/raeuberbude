@@ -23,7 +23,7 @@ import { TerminalRightsStatus } from '../enums';
 @Index('ix_terminal_rights__role_key', ['roleKey'])
 export class TerminalRights {
   /**
-   * Primärschlüssel = Foreign Key zu app_terminals.id
+   * Primärschlüssel = Foreign Key zu appterminals.id
    */
   @PrimaryColumn('uuid', { name: 'terminal_id' })
   terminalId: string;
@@ -92,7 +92,7 @@ export class TerminalRights {
   @JoinColumn({
     name: 'terminal_id',
     referencedColumnName: 'id',
-    foreignKeyConstraintName: 'fk_terminal_rights__app_terminals__terminal_id',
+    foreignKeyConstraintName: 'fk_speech_human_inputs__appterminals__terminal_id',
   })
   terminal: AppTerminal;
 }
