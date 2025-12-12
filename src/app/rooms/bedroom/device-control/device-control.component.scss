@@ -1,0 +1,17 @@
+/* Einfache Styles für das Device-Control-Panel */
+.device-control {
+  border: 1px solid #ddd;
+  padding: 12px;
+  border-radius: 6px;
+  background: #fff;
+  max-width: 520px;
+}
+.row {
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.params { margin-top: 8px; }
+.controls { margin-top: 12px; }
+.result { margin-top: 10px; color: #0b6; }
+

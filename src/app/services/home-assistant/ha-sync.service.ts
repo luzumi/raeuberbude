@@ -10,6 +10,11 @@ export interface SyncResult {
     areas?: number;
     devices?: number;
     entities?: number;
+    automations?: number;
+    persons?: number;
+    zones?: number;
+    media_players?: number;
+    services?: number;
   };
   count?: number;
   error?: string;
@@ -80,6 +85,51 @@ export class HaSyncService {
   }
 
   /**
+   * Synchronisiert Automations
+   */
+  syncAutomations(): Observable<SyncResult> {
+    return this.http.post<SyncResult>(`${this.homeAssistantUrl}/automations`, {}).pipe(
+      tap(result => console.log('Automations synchronisiert:', result.count))
+    );
+  }
+
+  /**
+   * Synchronisiert Personen
+   */
+  syncPersons(): Observable<SyncResult> {
+    return this.http.post<SyncResult>(`${this.homeAssistantUrl}/persons`, {}).pipe(
+      tap(result => console.log('Persons synchronisiert:', result.count))
+    );
+  }
+
+  /**
+   * Synchronisiert Zonen
+   */
+  syncZones(): Observable<SyncResult> {
+    return this.http.post<SyncResult>(`${this.homeAssistantUrl}/zones`, {}).pipe(
+      tap(result => console.log('Zones synchronisiert:', result.count))
+    );
+  }
+
+  /**
+   * Synchronisiert Media Players
+   */
+  syncMediaPlayers(): Observable<SyncResult> {
+    return this.http.post<SyncResult>(`${this.homeAssistantUrl}/media_players`, {}).pipe(
+      tap(result => console.log('Media players synchronisiert:', result.count))
+    );
+  }
+
+  /**
+   * Synchronisiert Services
+   */
+  syncServices(): Observable<SyncResult> {
+    return this.http.post<SyncResult>(`${this.homeAssistantUrl}/services`, {}).pipe(
+      tap(result => console.log('Services synchronisiert:', result.count))
+    );
+  }
+
+  /**
    * Testet die Verbindung zum Home Assistant
    */
   testConnection(): Observable<ConnectionTestResult> {
@@ -112,4 +162,3 @@ export class HaSyncService {
     );
   }
 }
-

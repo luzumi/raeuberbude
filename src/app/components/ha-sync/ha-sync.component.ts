@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import {MatTooltipModule} from '@angular/material/tooltip';
+
 import {HaDomainEntitiesDialogComponent} from '@components/ha-sync/HaDomainEntitiesDialogComponent';
 import { HaSyncService, SyncResult } from '@services/home-assistant/ha-sync.service';
 import { HomeAssistantService } from '../../core/services/homeassistant.service';
@@ -11,7 +13,7 @@ import { firstValueFrom } from 'rxjs';
 @Component({
   selector: 'app-ha-sync',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule],
+    imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule],
   template: `
     <div class="sync-content">
       <!-- Sync Status Card -->
@@ -26,34 +28,41 @@ import { firstValueFrom } from 'rxjs';
         </div>
         <div *ngIf="lastSync.data" class="sync-stats">
           <div class="stat-item">
-            <span class="stat-value">{{ lastSync.data.areas }}</span>
+            <span class="stat-value">{{ lastSync.data.areas ?? '-' }}</span>
             <span class="stat-label">Areas</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">{{ lastSync.data.devices }}</span>
+            <span class="stat-value">{{ lastSync.data.devices ?? '-' }}</span>
             <span class="stat-label">Devices</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">{{ lastSync.data.entities }}</span>
+            <span class="stat-value">{{ lastSync.data.entities ?? '-' }}</span>
             <span class="stat-label">Entities</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ lastSync.data.automations ?? '-' }}</span>
+            <span class="stat-label">Automations</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ lastSync.data.persons ?? '-' }}</span>
+            <span class="stat-label">Persons</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ lastSync.data.zones ?? '-' }}</span>
+            <span class="stat-label">Zones</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ lastSync.data.media_players ?? '-' }}</span>
+            <span class="stat-label">Media Players</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ lastSync.data.services ?? '-' }}</span>
+            <span class="stat-label">Services</span>
           </div>
         </div>
       </div>
 
-      <!-- Connection Status -->
-      <div class="connection-card" *ngIf="connectionStatus">
-        <mat-icon [class.success]="connectionStatus.success" [class.error]="!connectionStatus.success">
-          {{ connectionStatus.success ? 'cloud_done' : 'cloud_off' }}
-        </mat-icon>
-        <span *ngIf="connectionStatus.success" class="success">
-          Verbunden mit Home Assistant {{ connectionStatus.version }}
-        </span>
-        <span *ngIf="!connectionStatus.success" class="error">
-          Verbindung fehlgeschlagen: {{ connectionStatus.error }}
-        </span>
-      </div>
-
-      <!-- Sync Actions -->
+        <!-- Sync Actions -->
       <div class="action-section">
         <button
           mat-raised-button
@@ -67,28 +76,61 @@ import { firstValueFrom } from 'rxjs';
         </button>
 
         <div class="btn-group">
-          <button mat-stroked-button (click)="syncAreas()" [disabled]="isLoading">
+          <button mat-raised-button (click)="syncAreas()" [disabled]="isLoading">
             <mat-icon>place</mat-icon>
             Areas
           </button>
-          <button mat-stroked-button (click)="syncDevices()" [disabled]="isLoading">
+          <button mat-raised-button (click)="syncDevices()" [disabled]="isLoading">
             <mat-icon>devices</mat-icon>
             Devices
           </button>
-          <button mat-stroked-button (click)="syncEntities()" [disabled]="isLoading">
+          <button mat-raised-button (click)="syncEntities()" [disabled]="isLoading">
             <mat-icon>home</mat-icon>
             Entities
           </button>
+          <button mat-raised-button (click)="syncAutomations()" [disabled]="isLoading">
+            <mat-icon>autorenew</mat-icon>
+            Automations
+          </button>
+          <button mat-raised-button (click)="syncPersons()" [disabled]="isLoading">
+            <mat-icon>person</mat-icon>
+            Persons
+          </button>
+          <button mat-raised-button (click)="syncZones()" [disabled]="isLoading">
+            <mat-icon>place</mat-icon>
+            Zones
+          </button>
+          <button mat-raised-button (click)="syncMediaPlayers()" [disabled]="isLoading">
+            <mat-icon>cast</mat-icon>
+            Media Players
+          </button>
+          <button mat-raised-button (click)="syncServices()" [disabled]="isLoading">
+            <mat-icon>build</mat-icon>
+            Services
+          </button>
         </div>
 
+          <!-- Connection Status -->
+          <div class="connection-card" *ngIf="connectionStatus">
+              <mat-icon [class.success]="connectionStatus.success" [class.error]="!connectionStatus.success">
+                  {{ connectionStatus.success ? 'cloud_done' : 'cloud_off' }}
+              </mat-icon>
+              <span *ngIf="connectionStatus.success" class="success">
+          Verbunden mit Home Assistant {{ connectionStatus.version }}
+        </span>
+              <span *ngIf="!connectionStatus.success" class="error">
+          Verbindung fehlgeschlagen: {{ connectionStatus.error }}
+        </span>
         <button
-          mat-raised-button
-          color="accent"
+          mat-stroked-button
+          color="warn"
           (click)="testConnection()"
+          [matTooltip] = "'Verbindung testen'"
           [disabled]="isLoading">
-          <mat-icon>wifi_find</mat-icon>
-          Verbindung testen
+          <mat-icon
+          >wifi_find</mat-icon>
         </button>
+          </div>
       </div>
 
       <!-- Domain Chips Section -->
@@ -234,14 +276,14 @@ import { firstValueFrom } from 'rxjs';
       gap: 16px;
     }
 
-    .sync-btn-primary {
+    .sync-btn_primary {
       width: 100%;
       height: 56px;
       font-size: 1.1rem;
       font-weight: 500;
     }
 
-    .sync-btn-primary mat-icon {
+    .sync-btn_primary mat-icon {
       margin-right: 8px;
     }
 
@@ -424,6 +466,15 @@ export class HaSyncComponent implements OnInit {
     this.syncService.syncAll().subscribe({
       next: (result) => {
         this.lastSync = result;
+        // Wenn Backend jetzt erweiterte Datenfelder zurückgibt, übernehmen wir sie in die Anzeige
+        if (result?.data) {
+          // Normalisieren der Felder für Anzeige
+          result.data.automations = result.data.automations ?? result.data['automations'];
+          result.data.persons = result.data.persons ?? result.data['persons'];
+          result.data.zones = result.data.zones ?? result.data['zones'];
+          result.data.media_players = result.data.media_players ?? result.data['media_players'];
+          result.data.services = result.data.services ?? result.data['services'];
+        }
         this.isLoading = false;
       },
       error: (error) => {
@@ -479,6 +530,77 @@ export class HaSyncComponent implements OnInit {
     });
   }
 
+  // Neue spezifische Sync-Methoden
+  syncAutomations(): void {
+    this.isLoading = true;
+    this.syncService.syncAutomations().subscribe({
+      next: (result) => {
+        this.lastSync = result;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Automations sync failed:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  syncPersons(): void {
+    this.isLoading = true;
+    this.syncService.syncPersons().subscribe({
+      next: (result) => {
+        this.lastSync = result;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Persons sync failed:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  syncZones(): void {
+    this.isLoading = true;
+    this.syncService.syncZones().subscribe({
+      next: (result) => {
+        this.lastSync = result;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Zones sync failed:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  syncMediaPlayers(): void {
+    this.isLoading = true;
+    this.syncService.syncMediaPlayers().subscribe({
+      next: (result) => {
+        this.lastSync = result;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Media players sync failed:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  syncServices(): void {
+    this.isLoading = true;
+    this.syncService.syncServices().subscribe({
+      next: (result) => {
+        this.lastSync = result;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Services sync failed:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+
   testConnection(): void {
     this.syncService.testConnection().subscribe({
       next: (result) => {
@@ -501,7 +623,7 @@ export class HaSyncComponent implements OnInit {
       const response = await firstValueFrom(this.haService.getAllDomains());
       console.log('📦 API Response:', response);
 
-      if (response && response.success && response.domainCounts) {
+      if (response?.success && response.domainCounts) {
         this.domainsList = response.domainCounts;
         console.log('✅ Loaded', this.domainsList.length, 'domains with counts:', this.domainsList);
       } else {

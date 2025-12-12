@@ -101,6 +101,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
   goToMenu(): void {
     this.router.navigate(['/menu']);
   }
+  /**
+   * Öffnet die Menüseite.
+   */
+  goToHome(): void {
+    this.router.navigate(['/']);
+  }
+
+
 
   /**
    * Navigiert zur vorherigen Seite.

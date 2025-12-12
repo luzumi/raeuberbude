@@ -24,6 +24,11 @@ export const routes: Routes = [
     canActivate: [authGuard], // "Bude" ebenfalls geschützt
   },
   {
+    path: 'schlafzimmer',
+    canActivate: [authGuard],
+    loadComponent: () => import('./rooms/bedroom/device-control/device-control.component').then(m => m.DeviceControlComponent)
+  },
+  {
     path: 'menu',
     component: MenuComponent,
     canActivate: [authGuard],

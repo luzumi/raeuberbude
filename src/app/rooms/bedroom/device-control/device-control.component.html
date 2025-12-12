@@ -1,0 +1,51 @@
+<div class="device-control">
+  <h3>Schlafzimmer: Gerät testen</h3>
+
+  <div class="row">
+    <label for="device">Gerät</label>
+    <select id="device" [(ngModel)]="selectedDeviceId" (change)="onDeviceChange()">
+      <option [ngValue]="null">-- Bitte wählen --</option>
+      <option *ngFor="let d of devices" [value]="d.id">{{ d.name }}</option>
+    </select>
+  </div>
+
+  <div class="row" *ngIf="loadingActions">Lade Aktionen…</div>
+
+  <div class="row" *ngIf="actions.length">
+    <label for="action">Aktion</label>
+    <select id="action" [(ngModel)]="selectedActionId" (change)="onActionChange()">
+      <option [ngValue]="null">-- Bitte wählen --</option>
+      <option *ngFor="let a of actions" [value]="a.id">{{ a.name }}</option>
+    </select>
+  </div>
+
+  <div class="params" *ngIf="selectedAction">
+    <h4>Parameter</h4>
+    <div *ngIf="!selectedAction.params || !selectedAction.params.length">Keine Parameter</div>
+
+    <div *ngFor="let p of selectedAction.params">
+      <label>{{ p.name }}</label>
+      <div *ngIf="isNumber(p)">
+        <input type="number" [(ngModel)]="actionParams[p.key]" />
+      </div>
+      <div *ngIf="isString(p)">
+        <input type="text" [(ngModel)]="actionParams[p.key]" />
+      </div>
+      <div *ngIf="isBoolean(p)">
+        <input type="checkbox" [(ngModel)]="actionParams[p.key]" />
+      </div>
+      <div *ngIf="isSelect(p)">
+        <select [(ngModel)]="actionParams[p.key]">
+          <option *ngFor="let o of p.options" [value]="o">{{ o }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button (click)="execute()" [disabled]="executing">{{ executing ? 'Ausführen…' : 'Ausprobieren' }}</button>
+  </div>
+
+  <div class="result" *ngIf="resultMessage">{{ resultMessage }}</div>
+</div>
+

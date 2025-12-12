@@ -27,7 +27,7 @@ export class ZuhauseComponent implements OnInit {
   // Definition of all rooms to be rendered as buttons
   rooms = [
     { name: 'Wohnzimmer', icon: 'living' },
-    { name: 'Schlafzimmer', icon: 'king_bed' },
+    { name: 'Schlafzimmer', route: '/schlafzimmer', icon: 'king_bed' },
     // Clicking the Räuberbude button navigates to its route
     { name: 'Räuberbude', route: '/raeuberbude', icon: 'single_bed' },
     { name: 'Küche', icon: 'chef_hat' },

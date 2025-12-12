@@ -6,6 +6,7 @@ import axios, { AxiosInstance } from 'axios';
 import { HaDevice } from '../entities/ha-device.entity';
 import { HaEntityEntity } from '../entities/ha-entity.entity';
 import { HaArea } from '../entities/ha-area.entity';
+import { HaPerson } from '../entities/ha-person.entity';
 
 interface HADeviceRegistryEntry {
   id: string;
@@ -74,6 +75,8 @@ export class HaLiveSyncService {
     private readonly entityRepo: Repository<HaEntityEntity>,
     @InjectRepository(HaArea)
     private readonly areaRepo: Repository<HaArea>,
+    @InjectRepository(HaPerson)
+    private readonly personRepo: Repository<HaPerson>,
   ) {
     this.haUrl = this.config.get<string>('HA_URL') || 'http://homeassistant.local:8123';
     this.haToken = this.config.get<string>('HA_TOKEN') || '';
@@ -102,18 +105,29 @@ export class HaLiveSyncService {
     areas: number;
     devices: number;
     entities: number;
+    automations?: number;
+    persons?: number;
+    zones?: number;
+    media_players?: number;
+    services?: number;
   }> {
     this.logger.log('🔄 Starte vollständige Home Assistant Synchronisation...');
 
     const areas = await this.syncAreas();
     const devices = await this.syncDevices();
     const entities = await this.syncEntities();
+    // zusätzliche Syncs (nicht destruktiv, hauptsächlich Zählung / ggf. Persistenz)
+    const automations = await this.syncAutomations().catch(err => { this.logger.warn('Automations sync failed: ' + err.message); return 0; });
+    const persons = await this.syncPersons().catch(err => { this.logger.warn('Persons sync failed: ' + err.message); return 0; });
+    const zones = await this.syncZones().catch(err => { this.logger.warn('Zones sync failed: ' + err.message); return 0; });
+    const media_players = await this.syncMediaPlayers().catch(err => { this.logger.warn('MediaPlayers sync failed: ' + err.message); return 0; });
+    const services = await this.syncServices().catch(err => { this.logger.warn('Services sync failed: ' + err.message); return 0; });
 
     this.logger.log(
       `✅ Synchronisation abgeschlossen: ${areas} Areas, ${devices} Devices, ${entities} Entities`
     );
 
-    return { areas, devices, entities };
+    return { areas, devices, entities, automations, persons, zones, media_players, services };
   }
 
   /**
@@ -489,5 +503,158 @@ export class HaLiveSyncService {
       return null;
     }
   }
-}
 
+  /**
+   * Synchronisiert (oder zählt) Automationen. Fallback: aus States zählen.
+   */
+  async syncAutomations(): Promise<number> {
+    try {
+      this.logger.log('🔁 Synchronisiere Automations (count)...');
+      // Fallback: einfach States zählen mit domain 'automation'
+      const statesResponse = await this.client.get<any[]>('/api/states');
+      const automations = statesResponse.data.filter(s => s.entity_id?.startsWith('automation.'));
+      // Optional: könnte hier in DB gespeichert werden, aber aktuell nur zählen
+      this.logger.log(`✅ ${automations.length} Automations gefunden`);
+      return automations.length;
+    } catch (error: any) {
+      this.logger.error(`❌ Fehler beim Synchronisieren der Automations: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Synchronisiert Persons (speichert in ha_persons Tabelle)
+   */
+  async syncPersons(): Promise<number> {
+    try {
+      this.logger.log('👥 Synchronisiere Persons...');
+
+      // Fallback: States mit domain 'person'
+      const statesResponse = await this.client.get<any[]>('/api/states');
+      const personsFromStates = statesResponse.data.filter(s => s.entity_id?.startsWith('person.'));
+      // Upsert each person into ha_persons table
+      let synced = 0;
+      for (const state of personsFromStates) {
+        try {
+          const personId = state.entity_id;
+          const name = state.attributes?.friendly_name || personId;
+          const picture = state.attributes?.picture || null;
+          const deviceTrackers = state.attributes?.device_trackers || null;
+          const metadata = state.attributes || null;
+
+          await this.personRepo.upsert(
+            {
+              personId,
+              name,
+              userId: null,
+              picture,
+              deviceTrackers,
+              metadata,
+            },
+            ['personId']
+          );
+          synced++;
+        } catch (err: any) {
+          this.logger.error(`Fehler beim Upsert von Person ${state.entity_id}: ${err.message}`);
+        }
+      }
+      this.logger.log(`✅ ${synced} Persons synchronisiert (aus States)`);
+      return synced;
+    } catch (error: any) {
+      this.logger.error(`❌ Fehler beim Synchronisieren von Persons: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Synchronisiert Zones
+   */
+  async syncZones(): Promise<number> {
+    try {
+      this.logger.log('📌 Synchronisiere Zones...');
+      try {
+        const response = await this.client.get<any[]>('/api/zones');
+        const zones = response.data;
+        this.logger.log(`✅ ${zones.length} Zones gefunden (via /api/zones)`);
+        return zones.length;
+      } catch (err) {
+        // Fallback: count states with domain 'zone'
+        const statesResponse = await this.client.get<any[]>('/api/states');
+        const zonesFromStates = statesResponse.data.filter(s => s.entity_id?.startsWith('zone.'));
+        this.logger.log(`✅ ${zonesFromStates.length} Zones gefunden (via states)`);
+        return zonesFromStates.length;
+      }
+    } catch (error: any) {
+      this.logger.error(`❌ Fehler beim Synchronisieren der Zones: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Synchronisiert Media Players (aus States) und upsert in Entities
+   */
+  async syncMediaPlayers(): Promise<number> {
+    try {
+      this.logger.log('🔊 Synchronisiere Media Players...');
+      const statesResponse = await this.client.get<any[]>('/api/states');
+      const mediaStates = statesResponse.data.filter(s => s.entity_id?.startsWith('media_player.'));
+      let synced = 0;
+      for (const state of mediaStates) {
+        try {
+          const [domain, objectId] = state.entity_id.split('.');
+          await this.entityRepo.upsert(
+            {
+              entityId: state.entity_id,
+              friendlyName: state.attributes?.friendly_name || state.entity_id,
+              deviceClass: state.attributes?.device_class || null,
+              area: state.attributes?.area || null,
+              domain: domain || 'media_player',
+              platform: null,
+              uniqueId: null,
+              supportedFeatures: state.attributes?.supported_features || null,
+              entityCategory: null,
+              capabilities: state.attributes || null,
+              originalName: null,
+              objectId: objectId || null,
+              deviceId: null,
+              areaId: null,
+              icon: state.attributes?.icon || null,
+              hidden: false,
+              disabled: false,
+            },
+            ['entityId']
+          );
+          synced++;
+        } catch (err: any) {
+          this.logger.error(`Fehler beim Upsert von Media Player ${state.entity_id}: ${err.message}`);
+        }
+      }
+      this.logger.log(`✅ ${synced} Media Players synchronisiert`);
+      return synced;
+    } catch (error: any) {
+      this.logger.error(`❌ Fehler beim Synchronisieren der Media Players: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Zählt verfügbare Services
+   */
+  async syncServices(): Promise<number> {
+    try {
+      this.logger.log('🛠️ Zähle Services...');
+      const response = await this.client.get<Record<string, any>>('/api/services');
+      const domains = response.data;
+      let count = 0;
+      Object.keys(domains).forEach(domain => {
+        const arr = Array.isArray(domains[domain]) ? domains[domain] : [];
+        count += arr.length;
+      });
+      this.logger.log(`✅ ${count} Services gefunden`);
+      return count;
+    } catch (error: any) {
+      this.logger.error(`❌ Fehler beim Zählen der Services: ${error.message}`);
+      throw error;
+    }
+  }
+}

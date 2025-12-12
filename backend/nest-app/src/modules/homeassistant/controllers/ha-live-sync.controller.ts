@@ -98,6 +98,71 @@ export class HaLiveSyncController {
   }
 
   /**
+   * POST /api/ha/sync/automations
+   */
+  @Post('automations')
+  async syncAutomations() {
+    try {
+      const count = await this.syncService.syncAutomations();
+      return { success: true, message: `${count} Automations gefunden`, count };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * POST /api/ha/sync/persons
+   */
+  @Post('persons')
+  async syncPersons() {
+    try {
+      const count = await this.syncService.syncPersons();
+      return { success: true, message: `${count} Persons synchronisiert`, count };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * POST /api/ha/sync/zones
+   */
+  @Post('zones')
+  async syncZones() {
+    try {
+      const count = await this.syncService.syncZones();
+      return { success: true, message: `${count} Zones synchronisiert`, count };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * POST /api/ha/sync/media_players
+   */
+  @Post('media_players')
+  async syncMediaPlayers() {
+    try {
+      const count = await this.syncService.syncMediaPlayers();
+      return { success: true, message: `${count} Media Players synchronisiert`, count };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * POST /api/ha/sync/services
+   */
+  @Post('services')
+  async syncServices() {
+    try {
+      const count = await this.syncService.syncServices();
+      return { success: true, message: `${count} Services gefunden`, count };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * GET /api/ha/sync/test
    * Testet die Verbindung zu Home Assistant
    */
@@ -121,4 +186,3 @@ export class HaLiveSyncController {
     };
   }
 }
-
