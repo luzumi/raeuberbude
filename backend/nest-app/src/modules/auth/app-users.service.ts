@@ -28,7 +28,7 @@ export class AppUsersService {
     const user = this.userRepo.create({
       username: dto.username,
       email: dto.email.toLowerCase(),
-      passwordHash
+      password: passwordHash
     } as unknown as User);
     const saved = await this.userRepo.save(user);
     // Don't return passwordHash

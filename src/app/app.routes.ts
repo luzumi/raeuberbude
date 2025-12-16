@@ -11,6 +11,7 @@ import { TerminalSetupComponent } from './features/terminal/terminal-setup.compo
 import { RightsManagementComponent } from './features/admin/rights-management/rights-management.component';
 import { AdminUsersComponent } from './features/admin/users/admin-users.component';
 import { AdminHomeAssistantComponent } from './features/admin/homeassistant/admin-homeassistant.component';
+import {DeviceControlComponent} from './rooms/bedroom/device-control/device-control.component';
 
 export const routes: Routes = [
   {
@@ -26,7 +27,7 @@ export const routes: Routes = [
   {
     path: 'schlafzimmer',
     canActivate: [authGuard],
-    loadComponent: () => import('./rooms/bedroom/device-control/device-control.component').then(m => m.DeviceControlComponent)
+    component: DeviceControlComponent
   },
   {
     path: 'menu',

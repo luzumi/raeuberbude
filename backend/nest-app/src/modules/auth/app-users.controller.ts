@@ -3,7 +3,7 @@ import {AppUsersService} from './app-users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
-@Controller('users')
+@Controller('appusers')
 export class AppUsersController {
   constructor(private readonly usersService: AppUsersService) {}
 

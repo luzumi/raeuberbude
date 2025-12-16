@@ -1,15 +1,15 @@
 <div
-  class="function-menu"
-  [ngStyle]="{
+    class="function-menu"
+    [ngStyle]="{
     top: position.y + 'px',
     left: position.x + 'px'
   }"
 >
-  @for (btn of buttons; track btn; let i = $index) {
-    <div      class="function-button"
-              [ngStyle]="{ '--rotate': startAngle + (i * 60) + 'deg' }"
-              (click)="close.emit()"
-    ><mat-icon>{{ btn.icon }}</mat-icon>
-    </div>
-  }
+    @for (btn of buttons; track btn; let i = $index) {
+        <div class="function-button"
+             [ngStyle]="{ '--rotate': startAngle + (i * 60) + 'deg' }"
+             (click)="close.emit()">
+            <mat-icon>{{ btn.icon }}</mat-icon>
+        </div>
+    }
 </div>
