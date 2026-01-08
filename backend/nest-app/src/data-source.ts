@@ -1,20 +1,5 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
-import { User } from './modules/auth/entities';
-import { AppTerminal } from './modules/terminals/entities';
-import { IntentLogEntity } from './modules/logging/entities/intentlog.entity';
-import { HaEntityEntity } from './modules/homeassistant/entities/ha-entity.entity';
-import { LlmInstanceEntity } from './modules/llm/entities/llm-instance.entity';
-import { CategoryEntity } from './modules/categories/entities/category.entity';
-import {
-  TranscriptEntity,
-  IntentLog,
-  Keyword,
-  Suggestion,
-  TranscriptKeyword,
-  TranscriptSuggestion,
-  IntentLogKeyword
-} from './modules/logging/entities';
 
 // Load environment variables
 config();
@@ -26,25 +11,12 @@ export const AppDataSource = new DataSource({
   username: process.env['MARIADB_USER'] || 'rb_user',
   password: process.env['MARIADB_PASSWORD'] || 'rb_user_secret',
   database: process.env['MARIADB_DATABASE'] || 'raueberbude',
-  entities: [
-    User,
-    AppTerminal,
-    TranscriptEntity,
-    IntentLogEntity,
-    IntentLog,
-    HaEntityEntity,
-    LlmInstanceEntity,
-    CategoryEntity,
-    // logging many-to-many entities
-    Keyword,
-    Suggestion,
-    TranscriptKeyword,
-    TranscriptSuggestion,
-    IntentLogKeyword,
-  ],
+  // Use glob pattern to load all entities to avoid re-export/circular import issues
+  entities: [__dirname + '/modules/**/entities/*{.ts,.js}'],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   migrationsTableName: 'migrations',
-  synchronize: false,
+  // WARNING: synchronize=true creates tables automatically and is intended for development only
+  synchronize: process.env['TYPEORM_SYNC_ON_START'] === 'true' || true,
   logging: true,
   charset: 'utf8mb4',
   timezone: 'Z',

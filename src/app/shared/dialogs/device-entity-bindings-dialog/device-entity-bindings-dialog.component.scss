@@ -1,0 +1,224 @@
+.dialog-container {
+  min-width: 600px;
+  max-width: 900px;
+}
+
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+  }
+}
+
+mat-dialog-content {
+  padding: 0 24px 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.presets-section {
+  margin-bottom: 32px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+
+  h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.54);
+  }
+
+  .preset-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      &.active {
+        background: var(--primary-color, #3f51b5);
+        color: white;
+      }
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  gap: 16px;
+
+  p {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.54);
+  }
+}
+
+.bindings-list {
+  h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .binding-item {
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    background: white;
+    transition: all 0.2s;
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .binding-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+
+      mat-icon {
+        color: var(--primary-color, #3f51b5);
+
+        &.invisible {
+          color: rgba(0, 0, 0, 0.26);
+        }
+      }
+
+      .entity-id {
+        flex: 1;
+        font-family: monospace;
+        font-size: 14px;
+      }
+
+      mat-chip {
+        font-size: 11px;
+        min-height: 24px;
+        padding: 0 8px;
+
+        &.auto {
+          background: #4caf50;
+          color: white;
+        }
+
+        &.manual {
+          background: #2196f3;
+          color: white;
+        }
+
+        &.suggested {
+          background: #ff9800;
+          color: white;
+        }
+      }
+    }
+
+    .binding-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .category-select {
+        flex: 1;
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.54);
+
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+
+  p {
+    margin: 8px 0;
+
+    &.hint {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+  }
+}
+
+.suggestions-section {
+  margin-top: 32px;
+  padding: 16px;
+  background: rgba(255, 193, 7, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #ffc107;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: #ffc107;
+    }
+  }
+
+  .suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    margin-bottom: 4px;
+    background: white;
+    border-radius: 4px;
+
+    .entity-id {
+      flex: 1;
+      font-family: monospace;
+      font-size: 14px;
+    }
+  }
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+

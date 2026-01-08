@@ -13,9 +13,8 @@ export class HomeAssistantService {
   private readonly apiBase: string;
 
   constructor(private http: HttpClient) {
-    const host = (globalThis as any)?.location?.hostname || 'localhost';
-    const port = 3001;
-    this.apiBase = `http://${host}:${port}/api/homeassistant`;
+    // Use relative path to avoid double /api/api/ issues and work with proxy
+    this.apiBase = '/api/homeassistant';
   }
 
   /**

@@ -80,46 +80,166 @@ server.listen(TCP_PORT, () => log('TCP controller bridge listening on port', TCP
 function handleControllerMessage(socket, msg) {
   if (!msg || !msg.type) { socket.write(JSON.stringify({ type: 'response', id: msg && msg.id || null, status: 'error', error: 'missing-type' }) + '\n'); return; }
   if (msg.type === 'command') { const id = msg.id || null; const cmd = msg.command; const payload = msg.payload || {}; handleToolCall({ id, params: { name: cmd, arguments: payload } }, (err, result) => { if (err) socket.write(JSON.stringify({ type: 'response', id, status: 'error', error: err.message || String(err) }) + '\n'); else socket.write(JSON.stringify({ type: 'response', id, status: 'ok', payload: result }) + '\n'); }); return; }
-  if (msg.type === 'chat') { const id = msg.id || null; handleToolCall({ id, params: { name: 'chat', arguments: msg.payload || {} } }, (err, result) => { if (err) socket.write(JSON.stringify({ type: 'response', id, status: 'error', error: err.message || String(err) }) + '\n'); else socket.write(JSON.stringify({ type: 'response', id, status: 'ok', payload: result }) + '\n'); }); return; }
   socket.write(JSON.stringify({ type: 'response', id: msg.id || null, status: 'error', error: 'unknown-type' }) + '\n');
+  log('Error: unknown type in controller message');
 }
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: false });
 rl.on('line', (line) => {
-  if (!line || !line.trim()) return; let parsed; try { parsed = JSON.parse(line); } catch (e) { log('invalid json from stdin:', line); return; }
-  if (parsed && parsed.method === 'tools/call') { handleToolCall(parsed, (err, result) => { if (err) writeErrorRpc(parsed.id || null, -32000, err.message || String(err), { raw: String(err) }); else writeResultRpc(parsed.id || null, result); }); } else { if (parsed && parsed.id) writeResultRpc(parsed.id, { ok: true }); }
+  if (!line?.trim()) return;
+  
+  let parsed;
+  try {
+    parsed = JSON.parse(line);
+  } catch (e) {
+    const error = new Error(`Invalid JSON input: ${e.message}`);
+    error.originalError = e;
+    error.input = line;
+    throw error;
+  }
+
+  if (parsed?.method === 'tools/call') {
+    handleToolCall(parsed, (err, result) => {
+      if (err) {
+        writeErrorRpc(
+          parsed.id || null,
+          -32000,
+          err.message || String(err),
+          { raw: String(err) }
+        );
+        log('Error handling tool call:', err);
+      } else {
+        writeResultRpc(parsed.id || null, result);
+      }
+    });
+  } else if (parsed?.id) {
+    writeResultRpc(parsed.id, { ok: true });
+  }
 });
 
 async function handleToolCall(rpc, cb) {
-  const name = rpc.params && rpc.params.name; const args = (rpc.params && rpc.params.arguments) || {};
-  log('tools/call', name, JSON.stringify(args)); sendToControllers(controllerClients, { type: 'event', event: 'incoming', payload: { name, args, ts: new Date().toISOString() } });
-  try {
-    if (name === 'list_models') {
-      try { const url = new URL('/v1/models', LM_API_URL).toString(); const resp = await httpPostJson(url, {}); cb(null, resp.body || resp.status || { msg: 'no-data' }); } catch (e) { cb(null, { error: 'failed-list', message: String(e) }); }
-      return;
+  const name = rpc.params?.name;
+  const args = rpc.params?.arguments || {};
+
+    logToolCall(name, args);
+    notifyControllers(name, args);
+
+    try {
+        const result = await routeToolCall(name, args);
+        cb(null, result);
+    } catch (err) {
+        cb(err);
     }
-    if (name === 'chat') {
-      const model = args.modelId || args.model || args.model_name || args.modelId;
-      const messages = args.messages || (args.prompt ? [{ role: 'user', content: args.prompt }] : [{ role: 'user', content: args.input || args.text || '' }]);
-      const payload = { model: model || args.model, messages };
-      if (args.options && args.options.temperature !== undefined) payload.temperature = args.options.temperature;
-      const urlCandidates = [new URL('/v1/chat/completions', LM_API_URL).toString(), new URL('/v1/completions', LM_API_URL).toString()];
-      let lastErr = null;
-      for (const url of urlCandidates) {
-        try { const resp = await httpPostJson(url, payload); sendToControllers(controllerClients, { type: 'event', event: 'chat_response', payload: { url, resp: resp.body } }); cb(null, resp.body || resp.status); return; } catch (e) { lastErr = e; }
-      }
-      cb(new Error('chat failed: ' + String(lastErr)));
-      return;
+}
+
+function logToolCall(name, args) {
+    log('tools/call', name, JSON.stringify(args));
+    sendToControllers(controllerClients, {
+        type: 'event',
+        event: 'incoming',
+        payload: { name, args, ts: new Date().toISOString() }
+    });
+}
+
+function notifyControllers(name, data) {
+    sendToControllers(controllerClients, {
+        type: 'event',
+        event: 'incoming',
+        payload: { name, args: data, ts: new Date().toISOString() }
+    });
+}
+
+async function routeToolCall(name, args) {
+    const handlers = {
+        'list_models': handleListModels,
+        'chat': handleChat,
+        'load_model': handleModelOperation,
+        'unload_model': handleModelOperation,
+        'get_model_status': handleModelOperation
+    };
+
+    const handler = handlers[name] || handleUnknownTool;
+    return handler(name, args);
+}
+
+async function handleListModels() {
+    try {
+        const url = new URL('/v1/models', LM_API_URL).toString();
+        const resp = await httpPostJson(url, {});
+        return resp.body || resp.status || { msg: 'no-data' };
+    } catch (e) {
+        return { error: 'failed-list', message: String(e) };
     }
-    if (name === 'load_model' || name === 'unload_model' || name === 'get_model_status') {
-      if (USE_CLI) {
-        const cmd = name === 'load_model' ? `lms load "${args.modelId || args.model || ''}"` : name === 'unload_model' ? `lms unload "${args.modelId || args.model || ''}"` : `lms status "${args.modelId || args.model || ''}"`;
-        exec(cmd, { timeout: 120000 }, (err, stdout, stderr) => { sendToControllers(controllerClients, { type: 'event', event: 'cli_output', payload: { cmd, stdout, stderr } }); if (err) return cb(err); try { cb(null, { stdout: stdout.trim(), stderr: stderr.trim() }); } catch (e) { cb(null, { ok: true }); } });
-      } else { cb(null, { message: 'CLI not enabled. Set USE_CLI=true to allow load/unload via lms CLI, or use controller to call LM HTTP API directly.' }); }
-      return;
+}
+
+async function handleChat(name, args) {
+    const model = args.modelId || args.model || args.model_name;
+    const messages = args.messages || (args.prompt ?
+        [{ role: 'user', content: args.prompt }] :
+        [{ role: 'user', content: args.input || args.text || '' }]);
+
+    const payload = {
+        model: model || args.model,
+        messages,
+        ...(args.options?.temperature !== undefined && { temperature: args.options.temperature })
+    };
+
+    const urlCandidates = [
+        new URL('/v1/chat/completions', LM_API_URL).toString(),
+        new URL('/v1/completions', LM_API_URL).toString()
+    ];
+
+    for (const url of urlCandidates) {
+        try {
+            const resp = await httpPostJson(url, payload);
+            sendToControllers(controllerClients, {
+                type: 'event',
+                event: 'chat_response',
+                payload: { url, resp: resp.body }
+            });
+            return resp.body || resp.status;
+        } catch (e) {
+            // Continue to next URL
+        }
     }
-    cb(null, { message: 'unknown tool: ' + name });
-  } catch (err) { cb(err); }
+    throw new Error('Chat failed on all endpoints');
+}
+
+async function handleModelOperation(name, args) {
+    if (!USE_CLI) {
+        return {
+            message: 'CLI not enabled. Set USE_CLI=true to allow model operations via lms CLI'
+        };
+    }
+
+    const commands = {
+        'load_model': `lms load "${args.modelId || args.model || ''}"`,
+        'unload_model': `lms unload "${args.modelId || args.model || ''}"`,
+        'get_model_status': `lms status "${args.modelId || args.model || ''}"`
+    };
+
+    const cmd = commands[name];
+    return new Promise((resolve, reject) => {
+        exec(cmd, { timeout: 120000 }, (err, stdout, stderr) => {
+            const output = {
+                stdout: stdout?.trim(),
+                stderr: stderr?.trim()
+            };
+
+            sendToControllers(controllerClients, {
+                type: 'event',
+                event: 'cli_output',
+                payload: { cmd, ...output }
+            });
+
+            if (err) return reject(err);
+            resolve(stdout ? output : { ok: true });
+        });
+    });
+}
+
+function handleUnknownTool(name) {
+    return { message: `unknown tool: ${name}` };
 }
 
 process.on('SIGINT', () => { log('SIGINT - shutting down'); server.close(); process.exit(0); });

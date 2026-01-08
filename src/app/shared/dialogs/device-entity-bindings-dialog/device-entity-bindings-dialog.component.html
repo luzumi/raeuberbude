@@ -1,0 +1,125 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>
+    <mat-icon>devices</mat-icon>
+    Entity-Bindings für {{ data.deviceName }}
+  </h2>
+
+  <mat-dialog-content>
+    <!-- Filter Presets -->
+    <div class="presets-section">
+      <h3>Filter-Presets</h3>
+      <div class="preset-buttons">
+        <button
+          mat-stroked-button
+          *ngFor="let preset of presets"
+          [class.active]="selectedPreset === preset.value"
+          (click)="applyPreset(preset.value)"
+          [disabled]="loading"
+        >
+          <mat-icon>{{ preset.icon }}</mat-icon>
+          {{ preset.label }}
+        </button>
+      </div>
+      <button
+        mat-button
+        color="primary"
+        (click)="syncAutoBindings()"
+        [disabled]="loading"
+        matTooltip="Synchronisiert automatische Bindings aus HomeAssistant"
+      >
+        <mat-icon>sync</mat-icon>
+        Auto-Sync aus HA
+      </button>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div *ngIf="loading" class="loading-indicator">
+      <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+      <p>Lade Bindings...</p>
+    </div>
+
+    <!-- Bindings List -->
+    <div *ngIf="!loading && bindings.length > 0" class="bindings-list">
+      <h3>Verknüpfte Entities ({{ bindings.length }})</h3>
+      <div class="binding-item" *ngFor="let binding of bindings">
+        <div class="binding-header">
+          <mat-icon [class.invisible]="!binding.isVisible">
+            {{ getBindingIcon(binding) }}
+          </mat-icon>
+          <span class="entity-id">{{ binding.haEntityId }}</span>
+          <mat-chip
+            [class.auto]="binding.bindingType === 'auto'"
+            [class.manual]="binding.bindingType === 'manual'"
+            [class.suggested]="binding.bindingType === 'suggested'"
+          >
+            {{ binding.bindingType }}
+          </mat-chip>
+        </div>
+
+        <div class="binding-controls">
+          <mat-form-field appearance="outline" class="category-select">
+            <mat-label>Kategorie</mat-label>
+            <mat-select
+              [value]="binding.customCategory"
+              (selectionChange)="updateCategory(binding, $event.value)"
+            >
+              <mat-option [value]="null">Keine Kategorie</mat-option>
+              <mat-option *ngFor="let cat of categories" [value]="cat">
+                {{ cat }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button
+            mat-icon-button
+            [color]="binding.isVisible ? 'primary' : 'warn'"
+            (click)="toggleVisibility(binding)"
+            [matTooltip]="binding.isVisible ? 'Entity ausblenden' : 'Entity einblenden'"
+          >
+            <mat-icon>{{ binding.isVisible ? 'visibility' : 'visibility_off' }}</mat-icon>
+          </button>
+
+          <button
+            mat-icon-button
+            color="warn"
+            (click)="deleteBinding(binding)"
+            matTooltip="Binding löschen"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && bindings.length === 0" class="empty-state">
+      <mat-icon>devices_other</mat-icon>
+      <p>Keine Bindings vorhanden</p>
+      <p class="hint">Nutze die Filter-Presets oder Auto-Sync um Entities zu verknüpfen</p>
+    </div>
+
+    <!-- Suggestions -->
+    <div *ngIf="!loading && suggestions.length > 0" class="suggestions-section">
+      <h3>
+        <mat-icon>lightbulb</mat-icon>
+        Vorschläge ({{ suggestions.length }})
+      </h3>
+      <div class="suggestion-item" *ngFor="let suggestion of suggestions">
+        <span class="entity-id">{{ suggestion.haEntityId }}</span>
+        <button
+          mat-icon-button
+          color="primary"
+          (click)="addSuggestion(suggestion)"
+          matTooltip="Binding hinzufügen"
+        >
+          <mat-icon>add_circle</mat-icon>
+        </button>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onClose()">Schließen</button>
+  </mat-dialog-actions>
+</div>
+

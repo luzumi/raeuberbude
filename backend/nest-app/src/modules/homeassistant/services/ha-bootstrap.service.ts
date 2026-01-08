@@ -19,7 +19,11 @@ export class HaBootstrapService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    const mode = (this.config.get<string>('HA_IMPORT_ON_START') || 'always').toLowerCase();
+    // Standard: nur importieren, wenn noch keine Snapshots vorhanden.
+    // Vorher war der Default 'always' — das führte dazu, dass beim Start immer ein Import
+    // ausgeführt wurde, was in manchen Umgebungen zu Race-Conditions / Duplikaten
+    // führen kann. 'if_empty' ist sicherer für Entwickler- und lokalen Einsatz.
+    const mode = (this.config.get<string>('HA_IMPORT_ON_START') || 'if_empty').toLowerCase();
     if (!['never', 'if_empty', 'always'].includes(mode)) {
       this.logger.warn(`HA_IMPORT_ON_START hat einen unbekannten Wert: '${mode}'. Erwarte 'never' | 'if_empty' | 'always'.`);
     }

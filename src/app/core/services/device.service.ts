@@ -89,6 +89,16 @@ export class DeviceService {
     return undefined;
   }
 
+  private buildUrl(path: string): string {
+    const base = this.getBaseUrl();
+    if (!base) return path;
+    // If base already ends with '/api', don't duplicate
+    if (base.endsWith('/api')) {
+      return `${base}${path.startsWith('/') ? '' : '/'}${path.startsWith('/') ? path.slice(1) : path}`;
+    }
+    return `${base}${path.startsWith('/') ? '' : '/api/'}${path.startsWith('/') ? path.slice(1) : path}`;
+  }
+
   async getDevices(): Promise<Device[]> {
     const base = this.getBaseUrl();
     if (!base) {
@@ -96,7 +106,7 @@ export class DeviceService {
       return Promise.resolve(this.devices.slice());
     }
 
-    const url = `${base}/api/devices`;
+    const url = this.buildUrl('/devices');
     try {
       const headers = this.buildHeaders();
       const res = await firstValueFrom(this.http.get<Device[]>(url, headers ? { headers } : {}));
@@ -113,7 +123,7 @@ export class DeviceService {
       return Promise.resolve(this.devices.find(d => d.id === deviceId));
     }
 
-    const url = `${base}/api/devices/${encodeURIComponent(deviceId)}`;
+    const url = this.buildUrl(`/devices/${encodeURIComponent(deviceId)}`);
     try {
       const headers = this.buildHeaders();
       const res = await firstValueFrom(this.http.get<Device>(url, headers ? { headers } : {}));
@@ -131,7 +141,7 @@ export class DeviceService {
       return Promise.resolve(d?.actions ? d.actions.slice() : []);
     }
 
-    const url = `${base}/api/devices/${encodeURIComponent(deviceId)}/actions`;
+    const url = this.buildUrl(`/devices/${encodeURIComponent(deviceId)}/actions`);
     try {
       const headers = this.buildHeaders();
       const res = await firstValueFrom(this.http.get<DeviceAction[]>(url, headers ? { headers } : {}));
@@ -159,7 +169,7 @@ export class DeviceService {
       });
     }
 
-    const url = `${base}/api/devices/${encodeURIComponent(deviceId)}/actions/${encodeURIComponent(actionId)}`;
+    const url = this.buildUrl(`/devices/${encodeURIComponent(deviceId)}/actions/${encodeURIComponent(actionId)}`);
     try {
       const headers = this.buildHeaders();
       const res = await firstValueFrom(this.http.post<{ success: boolean; message: string }>(url, params || {}, headers ? { headers } : {}));

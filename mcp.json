@@ -1,13 +1,23 @@
 {
-  "mcpServers": {
-    "lmStudio": {
-      "command": "node",
-      "args": [
-        ".specify/mcp-servers/lm-studio-mcp-server.js"
-      ],
-      "env": {
-        "LM_STUDIO_URL": "http://127.0.0.1:1234"
-      }
+    "mcpServers": {
+        "lmStudio": {
+            "command": "node",
+            "args": [
+                ".specify/mcp-servers/lm-studio-mcp-server.js"
+            ],
+            "env": {
+                "LM_STUDIO_URL": "http://127.0.0.1:1234"
+            }
+        },
+        "perplexity": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@perplexity-ai/mcp-server"
+            ],
+            "env": {
+                "PERPLEXITY_API_KEY": "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"
+            }
+        }
     }
-  }
 }

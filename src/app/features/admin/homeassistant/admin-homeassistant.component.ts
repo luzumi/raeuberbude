@@ -16,6 +16,8 @@ import {HomeAssistantService} from '../../../core/services/homeassistant.service
 import {HaDetailDialogComponent} from './ha-detail-dialog.component';
 import {HaJsonViewerDialogComponent} from './ha-json-viewer-dialog.component';
 import {HaStatisticsDialogComponent} from './ha-statistics-dialog.component';
+import {DeviceEntityBindingsDialogComponent} from '@shared/dialogs/device-entity-bindings-dialog/device-entity-bindings-dialog.component';
+import {BindingsService} from '../../../core/services/bindings.service';
 
 @Component( {
   selector: 'app-admin-homeassistant',
@@ -75,6 +77,7 @@ export class AdminHomeAssistantComponent implements OnInit {
     private haService: HomeAssistantService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
+    private bindingsService: BindingsService,
   ) {}
 
   ngOnInit(): void {
@@ -179,6 +182,9 @@ export class AdminHomeAssistantComponent implements OnInit {
       case 'json':
         this.showJsonViewer( row );
         break;
+      case 'bindings':
+        this.openBindingsDialog( row );
+        break;
       case 'edit':
         console.log( 'Edit action - später implementiert', row );
         break;
@@ -187,6 +193,53 @@ export class AdminHomeAssistantComponent implements OnInit {
         break;
       default:
         console.log( `Unknown action: ${ actionId }`, row );
+    }
+  }
+
+  /**
+   * Öffnet Bindings-Dialog für Entity oder Device
+   */
+  openBindingsDialog(row: any): void {
+    const deviceId = row.deviceId || row.id || row.entityId;
+    const deviceName = row.friendlyName || row.name || row.entityId || deviceId;
+    const initialEntityId = row.entityId; // Falls es eine Entity ist
+
+    this.dialog.open(DeviceEntityBindingsDialogComponent, {
+      width: '900px',
+      data: {
+        deviceId,
+        deviceName,
+        initialEntityId
+      }
+    });
+  }
+
+  /**
+   * Setzt Device-Bindings zurück (nach Bestätigung)
+   */
+  async resetDeviceBindings(row: any): Promise<void> {
+    const deviceId = row.deviceId || row.id;
+    const deviceName = row.name || row.friendlyName || deviceId;
+
+    const confirmed = confirm(
+      `Möchtest du alle manuellen Bindings für "${deviceName}" zurücksetzen?\n\n` +
+      `Dies löscht alle manuellen und vorgeschlagenen Bindings. Auto-Bindings bleiben erhalten.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const result = await firstValueFrom(
+        this.bindingsService.resetDeviceBindings(deviceId, { reSync: true, keepAuto: true })
+      );
+
+      this.showMessage(
+        `Bindings zurückgesetzt: ${result.deleted} gelöscht, ${result.reSynced} neu synchronisiert`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Fehler beim Zurücksetzen der Bindings:', error);
+      this.showMessage('Fehler beim Zurücksetzen der Bindings', 'error');
     }
   }
 
@@ -268,6 +321,13 @@ export class AdminHomeAssistantComponent implements OnInit {
       ],
       rowMenuActions: [
         {
+          id: 'bindings',
+          label: 'Bindings bearbeiten',
+          icon: 'link',
+          color: 'primary',
+          handler: (row: any) => this.handleRowMenuAction( 'bindings', row ),
+        },
+        {
           id: 'edit',
           label: 'Editieren',
           icon: 'edit',
@@ -331,6 +391,20 @@ export class AdminHomeAssistantComponent implements OnInit {
         },
       ],
       rowMenuActions: [
+        {
+          id: 'bindings',
+          label: 'Bindings bearbeiten',
+          icon: 'link',
+          color: 'primary',
+          handler: (row: any) => this.handleRowMenuAction( 'bindings', row ),
+        },
+        {
+          id: 'reset',
+          label: 'Bindings zurücksetzen',
+          icon: 'restart_alt',
+          color: 'warn',
+          handler: (row: any) => this.resetDeviceBindings( row ),
+        },
         {
           id: 'json',
           label: 'JSON anzeigen',

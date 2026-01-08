@@ -64,6 +64,7 @@ export const routes: Routes = [
       { path: 'bereiche', component: AdminAreasComponent },
       { path: 'rollen', component: AdminRolesComponent },
       { path: 'homeassistant', component: AdminHomeAssistantComponent },
+      { path: 'bindings', loadComponent: () => import('./features/admin/bindings-admin/bindings-admin.component').then(m => m.BindingsAdminComponent) },
       {
         path: 'speech-assistant',
         loadComponent: () => import('./features/admin/speech-assistant/admin-speech-assistant.component').then(m => m.AdminSpeechAssistantComponent)
