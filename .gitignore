@@ -57,3 +57,7 @@ uploads/
 # Backend build artifacts and models
 backend/nest-app/dist/**
 backend/vosk-model/**
+
+
+.nx/cache
+.nx/workspace-data
