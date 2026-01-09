@@ -42,8 +42,8 @@ echo ========================================
 echo.
 
 echo Angular will start now...
-rem Replace direct ng serve (fails outside workspace) with npx nx serve for the workspace project
-start "Angular Dev" cmd /k "npx nx serve raeuberbude --host=0.0.0.0 --port=4301 --configuration=network --proxy-config proxy.conf.json"
+rem Start Angular CLI inside the workspace (angular.json)
+start "Angular Dev" cmd /k "npx ng serve raeuberbude --host=0.0.0.0 --port=4301 --configuration=network --proxy-config proxy.conf.json"
 
 echo.
 echo ========================================
@@ -54,6 +54,6 @@ echo NestJS Backend:    http://localhost:3001
 echo Angular:          http://localhost:4301
 echo               or: http://192.168.178.25:4301
 echo.
-echo Server gestartet! Check the server windows for errors.
+echo Server started! Check the server windows for errors.
 echo.
 pause

@@ -26,6 +26,13 @@
         [hoverAnim]="true"
         hoverAnimColorRgb="255, 87, 34"
       ></app-button>
+
+      <!-- Text input + Send button: Tippen sendet nicht automatisch. Enter oder Klick auf Senden löst sendTextInputToLLM() aus. -->
+      <mat-form-field>
+        <input matInput [(ngModel)]="textInput" (keyup.enter)="sendTextInputToLLM()" placeholder="Nachricht eingeben...">
+      </mat-form-field>
+      <app-button name="Senden" icon="send" size="2.2rem" [inline]="true" (click)="sendTextInputToLLM()"></app-button>
+
     </div>
 
   </div>

@@ -124,11 +124,7 @@ export class SpeechService {
 
     // Recording abbrechen falls aktiv
     if (this.isRecordingSubject.value) {
-      try {
-        this.recorder.stopRecording().catch(() => {});
-      } catch (error) {
-        console.warn('[Speech] Error aborting recording:', error);
-      }
+      this.recorder.stopRecording().catch(() => {});
     }
 
     // State zurücksetzen
@@ -146,6 +142,62 @@ export class SpeechService {
     });
 
     this.displayStatus('Bereit');
+  }
+
+  /**
+   * Submit text input (typed) to the same processing flow used for transcribed speech.
+   * The text is treated as a final transcript (no STT). Does not clear the input.
+   */
+  async submitText(text: string): Promise<void> {
+    const transcript = (text || '').trim();
+    if (!transcript) {
+      return;
+    }
+
+    try {
+      // Show loading dialog early so UI indicates processing
+      this.intentAction.showLoadingDialog(transcript);
+      this.displayStatus('Verarbeite...');
+
+      // Construct a minimal TranscriptionResult for persistence
+      const transcriptionResult = {
+        audioDurationMs: 0,
+        transcriptionDurationMs: 0,
+        provider: 'manual',
+        language: 'de-DE'
+      } as unknown as TranscriptionResult;
+
+      // Reuse existing validation + processing path
+      if (this.enableValidation) {
+        await this.validateAndProcess(transcript, 1 /* confidence for typed text */, transcriptionResult);
+      } else {
+        // If validation disabled, save and emit last input like recording flow
+        await this.saveTranscript(transcript, 1, transcriptionResult);
+        this.lastInputSubject.next(transcript);
+        // Close dialog with a generic confirmation
+        this.intentAction.emitResult({
+          success: true,
+          message: 'Verstanden',
+          showDialog: false,
+          isLoading: false
+        });
+      }
+    } catch (error: any) {
+      console.error('[Speech] submitText failed:', error);
+      this.displayStatus(`Fehler: ${error?.message || 'Verarbeitung fehlgeschlagen'}`);
+
+      this.intentAction.emitResult({
+        success: false,
+        message: 'Textverarbeitung fehlgeschlagen',
+        showDialog: true,
+        isLoading: false,
+        dialogContent: {
+          title: 'Fehler',
+          content: `<p>Die Verarbeitung der Texteingabe ist fehlgeschlagen: ${error?.message || error}</p>`,
+          type: 'general'
+        }
+      });
+    }
   }
 
   /**
@@ -208,7 +260,7 @@ export class SpeechService {
         maxDurationMs: 30000
       });
 
-      const { transcript, confidence, provider, language } = transcriptionResult;
+      const { transcript, confidence, provider } = transcriptionResult;
       const processingTime = Date.now() - startTime;
 
       console.log('[Speech] Transcription result:', {

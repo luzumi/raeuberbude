@@ -1,0 +1,61 @@
+{
+  "$schema": "./node_modules/nx/schemas/project-schema.json",
+  "name": "raeuberbude",
+  "projectType": "application",
+  "sourceRoot": "src",
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/raeuberbude",
+        "index": "src/index.html",
+        "main": "src/main.ts",
+        "tsConfig": "tsconfig.app.json",
+        "inlineStyleLanguage": "scss",
+        "assets": ["src/favicon.ico", "public"],
+        "styles": ["src/styles/styles.scss"]
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "outputHashing": "all",
+          "sourceMap": false
+        },
+        "development": {
+          "optimization": false,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@angular/build:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "raeuberbude:build:development"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "raeuberbude:build:development"
+        },
+        "network": {
+          "buildTarget": "raeuberbude:build:development",
+          "host": "0.0.0.0",
+          "port": 4301,
+          "proxyConfig": "proxy.conf.json"
+        },
+        "production": {
+          "buildTarget": "raeuberbude:build:production"
+        }
+      }
+    },
+    "test": {
+      "executor": "@angular/build:karma",
+      "options": {
+        "karmaConfig": "karma.conf.cjs",
+        "tsConfig": "tsconfig.spec.json"
+      }
+    }
+  }
+}
