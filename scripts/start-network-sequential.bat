@@ -7,11 +7,26 @@ echo.
 
 cd /d %~dp0..
 
-echo [1/2] Starting NestJS Backend (Port 3001)...
+:: Neuer Schritt: Starte MariaDB per docker-compose (Service ist in backend/docker-compose.yml definiert)
+echo [0/3] Starting MariaDB (Docker Compose)...
+echo Ensure Docker Desktop / docker daemon is running...
+rem Versuche, den mariadb-Service aus dem backend/docker-compose.yml zu starten
+docker-compose -f backend/docker-compose.yml up -d mariadb
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ERROR: Failed to start MariaDB via docker-compose. Please start it manually with:
+    echo    docker-compose -f backend/docker-compose.yml up -d mariadb
+    echo.
+) else (
+    echo MariaDB start requested.
+)
+timeout /t 8 >nul
+
+echo [1/3] Starting NestJS Backend (Port 3001)...
 start "NestJS Backend" cmd /k "cd backend\nest-app && npm run start:dev"
 timeout /t 5 >nul
 
-echo [2/2] Starting MCP Servers...
+echo [2/3] Starting MCP Servers...
 start "MCP Servers" cmd /k "cd .specify\mcp-servers && npm run all"
 timeout /t 3 >nul
 
@@ -27,7 +42,8 @@ echo ========================================
 echo.
 
 echo Angular will start now...
-start "Angular Dev" cmd /k "ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.cjs"
+rem Replace direct ng serve (fails outside workspace) with npx nx serve for the workspace project
+start "Angular Dev" cmd /k "npx nx serve raeuberbude --host=0.0.0.0 --port=4301 --configuration=network --proxy-config proxy.conf.json"
 
 echo.
 echo ========================================
@@ -35,16 +51,9 @@ echo   All servers starting...
 echo ========================================
 echo.
 echo NestJS Backend:    http://localhost:3001
-echo Angular:          http://localhost:4200
-echo               or: http://192.168.178.25:4200
+echo Angular:          http://localhost:4301
+echo               or: http://192.168.178.25:4301
 echo.
-echo Wait ~20 more seconds, then open browser.
+echo Server gestartet! Check the server windows for errors.
 echo.
-
-timeout /t 15 >nul
-start http://localhost:4200
-
-echo.
-echo Browser opened! Check the server windows for errors.
 pause
-

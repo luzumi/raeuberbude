@@ -26,7 +26,7 @@ async function ensureFetch() {
     return;
   }
   try {
-    const mod = await import('node-fetch');
+    const mod = await import('node:fetch');
     fetchFn = mod.default || mod;
   } catch (err) {
     console.error('Error: fetch not available and node-fetch could not be imported. Please run: npm install node-fetch');
@@ -38,21 +38,17 @@ async function ensureFetch() {
  * Fetch models from LM Studio
  */
 async function listModels() {
-  try {
-    const response = await fetchFn(`${BASE_URL}/v1/models`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+  const response = await fetchFn(`${BASE_URL}/v1/models`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return Array.isArray(data.data) ? data.data : data;
-  } catch (error) {
-    throw new Error(`Failed to list models: ${error.message}`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
+
+  const data = await response.json();
+  return Array.isArray(data.data) ? data.data : data;
 }
 
 /**
@@ -61,8 +57,8 @@ async function listModels() {
  */
 async function loadModel(modelId) {
   try {
-    const { exec } = await import('child_process');
-    const { promisify } = await import('util');
+    const { exec } = await import('node:child_process');
+    const { promisify } = await import('node:util');
     const execAsync = promisify(exec);
 
     // Try to load model via CLI
@@ -138,8 +134,8 @@ async function loadModel(modelId) {
  */
 async function unloadModel(modelId) {
   try {
-    const { exec } = await import('child_process');
-    const { promisify } = await import('util');
+    const { exec } = await import('node:child_process');
+    const { promisify } = await import('node:util');
     const execAsync = promisify(exec);
 
     // Try to unload model via CLI
@@ -250,7 +246,10 @@ async function chat(modelId, messages, options = {}) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      };
     }
 
     const data = await response.json();
@@ -453,8 +452,7 @@ async function main() {
 }
 
 // Check fetch availability and start main
-(async () => {
-  await ensureFetch();
-  main();
-})();
+await ensureFetch();
+await main();
+
 

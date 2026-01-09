@@ -18,6 +18,20 @@
             "env": {
                 "PERPLEXITY_API_KEY": "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"
             }
+        },
+        "mariaDB": {
+            "command": "node",
+            "args": [
+                ".specify/mcp-servers/maria-mcp-server.js"
+            ],
+            "env": {
+                "DB_HOST": "127.0.0.1",
+                "DB_PORT": "3306",
+                "DB_USER": "app_user",
+                "DB_PASSWORD": "secret",
+                "DB_DATABASE": "mydb",
+                "PORT": "3001"
+            }
         }
     }
 }

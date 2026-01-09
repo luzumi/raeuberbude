@@ -37,7 +37,7 @@
     "start-all": "scripts/start-all-servers.bat",
     "start:backend:legacy": "npm --prefix backend run start",
     "db:load-test": "k6 run scripts/db-load-test.js",
-    "db:explain": "docker exec -i mariadb mysql -u rb_user -prb_user_secret < scripts/db-explain-queries.sql",
+    "db:explain": "docker exec -i mariadb mysql -u rb_user -p rb_user_secret < scripts/db-explain-queries.sql",
     "db:backup-test": "powershell -ExecutionPolicy Bypass -File scripts/db-backup-test.ps1",
     "db:monitoring": "powershell -ExecutionPolicy Bypass -File scripts/db-monitoring-setup.ps1"
   },
@@ -70,7 +70,8 @@
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "ws": "^8.17.0",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.15.0",
+    "mysql2": "^3.6.0"
   },
   "devDependencies": {
     "@angular-devkit/core": "20.3.12",

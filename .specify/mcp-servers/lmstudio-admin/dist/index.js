@@ -8,6 +8,7 @@ import { createStatusService } from './services/statusService.js';
 import { createTrainingService } from './services/trainingService.js';
 import { createRestServer } from './transport/rest/restServer.js';
 import { createMcpServer } from './transport/mcp/mcpServer.js';
+
 async function main() {
     const config = getConfig();
     const logger = createLogger(config);
