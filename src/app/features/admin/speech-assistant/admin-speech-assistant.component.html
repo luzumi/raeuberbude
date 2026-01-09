@@ -95,7 +95,7 @@
                 <mat-expansion-panel [expanded]="false">
                   <mat-expansion-panel-header>
                     <mat-panel-title>Details für...</mat-panel-title>
-                    <mat-panel-description *ngIf="activeInstance">{{ activeInstance.model.toUpperCase() }}</mat-panel-description>
+                    <mat-panel-description *ngIf="activeInstance">{{ activeInstance?.model?.toUpperCase() }}</mat-panel-description>
                   </mat-expansion-panel-header>
 
                   <mat-form-field class="full-width">
@@ -324,7 +324,7 @@
               </div>
 
               <!-- Table -->
-              <table mat-table [dataSource]="transcripts" multiTemplateDataRows class="admin-table">
+              <table mat-table [dataSource]="transcripts" [multiTemplateDataRows]="true" class="admin-table">
                 <!-- Expand Icon Column -->
                 <ng-container matColumnDef="expand">
                   <th mat-header-cell *matHeaderCellDef></th>

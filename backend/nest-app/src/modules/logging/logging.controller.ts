@@ -130,7 +130,7 @@ export class LoggingController {
 
   @Post('/llm-instances/scan')
   scanLlmInstances(@Body() body: any) {
-    return { message: 'Scan LLM instances not implemented - MongoDB removed' };
+    return this.svc.scanLlmInstances();
   }
 
   @Post('/llm-instances/cleanup')

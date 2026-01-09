@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { LmStudioMcpService } from '../llm/lm-studio-mcp.service';
 import { LlmClientService } from '../llm/llm-client.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { LlmHealth, LlmInstanceEntity } from '../llm/entities/llm-instance.entity';
 
 @Injectable()
 export class LoggingService {
@@ -14,6 +15,8 @@ Deine Aufgabe ist es, Benutzeranfragen zu verstehen und in strukturierte JSON-Ak
   constructor(
     private readonly mcpService: LmStudioMcpService,
     private readonly llmClient: LlmClientService,
+    @InjectRepository(LlmInstanceEntity)
+    private readonly llmRepo: Repository<LlmInstanceEntity>,
   ) {}
 
   // ============================================================================
@@ -74,12 +77,122 @@ Deine Aufgabe ist es, Benutzeranfragen zu verstehen und in strukturierte JSON-Ak
   // ============================================================================
 
   async getLlmInstances() {
-    this.logger.warn('getLlmInstances() not implemented - MongoDB removed, needs TypeORM migration');
-    return [];
+    // Now backed by TypeORM (MariaDB)
+    return this.llmRepo.find({ order: { createdAt: 'DESC' } });
+  }
+
+  /**
+   * Scan for available LLM instances.
+   * Strategy:
+   *  - Always ensure a default LM Studio instance from env/config exists
+   *  - Optionally query LM Studio via MCP for loaded/available models and create per-model instances
+   */
+  async scanLlmInstances(): Promise<LlmInstanceEntity[]> {
+    const createdOrUpdated: string[] = [];
+
+    // 1) Base URL candidates
+    const baseUrlCandidates: string[] = [];
+
+    // Prefer LM Studio URL env var (used by MCP)
+    if (process.env.LM_STUDIO_URL) baseUrlCandidates.push(String(process.env.LM_STUDIO_URL));
+
+    // Allow legacy env var compatibility
+    if (process.env.LLM_URLS) {
+      String(process.env.LLM_URLS)
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .forEach(u => baseUrlCandidates.push(u));
+    }
+
+    // Fallback: keep current dev default (matches frontend env)
+    if (baseUrlCandidates.length === 0) baseUrlCandidates.push('http://192.168.56.1:1234');
+
+    // Normalize to chat completions endpoint (OpenAI compatible)
+    const normalizeChatUrl = (u: string) => {
+      const trimmed = u.trim().replace(/\/+$/, '');
+      // already points to completions
+      if (trimmed.includes('/chat/completions')) return trimmed;
+      // if already has /v1
+      if (trimmed.endsWith('/v1')) return `${trimmed}/chat/completions`;
+      // if ends with /v1/models etc, just use origin
+      try {
+        const url = new URL(trimmed);
+        return `${url.origin}/v1/chat/completions`;
+      } catch {
+        return `${trimmed}/v1/chat/completions`;
+      }
+    };
+
+    const chatUrls = Array.from(new Set(baseUrlCandidates)).map(normalizeChatUrl);
+
+    // 2) Determine model ids via MCP (best effort)
+    let modelIds: string[] = [];
+    try {
+      const models = await this.mcpService.listModels();
+      if (Array.isArray(models)) {
+        modelIds = models
+          .map((m: any) => m?.id || m?.model || m?.name)
+          .filter(Boolean);
+      }
+    } catch (e: any) {
+      this.logger.warn(`MCP listModels failed, falling back to env model. ${e?.message || e}`);
+    }
+
+    // 3) Fallback model(s) from env
+    const envModel = (process.env.LLM_MODEL || process.env.LM_STUDIO_MODEL || '').trim();
+    if (modelIds.length === 0 && envModel) modelIds = [envModel];
+    if (modelIds.length === 0) modelIds = ['default-model'];
+
+    // 4) Upsert instances (url x model)
+    for (const url of chatUrls) {
+      for (const model of modelIds) {
+        const name = `${model}`;
+
+        let existing = await this.llmRepo.findOne({ where: { url, model } });
+        if (!existing) {
+          existing = this.llmRepo.create({
+            name,
+            url,
+            model,
+            enabled: true,
+            isActive: false,
+            systemPrompt: null,
+            health: LlmHealth.UNKNOWN,
+            lastHealthCheck: null,
+            config: null,
+          });
+        } else {
+          // Keep name in sync (harmless)
+          existing.name = name;
+          existing.enabled = existing.enabled ?? true;
+        }
+
+        await this.llmRepo.save(existing);
+        createdOrUpdated.push(`${url}::${model}`);
+      }
+    }
+
+    // 5) Ensure only one active as a rule (best effort)
+    await this.ensureSingleActiveInstance();
+
+    this.logger.log(`scanLlmInstances: upserted ${createdOrUpdated.length} instance(s)`);
+    return this.getLlmInstances();
   }
 
   async ensureSingleActiveInstance() {
-    this.logger.warn('ensureSingleActiveInstance() not implemented - MongoDB removed');
+    const active = await this.llmRepo.find({ where: { isActive: true } });
+    if (active.length <= 1) return;
+
+    // keep the newest active, deactivate others
+    const sorted = active.sort((a, b) => (b.updatedAt?.getTime?.() || 0) - (a.updatedAt?.getTime?.() || 0));
+    const keep = sorted[0];
+    const toDeactivate = sorted.slice(1);
+    for (const inst of toDeactivate) {
+      inst.isActive = false;
+      await this.llmRepo.save(inst);
+    }
+    this.logger.warn(`ensureSingleActiveInstance: deactivated ${toDeactivate.length} extra active instance(s), kept ${keep.id}`);
   }
 
   async ensureSyncedInstance(desiredName: string) {
@@ -103,8 +216,18 @@ Deine Aufgabe ist es, Benutzeranfragen zu verstehen und in strukturierte JSON-Ak
   }
 
   async cleanupOldInstances() {
-    this.logger.warn('cleanupOldInstances() not implemented - MongoDB removed');
-    return [];
+    // Minimal cleanup: remove disabled instances older than 30 days
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const disabledOld = await this.llmRepo
+      .createQueryBuilder('i')
+      .where('i.enabled = :enabled', { enabled: false })
+      .andWhere('i.updated_at < :cutoff', { cutoff })
+      .getMany();
+
+    if (disabledOld.length) {
+      await this.llmRepo.remove(disabledOld);
+    }
+    return { success: true, deleted: disabledOld.length };
   }
 
   async activateInstance(id: string) {
@@ -118,8 +241,10 @@ Deine Aufgabe ist es, Benutzeranfragen zu verstehen und in strukturierte JSON-Ak
   }
 
   async deleteInstance(id: string) {
-    this.logger.warn('deleteInstance() not implemented - MongoDB removed');
-    return null;
+    const inst = await this.llmRepo.findOne({ where: { id } });
+    if (!inst) return { success: false };
+    await this.llmRepo.remove(inst);
+    return { success: true, deletedInstance: inst };
   }
 
   async testInstance(id: string) {
@@ -128,13 +253,20 @@ Deine Aufgabe ist es, Benutzeranfragen zu verstehen und in strukturierte JSON-Ak
   }
 
   async updateInstanceSystemPrompt(id: string, systemPrompt: string) {
-    this.logger.warn('updateInstanceSystemPrompt() not implemented - MongoDB removed');
-    return null;
+    const inst = await this.llmRepo.findOne({ where: { id } });
+    if (!inst) return null;
+    inst.systemPrompt = systemPrompt;
+    return this.llmRepo.save(inst);
   }
 
   async updateInstanceSamplingParams(id: string, samplingParams: any) {
-    this.logger.warn('updateInstanceSamplingParams() not implemented - MongoDB removed');
-    return null;
+    const inst = await this.llmRepo.findOne({ where: { id } });
+    if (!inst) return null;
+    inst.config = {
+      ...(inst.config || {}),
+      ...samplingParams,
+    };
+    return this.llmRepo.save(inst);
   }
 
   // ============================================================================

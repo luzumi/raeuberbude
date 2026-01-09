@@ -64,17 +64,25 @@ interface LlmConfig {
 
 
 interface TranscriptsResponse {
-  transcripts: Transcript[];
-  pagination: {
+  // Legacy shape
+  transcripts?: Transcript[];
+  pagination?: {
     total: number;
     page: number;
     limit: number;
     pages: number;
   };
+
+  // Nest/current shape
+  data?: Transcript[];
+  total?: number;
+  page?: number;
+  limit?: number;
 }
 
 interface Stats {
-  summary: {
+  // legacy shape
+  summary?: {
     totalRequests: number;
     avgDuration: number;
     avgLlmTime: number;
@@ -82,7 +90,7 @@ interface Stats {
     validCount: number;
     fallbackCount: number;
   };
-  byModel: Array<{
+  byModel?: Array<{
     _id: string;
     count: number;
     avgDuration: number;
@@ -388,9 +396,26 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
   async loadStats(): Promise<void> {
     try {
-      this.stats = await lastValueFrom(
-        this.http.get<Stats>(`${this.backendUrl}/api/transcripts/stats/summary`)
+      const raw: any = await lastValueFrom(
+        this.http.get<any>(`${this.backendUrl}/api/transcripts/stats/summary`)
       );
+
+      // Backend currently may return [] (not implemented) or a Stats object.
+      if (Array.isArray(raw)) {
+        this.stats = {
+          summary: {
+            totalRequests: 0,
+            avgDuration: 0,
+            avgLlmTime: 0,
+            avgConfidence: 0,
+            validCount: 0,
+            fallbackCount: 0,
+          },
+          byModel: [],
+        };
+      } else {
+        this.stats = raw as Stats;
+      }
 
       // Ensure numeric values for template safety
       const parseNum = (v: any): number => {
@@ -401,32 +426,55 @@ export class AdminSpeechAssistantComponent implements OnInit {
         return Number.isFinite(n) ? n : 0;
       };
 
-      if (this.stats?.summary) {
-        this.stats.summary.totalRequests = parseNum(this.stats.summary.totalRequests) || 0;
-        this.stats.summary.avgDuration = parseNum(this.stats.summary.avgDuration) || 0;
-        this.stats.summary.avgLlmTime = parseNum(this.stats.summary.avgLlmTime) || 0;
-        this.stats.summary.avgConfidence = parseNum(this.stats.summary.avgConfidence) || 0;
-        this.stats.summary.validCount = parseNum(this.stats.summary.validCount) || 0;
-        this.stats.summary.fallbackCount = parseNum(this.stats.summary.fallbackCount) || 0;
+      if (!this.stats) {
+        this.stats = {
+          summary: {
+            totalRequests: 0,
+            avgDuration: 0,
+            avgLlmTime: 0,
+            avgConfidence: 0,
+            validCount: 0,
+            fallbackCount: 0,
+          },
+          byModel: [],
+        };
       }
+
+      // Normalize missing fields
+      this.stats.summary = this.stats.summary || {
+        totalRequests: 0,
+        avgDuration: 0,
+        avgLlmTime: 0,
+        avgConfidence: 0,
+        validCount: 0,
+        fallbackCount: 0,
+      };
+      this.stats.byModel = this.stats.byModel || [];
+
+      this.stats.summary.totalRequests = parseNum(this.stats.summary.totalRequests) || 0;
+      this.stats.summary.avgDuration = parseNum(this.stats.summary.avgDuration) || 0;
+      this.stats.summary.avgLlmTime = parseNum(this.stats.summary.avgLlmTime) || 0;
+      this.stats.summary.avgConfidence = parseNum(this.stats.summary.avgConfidence) || 0;
+      this.stats.summary.validCount = parseNum(this.stats.summary.validCount) || 0;
+      this.stats.summary.fallbackCount = parseNum(this.stats.summary.fallbackCount) || 0;
 
       // Alle Modelle beim ersten Laden auswählen
-      if (this.stats?.byModel) {
+      if (this.stats.byModel) {
         for (const m of this.stats.byModel) {
-          this.selectedModels.add(m._id);
-          // Ensure numbers
-          m.count = parseNum((m as any).count) || 0;
-          (m as any).avgDuration = parseNum((m as any).avgDuration) || 0;
-          (m as any).avgLlmTime = parseNum((m as any).avgLlmTime) || 0;
-        }
-        this.allModelsSelected = true;
-      }
+           this.selectedModels.add(m._id);
+           // Ensure numbers
+           m.count = parseNum((m as any).count) || 0;
+           (m as any).avgDuration = parseNum((m as any).avgDuration) || 0;
+           (m as any).avgLlmTime = parseNum((m as any).avgLlmTime) || 0;
+         }
+         this.allModelsSelected = true;
+       }
 
-      console.log('Loaded stats:', this.stats);
-    } catch (error) {
-      console.error('Failed to load stats:', error);
-    }
-  }
+       console.log('Loaded stats:', this.stats);
+     } catch (error) {
+       console.error('Failed to load stats:', error);
+     }
+   }
 
   async loadTranscripts(): Promise<void> {
     try {
@@ -444,16 +492,24 @@ export class AdminSpeechAssistantComponent implements OnInit {
         this.http.get<TranscriptsResponse>(`${this.backendUrl}/api/transcripts`, { params })
       );
 
-      this.transcripts = response.transcripts;
-      this.pagination = response.pagination;
-      console.log('Loaded transcripts:', this.transcripts.length);
+      // Support both legacy and current backend shapes
+      const list = (response as any).transcripts ?? (response as any).data ?? [];
+      this.transcripts = Array.isArray(list) ? list : [];
 
-      // Keep recentlyUpdated but remove ids that are no longer in the loaded page
-      const loadedIds = new Set(this.transcripts.map(t => t._id));
-      this.recentlyUpdated = new Set(Array.from(this.recentlyUpdated).filter(id => loadedIds.has(id)));
+      const total = (response as any).pagination?.total ?? (response as any).total ?? 0;
+      const page = (response as any).pagination?.page ?? (response as any).page ?? this.pagination.page;
+      const limit = (response as any).pagination?.limit ?? (response as any).limit ?? this.pagination.limit;
+      const pages = (response as any).pagination?.pages ?? (limit ? Math.max(1, Math.ceil(total / limit)) : 1);
 
-      // Close expanded element after loading
-      this.expandedElement = null;
+      this.pagination = { total, page, limit, pages };
+       console.log('Loaded transcripts:', this.transcripts.length);
+
+       // Keep recentlyUpdated but remove ids that are no longer in the loaded page
+       const loadedIds = new Set(this.transcripts.map(t => t._id));
+       this.recentlyUpdated = new Set(Array.from(this.recentlyUpdated).filter(id => loadedIds.has(id)));
+
+       // Close expanded element after loading
+       this.expandedElement = null;
     } catch (error) {
       console.error('Failed to load transcripts:', error);
     }
@@ -701,15 +757,54 @@ private async discoverModels(instances: LlmInstance[]): Promise<{
 
   async cleanupDuplicates(): Promise<void> {
     try {
-      const result: any = await lastValueFrom(
+      const raw: any = await lastValueFrom(
         this.http.post(`${this.backendUrl}/api/llm-instances/cleanup`, {})
       );
+
+      // Defensive parsing: backend may return { deleted: number } or legacy { deletedInstances: [...] }
+      let deletedCount = 0;
+      try {
+        if (raw == null) {
+          deletedCount = 0;
+        } else if (typeof raw === 'number') {
+          deletedCount = raw;
+        } else if (typeof raw === 'string') {
+          const n = Number(raw);
+          deletedCount = Number.isFinite(n) ? n : 0;
+        } else if (Array.isArray(raw)) {
+          deletedCount = raw.length;
+        } else if (typeof raw === 'object') {
+          if (typeof raw.deleted === 'number') deletedCount = raw.deleted;
+          else if (Array.isArray((raw as any).deletedInstances)) deletedCount = (raw as any).deletedInstances.length;
+          else if (typeof (raw as any).deleted === 'string') {
+            const n = Number((raw as any).deleted);
+            deletedCount = Number.isFinite(n) ? n : 0;
+          } else if (typeof (raw as any).success === 'boolean' && (raw as any).deleted === undefined) {
+            // no explicit deleted field, fallback to 0
+            deletedCount = 0;
+          } else {
+            deletedCount = 0;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not parse cleanup response, defaulting to 0', e, raw);
+        deletedCount = 0;
+      }
+
+      this.frontendLogger.info('AdminSpeech', 'cleanupDuplicates result', { raw });
+
       this.snackBar.open(
-        `${result.deleted} Duplikate entfernt`,
+        `${deletedCount} Duplikate entfernt`,
         'OK',
         { duration: 3000 }
       );
-      await this.loadLlmInstances();
+
+      // Try to refresh instances but don't block user-facing success message
+      try {
+        await this.loadLlmInstances();
+      } catch (e) {
+        console.warn('Failed to reload instances after cleanup:', e);
+      }
     } catch (error) {
       console.error('Failed to cleanup duplicates:', error);
       this.snackBar.open('Fehler beim Bereinigen', 'OK', { duration: 3000 });
@@ -944,7 +1039,8 @@ private async discoverModels(instances: LlmInstance[]): Promise<{
     } else {
       this.selectedModels.add(modelId);
     }
-    this.allModelsSelected = this.selectedModels.size === this.stats?.byModel.length;
+    const total = this.stats?.byModel?.length ?? 0;
+    this.allModelsSelected = total > 0 && this.selectedModels.size === total;
   }
 
   isModelSelected(modelId: string): boolean {
@@ -995,11 +1091,16 @@ private async discoverModels(instances: LlmInstance[]): Promise<{
 
   // Inline Kategorie-Update
   async updateTranscriptCategory(transcript: Transcript, newCategory: string): Promise<void> {
+    if (!transcript?._id) {
+      this.snackBar.open('Transkript-ID fehlt – Update nicht möglich', 'OK', { duration: 3000 });
+      return;
+    }
+
     try {
       await lastValueFrom(
         this.http.put(`${this.backendUrl}/api/transcripts/${transcript._id}`, {
           category: newCategory
-        })
+        }, { withCredentials: true })
       );
       transcript.category = newCategory;
       this.snackBar.open('Kategorie aktualisiert', 'OK', { duration: 2000 });

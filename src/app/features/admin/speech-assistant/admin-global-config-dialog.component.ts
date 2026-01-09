@@ -51,8 +51,8 @@ interface ModelOpResult {
         <!-- Primäres Modell: immer Select (falls keine Modelle vorhanden: disabled option) -->
         <mat-form-field class="full-width">
           <mat-label>Primäres Modell</mat-label>
-          <mat-select [(ngModel)]="localConfig.model" [disabled]="models.length === 0">
-            <mat-option *ngIf="models.length === 0" [value]="localConfig.model">Keine Modelle gefunden</mat-option>
+          <mat-select [(ngModel)]="localConfig.model" [disabled]="models?.length === 0">
+            <mat-option *ngIf="models?.length === 0" [value]="localConfig?.model">Keine Modelle gefunden</mat-option>
             <mat-option *ngFor="let m of models" [value]="m">{{ m }}</mat-option>
           </mat-select>
         </mat-form-field>
@@ -60,7 +60,7 @@ interface ModelOpResult {
         <!-- Fallback Modell: immer Select -->
         <mat-form-field class="full-width">
           <mat-label>Fallback Modell</mat-label>
-          <mat-select [(ngModel)]="localConfig.fallbackModel" [disabled]="models.length === 0">
+          <mat-select [(ngModel)]="localConfig.fallbackModel" [disabled]="models?.length === 0">
             <mat-option value="">(kein Fallback)</mat-option>
             <mat-option *ngFor="let m of models" [value]="m">{{ m }}</mat-option>
           </mat-select>
