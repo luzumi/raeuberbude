@@ -33,12 +33,30 @@ export class LlmService {
     return this.http.post<LlmInstance & { loadResult?: { success: boolean; message?: string; error?: string } }>(`${this.apiUrl}/${id}/load`, {});
   }
 
+  /**
+   * Lädt ein Modell und wendet die Primary/Secondary-Policy an:
+   * - Zielinstanz wird geladen
+   * - alle Instanzen mit role !== primary|secondary werden entladen
+   */
+  loadWithPolicy(id: string, keepRoles: Array<'primary' | 'secondary'> = ['primary', 'secondary']) {
+    return this.http.post<any>(`${this.apiUrl}/${id}/load-with-policy`, { keepRoles });
+  }
+
   eject(id: string): Observable<LlmInstance & { ejectResult?: { success: boolean; message?: string; error?: string } }> {
     return this.http.post<LlmInstance & { ejectResult?: { success: boolean; message?: string; error?: string } }>(`${this.apiUrl}/${id}/eject`, {});
   }
 
   delete(id: string): Observable<{ success: boolean; deletedInstance: LlmInstance }> {
-    return this.http.post<{ success: boolean; deletedInstance: LlmInstance }>(`${this.apiUrl}/${id}/delete`, {});
+    return this.http.delete<{ success: boolean; deletedInstance: LlmInstance }>(`${this.apiUrl}/${id}`);
+  }
+
+  setRole(id: string, role: 'primary' | 'secondary' | 'other'): Observable<LlmInstance> {
+    return this.http.put<LlmInstance>(`${this.apiUrl}/${id}/role`, { role });
+  }
+
+  /** One-shot Sync: ermittelt geladene Modelle in LM Studio und spiegelt das in isActive wider */
+  syncActive(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/sync-active`, {});
   }
 
    /**

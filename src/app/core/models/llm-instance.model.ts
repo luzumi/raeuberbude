@@ -1,9 +1,12 @@
 export interface LlmInstance {
   _id?: string;
+  // Backend sometimes returns `id` instead of `_id`
+  id?: string;
   name: string;
   url: string;
   model: string;
   enabled: boolean;
+  role?: 'primary' | 'secondary' | 'other';
   isActive: boolean;
   systemPrompt?: string;
   health: 'healthy' | 'unhealthy' | 'unknown';
@@ -45,4 +48,3 @@ export interface LlmInstance {
     error?: string;
   };
 }
-

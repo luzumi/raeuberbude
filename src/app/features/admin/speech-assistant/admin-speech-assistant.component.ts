@@ -33,6 +33,7 @@ import { AdminTranscriptEditDialogComponent } from './admin-transcript-edit-dial
 import { TranscriptAssignmentFormComponent } from './transcript-assignment-form.component';
 import { FrontendLoggingService } from '../../../core/services/frontend-logging.service';
 import { Transcript } from './transcript.model';
+import { AdminLlmLoadDialogComponent, LlmLoadRoleChoice } from './admin-llm-load-dialog.component';
 
 interface LlmConfig {
   url: string;
@@ -191,6 +192,9 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
   /** Flag für Test-Button (Sprach-Test) – Implementierung folgt später */
   isTesting = false;
+
+  /** UI-Guard, damit der Cleanup nicht parallel mehrfach gestartet wird */
+  isCleaningDuplicates = false;
 
   // Use configured backend base URL (resolve localhost -> runtime hostname for LAN devices)
   private readonly backendUrl = resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001');
@@ -385,7 +389,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
       const set = new Set(this.uniqueModels || []);
       for (const m of models) set.add(m);
 
-      this.uniqueModels = Array.from(set).sort((a, b) => a.localeCompare(b));
+      this.uniqueModels = Array.from(set).map(m => String(m)).sort((a, b) => a.localeCompare(b));
 
       console.log('Fetched models from config url:', this.config.url, this.uniqueModels);
     } catch (e) {
@@ -634,119 +638,195 @@ export class AdminSpeechAssistantComponent implements OnInit {
 
   // ===== Neue Methoden =====
 
+  /**
+   * Lädt den System-Prompt für eine Instanz und setzt UI-State.
+   * Robust gegen fehlende IDs (Backend kann id statt _id liefern).
+   */
+  private async loadSystemPromptFor(instance?: LlmInstance): Promise<void> {
+    if (!instance) {
+      this.systemPrompt = '';
+      return;
+    }
+
+    const id = (instance as any)._id || (instance as any).id;
+    if (!id) {
+      this.systemPrompt = '';
+      return;
+    }
+
+    // für UI/Editor: aktive Instanz setzen, falls sinnvoll
+    this.activeInstance = instance;
+
+    try {
+      const promptResult = await lastValueFrom(this.llmService.getSystemPrompt(id));
+      this.systemPrompt = String(promptResult?.systemPrompt ?? '');
+    } catch (e) {
+      console.warn('Failed to load system prompt for instance', { id, e });
+      this.systemPrompt = '';
+    }
+  }
+
+  private getLlmInstanceId(inst: LlmInstance): string {
+    return String((inst as any)._id || (inst as any).id || inst.model || 'unknown');
+  }
+
+  private normalizeModelKey(modelId: unknown): string {
+    return String(modelId || '').trim();
+  }
+
+  private upsertModelSource(
+    sourcesByModel: Record<string, { instances: string[]; active: boolean }>,
+    modelId: string,
+    instId: string,
+    isActive: boolean,
+  ): void {
+    const key = this.normalizeModelKey(modelId);
+    if (!key) return;
+
+    if (!sourcesByModel[key]) {
+      sourcesByModel[key] = { instances: [], active: false };
+    }
+
+    const entry = sourcesByModel[key];
+    if (!entry.instances.includes(instId)) {
+      entry.instances.push(instId);
+    }
+    entry.active = entry.active || isActive;
+  }
+
+  private async fetchModelsFromInstanceUrl(url: unknown): Promise<string[]> {
+    if (!url) return [];
+    try {
+      const models = await lastValueFrom(this.llmService.getModels(String(url)));
+      if (!Array.isArray(models) || models.length === 0) return [];
+      return models.map(m => this.normalizeModelKey(m)).filter(Boolean);
+    } catch (e) {
+      console.warn('Model discovery failed for instance', { url, e });
+      return [];
+    }
+  }
+
+  /**
+   * Entdeckt verfügbare Modelle aus allen Instanzen.
+   * Nutzt primär `/v1/models` via `LlmService.getModels()`, fällt aber auf `instance.model` zurück.
+   */
+  private async discoverModels(instances: LlmInstance[]): Promise<{
+    modelSet: Set<string>;
+    sourcesByModel: Record<string, { instances: string[]; active: boolean }>;
+  }> {
+    const modelSet = new Set<string>();
+    const sourcesByModel: Record<string, { instances: string[]; active: boolean }> = {};
+
+    const list = Array.isArray(instances) ? instances : [];
+    for (const inst of list) {
+      const instId = this.getLlmInstanceId(inst);
+      const isActive = !!(inst as any).isActive;
+      const url = (inst as any).url;
+
+      const fallbackModel = this.normalizeModelKey((inst as any).model);
+      if (fallbackModel) {
+        modelSet.add(fallbackModel);
+        this.upsertModelSource(sourcesByModel, fallbackModel, instId, isActive);
+      }
+
+      const discovered = await this.fetchModelsFromInstanceUrl(url);
+      for (const m of discovered) {
+        modelSet.add(m);
+        this.upsertModelSource(sourcesByModel, m, instId, isActive);
+      }
+    }
+
+    // Stabil sortieren für UI
+    for (const key of Object.keys(sourcesByModel)) {
+      sourcesByModel[key].instances = Array.from(new Set(sourcesByModel[key].instances)).sort((a, b) => a.localeCompare(b));
+    }
+
+    return { modelSet, sourcesByModel };
+  }
+
+  newCategory: { key: string; label: string } = { key: '', label: '' };
+
   async loadCategories(): Promise<void> {
     try {
-      this.categories = await lastValueFrom(this.categoryService.list());
+      const raw = await lastValueFrom(this.categoryService.list());
+      // Backend (TypeORM) uses `id`, frontend model uses `_id`
+      this.categories = (raw || []).map((c: any) => ({
+        ...c,
+        _id: c._id || c.id,
+      }));
       console.log('Loaded categories:', this.categories.length);
     } catch (error) {
       console.error('Failed to load categories:', error);
     }
   }
 
-async loadLlmInstances(): Promise<void> {
-  try {
-    // Avoid cached 304 responses by adding a cache-buster on the backend call
-    const ts = Date.now();
-    this.llmInstances = await lastValueFrom(
-      this.http.get<LlmInstance[]>(`${this.backendUrl}/api/llm-instances`, { params: { _t: String(ts) } })
-    );
-    this.activeInstance = this.llmInstances.find(i => i.isActive) || null;
+  async createCategory(): Promise<void> {
+    const key = String(this.newCategory.key || '').trim();
+    const label = String(this.newCategory.label || '').trim();
+    if (!key || !label) {
+      this.snackBar.open('Bitte Key und Label angeben', 'OK', { duration: 3000 });
+      return;
+    }
 
-    // Lade System-Prompt für die aktive oder erste Instanz
-    const instanceToLoad = this.llmInstances.find(i => i.isActive) || this.llmInstances[0];
-    await this.loadSystemPromptFor(instanceToLoad);
-
-    // Entdecke Modelle aus allen Instanzen
-    const { modelSet, sources } = await this.discoverModels(this.llmInstances);
-    this.uniqueModelSources = sources;
-    this.uniqueModels = Array.from(modelSet).sort((a, b) => a.localeCompare(b));
-
-    console.log('Unique models:', this.uniqueModels);
-    console.log('Unique model sources:', this.uniqueModelSources);
-    this.frontendLogger.debug('AdminSpeech', 'Model discovery', { uniqueModels: this.uniqueModels, uniqueModelSources: this.uniqueModelSources });
-
-    console.log('Loaded LLM instances:', this.llmInstances.length);
-    this.frontendLogger.info('AdminSpeech', 'Finished populating model discovery', { instances: this.llmInstances.length });
-  } catch (error) {
-    console.error('Failed to load LLM instances:', error);
-    this.frontendLogger.error('AdminSpeech', 'Failed to load LLM instances (outer)', error);
-  }
-}
-
-/** Lade System-Prompt für eine Instanz (falls vorhanden) */
-private async loadSystemPromptFor(instance?: LlmInstance): Promise<void> {
-  if (!instance?._id) {
-    this.systemPrompt = '';
-    this.activeInstance = null;
-    return;
-  }
-
-  try {
-    const promptResult = await lastValueFrom(this.llmService.getSystemPrompt(instance._id));
-    this.systemPrompt = promptResult.systemPrompt || '';
-    this.activeInstance = instance;
-
-    // WICHTIG: Setze config.url und config.model, damit Test die richtige Instanz verwendet!
-    this.config.url = instance.url.replace('/v1/chat/completions', '');
-    this.config.model = instance.model;
-    this.config.systemPrompt = this.systemPrompt;
-
-    // Replace config reference so child OnChanges is triggered
-    this.config = { ...this.config };
-    console.log(`Loaded system prompt for instance: ${instance.model}, length: ${this.systemPrompt.length}`);
-  } catch (e) {
-    console.warn('Failed to load system prompt:', e);
-    this.systemPrompt = '';
-  }
-}
-
-/** Hole Modelle von jeder Instanz und baue unique set und Quellen-Map auf */
-private async discoverModels(instances: LlmInstance[]): Promise<{
-  modelSet: Set<string>;
-  sources: Record<string, { instances: string[]; active: boolean }>;
-}> {
-  const modelSet = new Set<string>(this.uniqueModels || []);
-  const sources: Record<string, { instances: string[]; active: boolean }> = {};
-
-  for (const inst of instances) {
-    const idOrUrl = inst.name || inst.url;
     try {
-      const models = await lastValueFrom(this.llmService.getModels(inst.url));
-      console.log(`Models from instance ${idOrUrl}:`, models);
-      if (!models || models.length === 0) {
-        console.warn(`No models returned from instance ${idOrUrl}`);
-      }
-
-      for (const m of models || []) {
-        modelSet.add(m);
-        const entry = sources[m] || { instances: [], active: false };
-        if (!entry.instances.includes(idOrUrl)) entry.instances.push(idOrUrl);
-        entry.active = entry.active || !!inst.isActive;
-        sources[m] = entry;
-      }
-
-      // also include the inst.model field if present
-      if (inst.model) {
-        modelSet.add(inst.model);
-        const mm = inst.model;
-        const entry = sources[mm] || { instances: [], active: false };
-        if (!entry.instances.includes(idOrUrl)) entry.instances.push(idOrUrl);
-        entry.active = entry.active || !!inst.isActive;
-        sources[mm] = entry;
-      }
+      await lastValueFrom(this.categoryService.create({ key, label } as any));
+      this.snackBar.open('Kategorie gespeichert', 'OK', { duration: 2500 });
+      this.newCategory = { key: '', label: '' };
+      await this.loadCategories();
     } catch (e) {
-      // ignore individual instance failures
-      console.warn(`Failed to fetch models from instance ${idOrUrl}:`, e);
+      console.error('Failed to create category', e);
+      this.snackBar.open('Fehler beim Erstellen der Kategorie', 'OK', { duration: 4000 });
     }
   }
 
-  return { modelSet, sources };
-}
+  async loadLlmInstances(): Promise<void> {
+    try {
+      // Avoid cached 304 responses by adding a cache-buster on the backend call
+      const ts = Date.now();
+      const raw = await lastValueFrom(
+        this.http.get<LlmInstance[]>(`${this.backendUrl}/api/llm-instances`, { params: { _t: String(ts) } })
+      );
 
+      // Normalize ids/roles defensively (backend may return id instead of _id)
+      this.llmInstances = (raw || []).map((i: any) => ({
+        ...i,
+        _id: i._id || i.id,
+        role: this.normalizeRole(i.role),
+      }));
+
+      this.activeInstance = this.llmInstances.find(i => i.isActive) || null;
+
+      // Lade System-Prompt für die aktive oder erste Instanz
+      const instanceToLoad = this.llmInstances.find(i => i.isActive) || this.llmInstances[0];
+      await this.loadSystemPromptFor(instanceToLoad);
+
+      // Entdecke Modelle aus allen Instanzen
+      const { modelSet, sourcesByModel } = await this.discoverModels(this.llmInstances);
+      this.uniqueModelSources = sourcesByModel;
+      this.uniqueModels = Array.from(modelSet).map(String).sort((a, b) => a.localeCompare(b));
+
+      console.log('Loaded LLM instances:', this.llmInstances.length);
+      this.frontendLogger.info('AdminSpeech', 'Finished populating model discovery', { instances: this.llmInstances.length });
+    } catch (error) {
+      console.error('Failed to load LLM instances:', error);
+      this.frontendLogger.error('AdminSpeech', 'Failed to load LLM instances (outer)', error);
+    }
+  }
+
+  /** Rollen konsistent normalisieren */
+  private normalizeRole(role: any): 'primary' | 'secondary' | 'other' {
+    const r = String(role || '').toLowerCase();
+    if (r === 'primary') return 'primary';
+    if (r === 'secondary') return 'secondary';
+    return 'other';
+  }
 
   async scanLlmInstances(): Promise<void> {
     try {
-      this.llmInstances = await lastValueFrom(this.llmService.scan());
+      await lastValueFrom(this.llmService.scan());
+      // Wichtig: Scan setzt isActive/health nur initial. Danach unbedingt mit LM Studio syncen.
+      await lastValueFrom(this.llmService.syncActive());
+
       this.snackBar.open('LLM-Instanzen gescannt', 'OK', { duration: 3000 });
       await this.loadLlmInstances();
     } catch (error) {
@@ -755,98 +835,73 @@ private async discoverModels(instances: LlmInstance[]): Promise<{
     }
   }
 
-  async cleanupDuplicates(): Promise<void> {
-    try {
-      const raw: any = await lastValueFrom(
-        this.http.post(`${this.backendUrl}/api/llm-instances/cleanup`, {})
-      );
-
-      // Defensive parsing: backend may return { deleted: number } or legacy { deletedInstances: [...] }
-      let deletedCount = 0;
+  private async enforceExclusiveRole(targetId: string, role: 'primary' | 'secondary'): Promise<void> {
+    // set all other instances with same role -> other
+    const others = (this.llmInstances || []).filter(i => (i._id || i.id) !== targetId && this.normalizeRole(i.role) === role);
+    for (const other of others) {
+      const otherId = other._id || other.id;
+      if (!otherId) continue;
       try {
-        if (raw == null) {
-          deletedCount = 0;
-        } else if (typeof raw === 'number') {
-          deletedCount = raw;
-        } else if (typeof raw === 'string') {
-          const n = Number(raw);
-          deletedCount = Number.isFinite(n) ? n : 0;
-        } else if (Array.isArray(raw)) {
-          deletedCount = raw.length;
-        } else if (typeof raw === 'object') {
-          if (typeof raw.deleted === 'number') deletedCount = raw.deleted;
-          else if (Array.isArray((raw as any).deletedInstances)) deletedCount = (raw as any).deletedInstances.length;
-          else if (typeof (raw as any).deleted === 'string') {
-            const n = Number((raw as any).deleted);
-            deletedCount = Number.isFinite(n) ? n : 0;
-          } else if (typeof (raw as any).success === 'boolean' && (raw as any).deleted === undefined) {
-            // no explicit deleted field, fallback to 0
-            deletedCount = 0;
-          } else {
-            deletedCount = 0;
-          }
-        }
+        await lastValueFrom(this.llmService.setRole(otherId, 'other'));
       } catch (e) {
-        console.warn('Could not parse cleanup response, defaulting to 0', e, raw);
-        deletedCount = 0;
+        console.warn('Failed to demote other role instance', { otherId, role, e });
       }
-
-      this.frontendLogger.info('AdminSpeech', 'cleanupDuplicates result', { raw });
-
-      this.snackBar.open(
-        `${deletedCount} Duplikate entfernt`,
-        'OK',
-        { duration: 3000 }
-      );
-
-      // Try to refresh instances but don't block user-facing success message
-      try {
-        await this.loadLlmInstances();
-      } catch (e) {
-        console.warn('Failed to reload instances after cleanup:', e);
-      }
-    } catch (error) {
-      console.error('Failed to cleanup duplicates:', error);
-      this.snackBar.open('Fehler beim Bereinigen', 'OK', { duration: 3000 });
     }
   }
 
   async loadLlmInstance(instance: LlmInstance): Promise<void> {
-    if (!instance._id) return;
+    const id = instance._id || instance.id;
+    if (!id) return;
+
+    // Dialog: Rolle w e4hlen
+    const dialogRef = this.dialog.open(AdminLlmLoadDialogComponent, {
+      width: '520px',
+      disableClose: false,
+      data: { model: instance.model },
+    });
+
+    const dialogRes = await dialogRef.afterClosed().toPromise();
+    if (!dialogRes?.role) return;
+
+    const chosenRole: LlmLoadRoleChoice = dialogRes.role;
 
     try {
-      const result = await lastValueFrom(this.llmService.load(instance._id));
+      // 1) Rolle setzen
+      await lastValueFrom(this.llmService.setRole(id, chosenRole));
 
-      // Check if load was successful
-      if (result.loadResult?.success) {
-        this.snackBar.open(
-          `✅ ${instance.model} geladen!`,
-          'OK',
-          { duration: 3000 }
-        );
-      } else if (result.loadResult?.error?.includes?.('not support')) {
-        this.snackBar.open(
-          `⚠️ ${instance.model} als aktiv markiert (LM Studio load API nicht verfügbar - Modell manuell laden)`,
-          'OK',
-          { duration: 5000 }
-        );
+      // 2) Exklusivit e4t erzwingen: alle anderen dieser Rolle -> other
+      await this.enforceExclusiveRole(id, chosenRole);
+
+      // 3) Laden + Policy: alles au dfer primary/secondary entladen
+      const policyRes = await lastValueFrom(this.llmService.loadWithPolicy(id, ['primary', 'secondary']));
+
+      // 4) Status refresh (Backend macht zwar sync nach load/eject, aber UI soll sofort stimmen)
+      await lastValueFrom(this.llmService.syncActive());
+
+      // Snackbar
+      const ok = !!policyRes?.loaded?.loadResult?.success;
+      if (ok) {
+        this.snackBar.open(` dc2705 ${instance.model} als ${chosenRole} geladen!`, 'OK', { duration: 3500 });
       } else {
-        this.snackBar.open(
-          `${instance.model} geladen`,
-          'OK',
-          { duration: 3000 }
-        );
+        this.snackBar.open(`${instance.model} Load ausgef fchrt (Role: ${chosenRole})`, 'OK', { duration: 3500 });
       }
 
       await this.loadLlmInstances();
     } catch (error) {
-      console.error('Failed to load LLM instance:', error);
-      this.snackBar.open('Laden fehlgeschlagen', 'OK', { duration: 3000 });
+      console.error('Failed to load LLM instance with role/policy:', error);
+      this.snackBar.open('Laden fehlgeschlagen', 'OK', { duration: 3500 });
+      // best effort refresh
+      try {
+        await this.loadLlmInstances();
+      } catch {
+        // ignore
+      }
     }
   }
 
   async ejectLlmInstance(instance: LlmInstance): Promise<void> {
-    if (!instance._id) return;
+    const id = instance._id || instance.id;
+    if (!id) return;
 
     // Bestätigungs-Dialog mit MCP-Eject-Hinweis
     const confirmed = confirm(
@@ -861,7 +916,7 @@ private async discoverModels(instances: LlmInstance[]): Promise<{
     }
 
     try {
-      const result = await lastValueFrom(this.llmService.eject(instance._id));
+      const result = await lastValueFrom(this.llmService.eject(id));
 
       // Check if eject was successful
       if (result.ejectResult?.success) {
@@ -887,6 +942,8 @@ private async discoverModels(instances: LlmInstance[]): Promise<{
         );
       }
 
+      // Ensure backend syncs active flags and UI sees the latest state
+      await lastValueFrom(this.llmService.syncActive());
       await this.loadLlmInstances();
     } catch (error) {
       console.error('Failed to eject LLM instance:', error);
@@ -1233,9 +1290,36 @@ private async discoverModels(instances: LlmInstance[]): Promise<{
     }
   }
 
+  /** Entfernt doppelte LLM-Instanzen (Backend-Dedupe) */
+  async cleanupDuplicates(): Promise<void> {
+    if (this.isCleaningDuplicates) return;
+    this.isCleaningDuplicates = true;
+
+    try {
+      const res = await lastValueFrom(
+        this.http.post<any>(`${this.backendUrl}/api/llm-instances/cleanup`, {})
+      );
+
+      const deleted = (res && typeof res.deleted === 'number') ? res.deleted : undefined;
+      this.snackBar.open(
+        deleted != null ? `Duplikate entfernt: ${deleted}` : 'Duplikate entfernt.',
+        'OK',
+        { duration: 4000 }
+      );
+
+      await this.loadLlmInstances();
+    } catch (e) {
+      console.error('cleanupDuplicates failed', e);
+      this.snackBar.open('Fehler beim Entfernen der Duplikate.', 'OK', { duration: 5000 });
+    } finally {
+      this.isCleaningDuplicates = false;
+    }
+  }
+
   // Helper to safely coerce values to numbers for the template
   num(v: any): number {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
   }
 }
+

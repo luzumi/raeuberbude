@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '../../services/config-service';
+import { environment } from '../../../environments/environment';
+import { resolveBackendBase } from '../utils/backend';
 
 export type ParamType = 'number' | 'string' | 'boolean' | 'select';
 
@@ -74,11 +76,13 @@ export class DeviceService {
     }
   ];
 
-  constructor(private http: HttpClient, private config: ConfigService) {}
+  private readonly backendBase = resolveBackendBase(environment.backendApiUrl || environment.apiUrl || '');
+
+  constructor(private readonly http: HttpClient, private readonly config: ConfigService) {}
 
   private getBaseUrl(): string {
-    // Erwartete Konfiguration: config.homeAssistantUrl oder leer
-    return (this.config && this.config.homeAssistantUrl) ? this.config.homeAssistantUrl.replace(/\/$/, '') : '';
+    // Devices kommen über das Nest-Backend (3001) / Proxy, nicht direkt über HomeAssistant '/api' am Frontend.
+    return this.backendBase;
   }
 
   private buildHeaders(): HttpHeaders | undefined {
@@ -92,25 +96,40 @@ export class DeviceService {
   private buildUrl(path: string): string {
     const base = this.getBaseUrl();
     if (!base) return path;
+
+    // normalize
+    const normalizedBase = String(base).replace(/\/+$/, '');
+    const normalizedPath = String(path || '').startsWith('/') ? String(path || '') : `/${String(path || '')}`;
+
     // If base already ends with '/api', don't duplicate
-    if (base.endsWith('/api')) {
-      return `${base}${path.startsWith('/') ? '' : '/'}${path.startsWith('/') ? path.slice(1) : path}`;
+    if (normalizedBase.endsWith('/api')) {
+      return `${normalizedBase}${normalizedPath}`;
     }
-    return `${base}${path.startsWith('/') ? '' : '/api/'}${path.startsWith('/') ? path.slice(1) : path}`;
+
+    return `${normalizedBase}/api${normalizedPath}`;
   }
 
   async getDevices(): Promise<Device[]> {
     const base = this.getBaseUrl();
     if (!base) {
       // Kein Backend konfiguriert — Mock zurückgeben
-      return Promise.resolve(this.devices.slice());
+      return this.devices.slice();
     }
 
-    const url = this.buildUrl('/devices');
+    // Use MariaDB-backed HA snapshot first (fast, stable)
+    const url = `${base}/api/homeassistant/db/devices`;
     try {
       const headers = this.buildHeaders();
-      const res = await firstValueFrom(this.http.get<Device[]>(url, headers ? { headers } : {}));
-      return res || [];
+      const res = await firstValueFrom(this.http.get<any[]>(url, headers ? { headers } : {}));
+      const list = Array.isArray(res) ? res : [];
+
+      // Map HA device rows to UI Device shape
+      return list.map((d: any) => ({
+        id: d.deviceId || d.device_id || d.id,
+        name: d.name || d.deviceId || d.device_id || 'Unnamed',
+        type: d.manufacturer || d.model || 'device',
+        actions: [],
+      })) as Device[];
     } catch (err) {
       console.warn('getDevices(): Backend-Fehler, verwende Mock-Daten', err);
       return this.devices.slice();
@@ -120,7 +139,7 @@ export class DeviceService {
   async getDeviceById(deviceId: string): Promise<Device | undefined> {
     const base = this.getBaseUrl();
     if (!base) {
-      return Promise.resolve(this.devices.find(d => d.id === deviceId));
+      return Promise.resolve(this.devices.find(d => d.id === deviceId)).then();
     }
 
     const url = this.buildUrl(`/devices/${encodeURIComponent(deviceId)}`);
@@ -138,19 +157,13 @@ export class DeviceService {
     const base = this.getBaseUrl();
     if (!base) {
       const d = this.devices.find(dv => dv.id === deviceId);
-      return Promise.resolve(d?.actions ? d.actions.slice() : []);
+      return Promise.resolve(d?.actions ? d.actions.slice() : []).then();
     }
 
-    const url = this.buildUrl(`/devices/${encodeURIComponent(deviceId)}/actions`);
-    try {
-      const headers = this.buildHeaders();
-      const res = await firstValueFrom(this.http.get<DeviceAction[]>(url, headers ? { headers } : {}));
-      return res || [];
-    } catch (err) {
-      console.warn('getActionsForDevice(): Backend-Fehler, verwende Mock-Daten', err);
-      const d = this.devices.find(dv => dv.id === deviceId);
-      return d?.actions ? d.actions.slice() : [];
-    }
+    // TODO: Map real HA services to device-specific actions.
+    // For now, return the mock actions for known mock devices.
+    const d = this.devices.find(dv => dv.id === deviceId);
+    return d?.actions ? d.actions.slice() : [];
   }
 
   async executeAction(deviceId: string, actionId: string, params?: Record<string, any>): Promise<{ success: boolean; message: string }> {

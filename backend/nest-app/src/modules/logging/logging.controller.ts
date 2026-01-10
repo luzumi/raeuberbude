@@ -125,7 +125,7 @@ export class LoggingController {
 
   @Get('/llm-instances')
   listLlmInstances() {
-    return this.svc.getLlmInstances();
+    return this.svc.getLlmInstances({ syncActive: true });
   }
 
   @Post('/llm-instances/scan')
@@ -135,22 +135,37 @@ export class LoggingController {
 
   @Post('/llm-instances/cleanup')
   cleanupLlmInstances() {
-    return this.svc.cleanupOldInstances();
+    return this.svc.cleanupDuplicates();
+  }
+
+  @Post('/llm-instances/sync-active')
+  syncActiveInstances() {
+    return this.svc.syncInstanceActiveFlagsFromLmStudio();
+  }
+
+  @Put('/llm-instances/:id/role')
+  setInstanceRole(@Param('id') id: string, @Body() body: any) {
+    return this.svc.updateInstanceRole(id, body?.role);
   }
 
   @Post('/llm-instances/:id/load')
   loadLlmInstance(@Param('id') id: string) {
-    return { message: 'Load LLM instance not implemented - MongoDB removed' };
+    return this.svc.loadLlmInstance(id);
+  }
+
+  @Post('/llm-instances/:id/load-with-policy')
+  loadLlmInstanceWithPolicy(@Param('id') id: string, @Body() body: any) {
+    return this.svc.loadLlmInstanceWithPolicy(id, body?.keepRoles);
   }
 
   @Post('/llm-instances/:id/eject')
   ejectLlmInstance(@Param('id') id: string) {
-    return { message: 'Eject LLM instance not implemented - MongoDB removed' };
+    return this.svc.ejectLlmInstance(id);
   }
 
   @Delete('/llm-instances/:id')
   deleteLlmInstance(@Param('id') id: string) {
-    return this.svc.deleteInstance(id);
+    return this.svc.deleteLlmInstance(id);
   }
 
   @Post('/llm-instances/normalize')
@@ -160,23 +175,22 @@ export class LoggingController {
 
   @Get('/llm-instances/:id/system-prompt')
   getSystemPrompt(@Param('id') id: string) {
-    return { message: 'Get system prompt not implemented - MongoDB removed' };
+    return this.svc.getInstanceSystemPrompt(id);
   }
 
   @Get('/llm-instances/:id/model-status')
   getModelStatusForInstance(@Param('id') id: string) {
-    return { message: 'Get model status not implemented - MongoDB removed' };
+    return this.svc.getModelStatusForInstance(id);
   }
 
   @Put('/llm-instances/:id/system-prompt')
   updateSystemPrompt(@Param('id') id: string, @Body() body: any) {
-    return this.svc.updateInstanceSystemPrompt(id, body.systemPrompt);
+    return this.svc.setSystemPrompt(id, body.systemPrompt);
   }
 
   @Put('/llm-instances/:id/config')
   updateInstanceConfig(@Param('id') id: string, @Body() body: any, @Query('autoReload') autoReload?: string) {
-    const config = body;
-    return this.svc.updateInstanceSamplingParams(id, config);
+    return this.svc.updateInstanceConfig(id, body, autoReload);
   }
 
   @Get('/system-prompt/default')
@@ -186,7 +200,7 @@ export class LoggingController {
 
   @Post('/test-llm')
   testLlmRequest(@Body() body: any) {
-    return this.svc.testInstance(body.instanceId);
+    return this.svc.testLlmRequest(body.instanceId);
   }
 
   // ============================================================================

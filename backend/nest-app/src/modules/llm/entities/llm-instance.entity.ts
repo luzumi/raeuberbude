@@ -6,8 +6,15 @@ export enum LlmHealth {
   UNKNOWN = 'unknown',
 }
 
+export enum LlmRole {
+  PRIMARY = 'primary',
+  SECONDARY = 'secondary',
+  OTHER = 'other',
+}
+
 @Entity('llm_instances')
 @Index(['isActive'])
+@Index(['role'])
 export class LlmInstanceEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -23,6 +30,13 @@ export class LlmInstanceEntity {
 
   @Column({ type: 'boolean', default: true })
   enabled: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: LlmRole,
+    default: LlmRole.OTHER,
+  })
+  role: LlmRole;
 
   @Column({ type: 'boolean', default: false })
   isActive: boolean;

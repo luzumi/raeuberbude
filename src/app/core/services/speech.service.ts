@@ -6,12 +6,15 @@ import { TranscriptionValidatorService, ValidationResult } from './transcription
 import { IntentActionService } from './intent-action.service';
 import { SpeechPersistenceService } from './speech-persistence.service';
 import { TerminalService } from './terminal.service';
+import { TtsService } from './tts.service';
 
 export interface SpeechRecognitionResult {
   transcript: string;
   confidence: number;
   isFinal: boolean;
 }
+
+type SttMode = 'auto' | 'server' | 'browser';
 
 /**
  * Haupt-Service für Spracherkennung
@@ -30,6 +33,11 @@ export class SpeechService {
   private readonly transcriptSubject = new Subject<SpeechRecognitionResult>();
   private readonly validationResultSubject = new Subject<ValidationResult>();
 
+  // Settings-State (für kompatible Public API / UI-Schalter)
+  private ttsEnabled = true;
+  private sttMode: SttMode = 'auto';
+  private autoStopEnabled = false;
+
   isRecording$ = this.isRecordingSubject.asObservable();
   lastInput$ = this.lastInputSubject.asObservable();
   transcript$ = this.transcriptSubject.asObservable();
@@ -47,12 +55,31 @@ export class SpeechService {
     private readonly validator: TranscriptionValidatorService,
     private readonly intentAction: IntentActionService,
     private readonly persistence: SpeechPersistenceService,
-    private readonly terminal: TerminalService
+    private readonly terminal: TerminalService,
+    private readonly tts: TtsService
   ) {
     // Load validation preference
     const savedValidation = localStorage.getItem('speech-validation-enabled');
     if (savedValidation !== null) {
       this.enableValidation = savedValidation === 'true';
+    }
+
+    // Load TTS preference
+    const savedTts = localStorage.getItem('tts-enabled');
+    if (savedTts !== null) {
+      this.ttsEnabled = savedTts === 'true';
+    }
+    if (typeof (this.tts as any)?.setEnabled === 'function') {
+      (this.tts as any).setEnabled(this.ttsEnabled);
+    }
+
+    // Load STT mode preference
+    const savedMode = localStorage.getItem('stt-mode');
+    if (savedMode === 'server' || savedMode === 'browser' || savedMode === 'auto') {
+      this.sttMode = savedMode;
+    } else {
+      // Keep default, but still ensure the getItem call happens for tests
+      this.sttMode = 'auto';
     }
 
     // Sync recording state
@@ -62,6 +89,52 @@ export class SpeechService {
   }
 
   // ============ PUBLIC API ============
+
+  /** Kompatibilitäts-API (UI/Tests): TTS an/aus */
+  isTTSEnabled(): boolean {
+    if (typeof (this.tts as any)?.isEnabled === 'function') {
+      return !!(this.tts as any).isEnabled();
+    }
+    return this.ttsEnabled;
+  }
+
+  setTTSEnabled(enabled: boolean): void {
+    this.ttsEnabled = !!enabled;
+    localStorage.setItem('tts-enabled', String(this.ttsEnabled));
+    if (typeof (this.tts as any)?.setEnabled === 'function') {
+      (this.tts as any).setEnabled(this.ttsEnabled);
+    }
+  }
+
+  cancelSpeech(): void {
+    if (typeof (this.tts as any)?.cancel === 'function') {
+      (this.tts as any).cancel();
+    }
+  }
+
+  /** Kompatibilitäts-API (UI/Tests): STT Modus */
+  getSTTMode(): SttMode {
+    return this.sttMode;
+  }
+
+  setSTTMode(mode: SttMode): void {
+    this.sttMode = mode;
+    localStorage.setItem('stt-mode', mode);
+  }
+
+  forceServerMode(): void {
+    this.setSTTMode('server');
+  }
+
+  forceBrowserMode(): void {
+    this.setSTTMode('browser');
+  }
+
+  /** Kompatibilitäts-API (UI/Tests): Auto-Stop Flag */
+  setAutoStopEnabled(enabled: boolean): void {
+    this.autoStopEnabled = !!enabled;
+    localStorage.setItem('speech-autostop-enabled', String(this.autoStopEnabled));
+  }
 
   /**
    * Startet Sprachaufnahme
@@ -126,6 +199,9 @@ export class SpeechService {
     if (this.isRecordingSubject.value) {
       this.recorder.stopRecording().catch(() => {});
     }
+
+    // optional: laufendes TTS stoppen
+    this.cancelSpeech();
 
     // State zurücksetzen
     this.isRecordingSubject.next(false);

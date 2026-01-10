@@ -3,7 +3,7 @@ module.exports = {
   testMatch: ['**/*.spec.ts','**/test/**/*.spec.ts', '**/test/**/*.e2e-spec.ts'],
   transform: {
     '^.+\\.(t|j)s$': ['ts-jest', {
-      tsconfig: 'tsconfig.json'
+      tsconfig: 'tsconfig.spec.json'
     }]
   },
   collectCoverageFrom: [

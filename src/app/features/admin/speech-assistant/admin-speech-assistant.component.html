@@ -48,6 +48,7 @@
                   </div>
                   <div class="instance-details">
                     <p><strong>URL:</strong> {{ instance.url }}</p>
+                    <p><strong>Rolle:</strong> {{ (instance.role || 'other') | uppercase }}</p>
                     <p><strong>Status:</strong> {{ instance.isActive ? 'Geladen ✅' : 'Nicht geladen 🔴' }}</p>
                     <p *ngIf="instance.config?.temperature"><strong>Temperature:</strong> {{ instance.config?.temperature }}</p>
                     <p *ngIf="instance.config?.maxTokens"><strong>Max Tokens:</strong> {{ instance.config?.maxTokens }}</p>
@@ -143,7 +144,7 @@
                     <mat-card-title>Gesamt-Anfragen</mat-card-title>
                   </mat-card-header>
                   <mat-card-content>
-                    <div class="stat-value">{{ stats.summary.totalRequests || 0 }}</div>
+                    <div class="stat-value">{{ stats?.summary?.totalRequests || 0 }}</div>
                   </mat-card-content>
                 </mat-card>
 
@@ -193,7 +194,7 @@
                     <mat-card-title>Fallback genutzt</mat-card-title>
                   </mat-card-header>
                   <mat-card-content>
-                    <div class="stat-value warn">{{ stats.summary.fallbackCount || 0 }}</div>
+                    <div class="stat-value warn">{{ stats?.summary?.fallbackCount || 0 }}</div>
                   </mat-card-content>
                 </mat-card>
               </div>
@@ -251,17 +252,45 @@
           <!-- Tab 3: Anfragen -->
           <mat-tab label="Anfragen">
             <div class="tab-content">
-              <div class="tab-header">
-                <h3>Alle Sprach-Anfragen</h3>
-                <div class="header-actions">
-                  <button mat-icon-button (click)="goBack()" title="Zurück">
-                    <mat-icon>arrow_back</mat-icon>
-                  </button>
-                  <button mat-icon-button (click)="closeView()" title="Schließen">
-                    <mat-icon>close</mat-icon>
-                  </button>
-                </div>
-              </div>
+              <!-- Kategorien verwalten -->
+              <mat-card class="admin-card" style="margin-bottom: 1rem;">
+                <mat-card-header>
+                  <mat-card-title>Kategorien</mat-card-title>
+                  <mat-card-subtitle>Neue Kategorien anlegen, damit sie in den Selects auswählbar sind</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="filter-row" style="align-items: end;">
+                    <mat-form-field>
+                      <mat-label>Key</mat-label>
+                      <input matInput [(ngModel)]="newCategory.key" placeholder="z.B. home_assistant_command">
+                    </mat-form-field>
+                    <mat-form-field>
+                      <mat-label>Label</mat-label>
+                      <input matInput [(ngModel)]="newCategory.label" placeholder="z.B. Home Assistant Befehl">
+                    </mat-form-field>
+                    <button mat-raised-button color="primary" (click)="createCategory()">
+                      <mat-icon>add</mat-icon>
+                      Kategorie speichern
+                    </button>
+                    <button mat-button (click)="loadCategories()">
+                      <mat-icon>refresh</mat-icon>
+                      Aktualisieren
+                    </button>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+
+               <div class="tab-header">
+                 <h3>Alle Sprach-Anfragen</h3>
+                 <div class="header-actions">
+                   <button mat-icon-button (click)="goBack()" title="Zurück">
+                     <mat-icon>arrow_back</mat-icon>
+                   </button>
+                   <button mat-icon-button (click)="closeView()" title="Schließen">
+                     <mat-icon>close</mat-icon>
+                   </button>
+                 </div>
+               </div>
 
               <!-- Filter -->
               <div class="filter-row">
@@ -294,8 +323,8 @@
                   <mat-label>Kategorie</mat-label>
                   <mat-select [(ngModel)]="filter.category" (selectionChange)="applyFilter()">
                     <mat-option value="">Alle</mat-option>
-                    <mat-option *ngFor="let cat of categories" [value]="cat.key">
-                      {{ cat.label }}
+                    <mat-option *ngFor="let cat of categories" [value]="cat?.key">
+                      {{ cat?.label }}
                     </mat-option>
                   </mat-select>
                 </mat-form-field>

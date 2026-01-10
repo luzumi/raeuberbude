@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
-import {environment} from '../../../environments/environments';
+import { environment } from '../../../environments/environments';
 
 interface WebSocketMessage {
   id: number;
@@ -35,6 +35,10 @@ export class WebSocketBridgeService {
   private readonly lastLogs: WsLogEntry[] = [];
 
   constructor() {
+    // In Unit-Tests keine echte WebSocket-Verbindung aufbauen (führt sonst zu Retries/Timeouts)
+    if ((environment as any)?.production === false && (globalThis as any).jasmine) {
+      return;
+    }
     this.connect();
   }
 

@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "defaultBase": "main",
+  "defaultBranch": "main",
   "defaultProject": "raeuberbude",
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],

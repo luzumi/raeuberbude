@@ -4,7 +4,7 @@
  */
 
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController, TestRequest } from '@angular/common/http/testing';
 import { SpeechService } from './speech.service';
 import { TtsService } from './tts.service';
 import { TranscriptionValidatorService } from './transcription-validator.service';
@@ -14,7 +14,7 @@ import { mockGetUserMedia, GetUserMediaScenarios, unmockGetUserMedia } from '../
 import { mockTranscribeResponse, mockTranscribeError } from '../../../testing/http-mocks';
 import { BehaviorSubject } from 'rxjs';
 import { flushTerminalRegisterIfAny, flushPendingTranscribeRequests } from '../../../testing/test-helpers';
-import { awaitMicrotask, waitFor } from '../../../testing/test-helpers';
+import { waitFor } from '../../../testing/test-helpers';
 
 describe('SpeechService', () => {
   let service: SpeechService;
@@ -25,12 +25,13 @@ describe('SpeechService', () => {
   let mockRecorder: MockMediaRecorder;
 
   // Helper to safely take one transcribe request (works even if multiple requests leaked)
-  function takeOneTranscribe(httpMock: HttpTestingController) {
+  function takeOneTranscribe(httpMock: HttpTestingController): TestRequest {
     const matches = httpMock.match((r: any) => Boolean(r && typeof r.url === 'string' && r.url.endsWith('/api/speech/transcribe') && r.method === 'POST'));
     if (!matches || matches.length === 0) {
       throw new Error('Expected a transcribe request but none found');
     }
-    return matches.shift();
+    // matches.length > 0 garantiert, daher ist shift() nicht undefined
+    return matches.shift()!;
   }
 
   beforeEach(() => {
@@ -161,8 +162,7 @@ describe('SpeechService', () => {
 
       // Mock Backend-Response
       await waitFor(0);
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({
         transcript: 'Test Eingabe',
         confidence: 0.95
       }));
@@ -197,8 +197,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeError({
+      takeOneTranscribe(httpMock).flush(mockTranscribeError({
         error: 'TRANSCRIPTION_FAILED',
         message: 'Audio too short'
       }));
@@ -221,8 +220,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({
         transcript: 'Test Eingabe',
         confidence: 0.95
       }));
@@ -244,8 +242,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({
         transcript: 'Test Eingabe',
         confidence: 0.95
       }));
@@ -278,8 +275,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({
         transcript: 'Licht an',
         confidence: 0.75
       }));
@@ -312,8 +308,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({
         transcript: 'Test Eingabe',
         confidence: 0.95
       }));
@@ -345,8 +340,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({
         transcript: 'Test Eingabe',
         confidence: 0.95
       }));
@@ -423,8 +417,8 @@ describe('SpeechService', () => {
       const stopPromise = service.stopRecording();
       mockRecorder.triggerStop();
 
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({
+      await waitFor(0);
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({
         transcript: 'Licht an',
         confidence: 0.75
       }));
@@ -455,8 +449,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({
         transcript: 'Test Eingabe',
         confidence: 0.95
       }));
@@ -480,8 +473,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      const req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({
         transcript: 'Test Eingabe',
         confidence: 0.95
       }));
@@ -550,8 +542,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      let req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({ transcript: 'Erste Eingabe', confidence: 0.95 }));
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({ transcript: 'Erste Eingabe', confidence: 0.95 }));
 
       await stopPromise;
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -567,8 +558,7 @@ describe('SpeechService', () => {
       mockRecorder.triggerStop();
 
       await waitFor(0);
-      req = takeOneTranscribe(httpMock);
-      req.flush(mockTranscribeResponse({ transcript: 'Zweite Eingabe', confidence: 0.95 }));
+      takeOneTranscribe(httpMock).flush(mockTranscribeResponse({ transcript: 'Zweite Eingabe', confidence: 0.95 }));
 
       await stopPromise;
       await new Promise(resolve => setTimeout(resolve, 100));
