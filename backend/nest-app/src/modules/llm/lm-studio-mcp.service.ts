@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
+import * as path from 'path';
 
 interface MCPRequest {
   jsonrpc: string;
@@ -30,16 +31,21 @@ export class LmStudioMcpService {
   }
 
   private startMcpServer() {
-    // Path from backend/nest-app to project root
-    const serverPath = '../../.specify/mcp-servers/lm-studio-mcp-server.js';
+    // Repo root: backend/nest-app/dist/... -> ../../../..
+    const repoRoot = path.resolve(__dirname, '../../../../../..');
+
+    // MCP server lives at <repoRoot>/.specify/mcp-servers/lm-studio-mcp-server.js
+    const serverPath = path.resolve(repoRoot, '.specify/mcp-servers/lm-studio-mcp-server.js');
 
     this.logger.log(`Starting LM Studio MCP Server: ${serverPath}`);
 
     this.mcpProcess = spawn('node', [serverPath], {
+      cwd: repoRoot,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        LM_STUDIO_URL: process.env.LM_STUDIO_URL || 'http://192.168.56.1:1234',
+        // Default to localhost; can be overridden via env
+        LM_STUDIO_URL: process.env.LM_STUDIO_URL || 'http://127.0.0.1:1234',
       },
     });
 
@@ -245,4 +251,3 @@ export class LmStudioMcpService {
     }
   }
 }
-

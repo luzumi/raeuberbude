@@ -3,7 +3,8 @@
  * LM Studio MCP Server
  *
  * Provides MCP tools to interact with LM Studio:
- * - list_models: List all loaded models
+ * - list_models: List all loaded models (side-effect-free, source of truth)
+ * - list_available_models: List all available/downloaded models (catalog)
  * - load_model: Load a model into LM Studio
  * - unload_model: Unload (eject) a model from LM Studio
  * - get_model_status: Get status of a specific model
@@ -35,9 +36,81 @@ async function ensureFetch() {
 }
 
 /**
+ * Exec helper
+ */
+async function execCli(command, timeout = 30000) {
+  const { exec } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  const execAsync = promisify(exec);
+  return execAsync(command, { timeout });
+}
+
+/**
+ * Parse `lms ps` output into model IDs.
+ *
+ * Example:
+ * IDENTIFIER  MODEL  STATUS ...
+ * openai/gpt-oss-20b  openai/gpt-oss-20b  IDLE ...
+ */
+function parseLmsPs(stdout) {
+  const lines = String(stdout || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+
+  // Skip header line(s)
+  const dataLines = lines.filter(l => !/^IDENTIFIER\s+/i.test(l));
+
+  const ids = [];
+  for (const line of dataLines) {
+    // Split by 2+ spaces to keep columns intact
+    const parts = line.split(/\s{2,}/).map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      // Prefer MODEL column (more stable), fallback IDENTIFIER
+      const model = parts[1];
+      const identifier = parts[0];
+      const id = model || identifier;
+      if (id) ids.push(id);
+    } else if (parts.length === 1) {
+      // Fallback: single token line
+      ids.push(parts[0]);
+    }
+  }
+
+  // normalize unique
+  return Array.from(new Set(ids.map(s => String(s).trim()).filter(Boolean)));
+}
+
+/**
+ * Fetch *loaded* models from LM Studio (side-effect-free)
+ *
+ * Source of truth:
+ * - `lms ps` (CLI) is reliable and does not auto-load models.
+ *
+ * We intentionally DO NOT use OpenAI-like GET /v1/models here, because it returns
+ * available/downloaded models and causes drift.
+ */
+async function listLoadedModels() {
+  try {
+    const { stdout } = await execCli('lms ps', 15000);
+    const ids = parseLmsPs(stdout);
+
+    return {
+      source: 'lms_ps',
+      models: ids.map((id) => ({ id, object: 'model', owned_by: 'organization_owner' })),
+      details: { count: ids.length },
+    };
+  } catch (err) {
+    const msg = err?.message || String(err);
+    // If lms doesn't exist, we must not lie.
+    return { source: 'unavailable', models: [], details: { error: msg } };
+  }
+}
+
+/**
  * Fetch models from LM Studio
+ * NOTE: /v1/models is "available/downloaded" catalog, not "loaded".
  */
 async function listModels() {
+  // Preserve old behavior for tooling that wants the catalog.
   const response = await fetchFn(`${BASE_URL}/v1/models`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
@@ -208,24 +281,21 @@ async function unloadModel(modelId) {
  */
 async function getModelStatus(modelId) {
   try {
-    const models = await listModels();
-    const model = models.find(m => m.id === modelId);
-
-    if (!model) {
-      return {
-        loaded: false,
-        message: `Model ${modelId} not found in loaded models`
-      };
-    }
+    const loaded = await listLoadedModels();
+    const ids = (loaded.models || []).map((m) => m?.id).filter(Boolean);
+    const isLoaded = ids.includes(modelId);
 
     return {
-      loaded: true,
-      model: model
+      loaded: isLoaded,
+      source: loaded.source,
+      modelId,
+      loadedModels: ids,
+      details: loaded.details,
     };
   } catch (error) {
     return {
       loaded: false,
-      error: `Failed to get model status: ${error.message}`
+      error: `Failed to get model status: ${error.message}`,
     };
   }
 }
@@ -295,7 +365,16 @@ async function handleRequest(request) {
         tools: [
           {
             name: 'list_models',
-            description: 'List all loaded models in LM Studio',
+            description: 'List all LOADED models in LM Studio (side-effect-free; uses lms ps)',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              required: []
+            }
+          },
+          {
+            name: 'list_available_models',
+            description: 'List all AVAILABLE/DOWNLOADED models in LM Studio (catalog; uses GET /v1/models)',
             inputSchema: {
               type: 'object',
               properties: {},
@@ -370,9 +449,19 @@ async function handleRequest(request) {
   let result;
   try {
     switch (toolName) {
-      case 'list_models':
-        result = await listModels();
+      case 'list_models': {
+        const loaded = await listLoadedModels();
+        result = loaded.models;
+        result._meta = { source: loaded.source, note: 'Loaded models via lms ps' };
         break;
+      }
+      case 'list_available_models': {
+        const models = await listModels();
+        result = models;
+        // Attach metadata if possible (client ignores unknown fields)
+        result._meta = { source: 'v1_models', note: 'Available/downloaded model catalog' };
+        break;
+      }
       case 'load_model':
         result = await loadModel(args.modelId);
         break;
@@ -426,6 +515,17 @@ async function main() {
 
   let buffer = '';
 
+  const processLine = async (line) => {
+    if (!line || !line.trim()) return;
+    try {
+      const request = JSON.parse(line);
+      const response = await handleRequest(request);
+      process.stdout.write(JSON.stringify(response) + '\n');
+    } catch (error) {
+      console.error('Failed to parse request:', line, error);
+    }
+  };
+
   process.stdin.on('data', async (chunk) => {
     buffer += chunk;
 
@@ -434,19 +534,15 @@ async function main() {
     buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
     for (const line of lines) {
-      if (!line.trim()) continue;
-
-      try {
-        const request = JSON.parse(line);
-        const response = await handleRequest(request);
-        process.stdout.write(JSON.stringify(response) + '\n');
-      } catch (error) {
-        console.error('Failed to parse request:', line, error);
-      }
+      await processLine(line);
     }
   });
 
-  process.stdin.on('end', () => {
+  process.stdin.on('end', async () => {
+    // Flush any remaining buffered JSON (some clients don't send a trailing newline)
+    if (buffer && buffer.trim()) {
+      await processLine(buffer);
+    }
     process.exit(0);
   });
 }
@@ -454,5 +550,4 @@ async function main() {
 // Check fetch availability and start main
 await ensureFetch();
 await main();
-
 

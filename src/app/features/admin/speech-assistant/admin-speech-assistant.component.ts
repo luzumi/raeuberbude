@@ -779,6 +779,13 @@ export class AdminSpeechAssistantComponent implements OnInit {
     }
   }
 
+  /** Drift = DB-Status (isActive) weicht vom echten LM-Studio-Status ab */
+  hasStatusDrift(inst: LlmInstance): boolean {
+    if (!inst) return false;
+    if (inst.loadedInLmStudio === undefined || inst.loadedInLmStudio === null) return false;
+    return (inst.isActive !== inst.loadedInLmStudio);
+  }
+
   async loadLlmInstances(): Promise<void> {
     try {
       // Avoid cached 304 responses by adding a cache-buster on the backend call
@@ -792,7 +799,25 @@ export class AdminSpeechAssistantComponent implements OnInit {
         ...i,
         _id: i._id || i.id,
         role: this.normalizeRole(i.role),
+        loadedInLmStudio: undefined,
       }));
+
+      // Runtime-Status aus LM Studio holen (per Backend /model-status via testConnection)
+      await Promise.all(
+        (this.llmInstances || []).map(async (inst) => {
+          try {
+            // Skip disabled instances (optional): zeigt als unbekannt
+            if (!inst.enabled) {
+              inst.loadedInLmStudio = undefined;
+              return;
+            }
+            const res = await this.llmService.testConnection(inst);
+            inst.loadedInLmStudio = !!res.loaded;
+          } catch {
+            inst.loadedInLmStudio = undefined;
+          }
+        })
+      );
 
       this.activeInstance = this.llmInstances.find(i => i.isActive) || null;
 
