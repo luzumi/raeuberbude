@@ -8,6 +8,13 @@ export interface LlmInstance {
   enabled: boolean;
   role?: 'primary' | 'secondary' | 'other';
   isActive: boolean;
+
+  /**
+   * Laufzeitstatus (nicht persistent): true, wenn das Modell laut LM Studio (/v1/models oder MCP) aktuell geladen ist.
+   * Wird im Admin-UI über den Backend-Endpoint `/api/llm-instances/:id/model-status` gesetzt.
+   */
+  loadedInLmStudio?: boolean;
+
   systemPrompt?: string;
   health: 'healthy' | 'unhealthy' | 'unknown';
   lastHealthCheck?: Date;

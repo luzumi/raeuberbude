@@ -49,7 +49,20 @@
                   <div class="instance-details">
                     <p><strong>URL:</strong> {{ instance.url }}</p>
                     <p><strong>Rolle:</strong> {{ (instance.role || 'other') | uppercase }}</p>
-                    <p><strong>Status:</strong> {{ instance.isActive ? 'Geladen ✅' : 'Nicht geladen 🔴' }}</p>
+
+                    <!-- enabled = in der App freigeschaltet (nicht: in LM Studio geladen) -->
+                    <p><strong>Aktiviert:</strong> {{ instance.enabled ? 'Ja' : 'Nein' }}</p>
+
+                    <!-- isActive = DB-Flag (wird serverseitig per MCP-/HTTP-sync aktualisiert, kann aber bei MCP-Problemen driften) -->
+                    <p><strong>DB-Status:</strong> {{ instance.isActive ? 'Aktiv ✅' : 'Inaktiv' }}</p>
+
+                    <!-- loadedInLmStudio = echter Laufzeitstatus (per /api/llm-instances/:id/model-status) -->
+                    <p>
+                      <strong>LM Studio:</strong>
+                      {{ instance.loadedInLmStudio === true ? 'Geladen ✅'
+                        : (instance.loadedInLmStudio === false ? 'Nicht geladen 🔴' : 'Unbekannt …') }}
+                    </p>
+
                     <p *ngIf="instance.config?.temperature"><strong>Temperature:</strong> {{ instance.config?.temperature }}</p>
                     <p *ngIf="instance.config?.maxTokens"><strong>Max Tokens:</strong> {{ instance.config?.maxTokens }}</p>
                   </div>
@@ -61,7 +74,7 @@
                       Test
                     </button>
                     <button mat-raised-button class="load-btn"
-                            *ngIf="!instance.isActive"
+                            *ngIf="instance.loadedInLmStudio === false"
                             (click)="loadLlmInstance(instance)"
                             [disabled]="!instance.enabled"
                             title="Modell in LM Studio laden (via MCP)">
@@ -69,7 +82,7 @@
                       Load
                     </button>
                     <button mat-raised-button class="eject-btn"
-                            *ngIf="instance.isActive"
+                            *ngIf="instance.loadedInLmStudio === true"
                             (click)="ejectLlmInstance(instance)"
                             title="Modell aus LM Studio entladen (via MCP)">
                       <mat-icon>eject</mat-icon>
