@@ -1,6 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { InjectRepository } from '@nestjs/typeorm';
 import { lastValueFrom } from 'rxjs';
+import { Repository } from 'typeorm';
+import { LlmInstanceEntity, LlmRole } from './entities/llm-instance.entity';
 
 export interface LlmRequestOptions {
   messages: Array<{ role: string; content: string }>;
@@ -29,24 +32,59 @@ export interface LlmResponse {
 export class LlmClientService {
   private readonly logger = new Logger(LlmClientService.name);
 
-  // Hardcoded default instance (TODO: Move to TypeORM)
-  private readonly defaultInstance = {
-    model: 'default-model',
-    url: 'http://localhost:1234/v1/chat/completions',
-    isActive: true,
-  };
+  constructor(
+    private readonly http: HttpService,
+    @InjectRepository(LlmInstanceEntity)
+    private readonly repo: Repository<LlmInstanceEntity>,
+  ) {}
 
-  constructor(private readonly http: HttpService) {}
+  private normalizeUrl(url: string): string {
+    const trimmed = String(url || '').trim();
+    if (!trimmed) return trimmed;
+    // If someone stored /v1/chat/completions, keep it as-is.
+    if (trimmed.includes('/chat/completions')) return trimmed;
+    return trimmed.replace(/\/+$/, '') + '/v1/chat/completions';
+  }
+
+  private async pickInstance(instanceId?: string): Promise<LlmInstanceEntity> {
+    if (instanceId) {
+      const byId = await this.repo.findOne({ where: { id: instanceId, enabled: true } as any });
+      if (byId) return byId;
+    }
+
+    const all = await this.repo.find({ where: { enabled: true } as any, order: { createdAt: 'DESC' } });
+    if (!all.length) {
+      throw new ServiceUnavailableException('Kein LLM konfiguriert. Bitte im Admin /speech-assistant ein Primary setzen.');
+    }
+
+    const primary = all.find(i => i.role === LlmRole.PRIMARY);
+    if (primary) return primary;
+
+    const secondary = all.find(i => i.role === LlmRole.SECONDARY);
+    if (secondary) return secondary;
+
+    const active = all.find(i => i.isActive);
+    if (active) return active;
+
+    return all[0];
+  }
 
   async request(options: LlmRequestOptions): Promise<LlmResponse> {
     const startTime = Date.now();
-    const instance = this.defaultInstance;
+    const instance = await this.pickInstance(options.instanceId);
+
+    const instanceUrl = this.normalizeUrl(instance.url);
 
     this.logger.debug(`Using LLM instance: ${instance.model}`);
 
+    const systemPrompt = instance.systemPrompt || undefined;
+    const messages = systemPrompt
+      ? [{ role: 'system', content: systemPrompt }, ...(options.messages || [])]
+      : (options.messages || []);
+
     const requestBody: any = {
       model: instance.model,
-      messages: options.messages,
+      messages,
       stream: options.stream || false,
     };
 
@@ -58,7 +96,7 @@ export class LlmClientService {
     try {
       const timeout = 30000;
       const response = await lastValueFrom(
-        this.http.post(instance.url, requestBody, {
+        this.http.post(instanceUrl, requestBody, {
           timeout,
           headers: { 'Content-Type': 'application/json' },
         })
@@ -84,10 +122,11 @@ export class LlmClientService {
   }
 
   async getActiveInstanceConfig() {
+    const instance = await this.pickInstance();
     return {
-      model: this.defaultInstance.model,
-      url: this.defaultInstance.url,
-      config: {},
+      model: instance.model,
+      url: this.normalizeUrl(instance.url),
+      config: instance.config || {},
     };
   }
 }

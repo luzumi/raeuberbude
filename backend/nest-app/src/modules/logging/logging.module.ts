@@ -7,6 +7,7 @@ import { LoggingController } from './logging.controller';
 import { LoggingService } from './logging.service';
 import { LmStudioMcpService } from '../llm/lm-studio-mcp.service';
 import { LlmClientService } from '../llm/llm-client.service';
+import { LlmInstancesService } from '../llm/llm-instances.service';
 import {
   Category,
   IntentLog,
@@ -33,7 +34,7 @@ import {
     ])
   ],
   controllers: [LoggingController],
-  providers: [LoggingService, LmStudioMcpService, LlmClientService],
-  exports: [LoggingService, LlmClientService]
+  providers: [LoggingService, LmStudioMcpService, LlmClientService, LlmInstancesService],
+  exports: [LoggingService, LlmClientService, LlmInstancesService]
 })
 export class LoggingModule {}

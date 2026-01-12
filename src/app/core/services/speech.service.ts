@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { SpeechRecorderService, RecordingResult } from './speech-recorder.service';
 import { SpeechTranscriptionService, TranscriptionResult } from './speech-transcription.service';
-import { TranscriptionValidatorService, ValidationResult } from './transcription-validator.service';
+import { TranscriptionValidatorRuntimeService, ValidationResult } from './transcription-validator.runtime.service';
 import { IntentActionService } from './intent-action.service';
 import { SpeechPersistenceService } from './speech-persistence.service';
 import { TerminalService } from './terminal.service';
@@ -52,7 +52,7 @@ export class SpeechService {
   constructor(
     private readonly recorder: SpeechRecorderService,
     private readonly transcription: SpeechTranscriptionService,
-    private readonly validator: TranscriptionValidatorService,
+    private readonly validator: TranscriptionValidatorRuntimeService,
     private readonly intentAction: IntentActionService,
     private readonly persistence: SpeechPersistenceService,
     private readonly terminal: TerminalService,

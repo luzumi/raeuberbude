@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { resolveBackendBase } from '../utils/backend';
 
@@ -39,17 +39,78 @@ export class SettingsService {
    * Merges runtime config with environment defaults
    */
   load(): Observable<LlmRuntimeConfig> {
+    const isPlaceholder = (cfg: any) => {
+      const msg = String(cfg?.message || '').toLowerCase();
+      return msg.includes('not implemented') || msg.includes('removed');
+    };
+
+    const normalizeRole = (role: any): 'primary' | 'secondary' | 'other' => {
+      const r = String(role || '').toLowerCase();
+      if (r === 'primary') return 'primary';
+      if (r === 'secondary') return 'secondary';
+      return 'other';
+    };
+
+    const pickBestInstance = (instances: any[]): any | null => {
+      const list = Array.isArray(instances) ? instances : [];
+      if (list.length === 0) return null;
+
+      const byRole = (wanted: 'primary' | 'secondary') =>
+        list.find(i => normalizeRole(i?.role) === wanted && (i?.enabled !== false));
+
+      return (
+        byRole('primary') ||
+        byRole('secondary') ||
+        list.find(i => i?.isActive && (i?.enabled !== false)) ||
+        list.find(i => i?.enabled !== false) ||
+        list[0]
+      );
+    };
+
+    const toRuntimeConfigFromInstance = (inst: any): LlmRuntimeConfig => {
+      const url = inst?.url ? this.normalizeUrl(String(inst.url)) : '';
+      const cfg = inst?.config || {};
+      return {
+        url,
+        model: String(inst?.model || ''),
+        fallbackModel: String(cfg?.fallbackModel || ''),
+        useGpu: cfg?.useGpu,
+        timeoutMs: cfg?.timeoutMs,
+        targetLatencyMs: cfg?.targetLatencyMs,
+        maxTokens: cfg?.maxTokens,
+        temperature: cfg?.temperature,
+        confidenceShortcut: cfg?.confidenceShortcut,
+        heuristicBypass: cfg?.heuristicBypass,
+        systemPrompt: inst?.systemPrompt || cfg?.systemPrompt
+      };
+    };
+
     return this.http.get<any>(`${this.apiUrl}/llm-config`).pipe(
-      tap(config => {
-        // Normalize URL - remove trailing /v1/chat/completions if present
-        if (config.url) {
-          config.url = this.normalizeUrl(config.url);
+      switchMap(cfg => {
+        // If backend returns a placeholder (Nest logging controller stub), derive config from llm-instances.
+        if (!cfg || isPlaceholder(cfg)) {
+          return this.http.get<any>(`${this.apiUrl}/llm-instances`).pipe(
+            map(instances => {
+              const best = pickBestInstance(instances);
+              if (!best) {
+                return { ...environment.llm } as LlmRuntimeConfig;
+              }
+              return toRuntimeConfigFromInstance(best);
+            })
+          );
         }
+
+        // Normalize URL - remove trailing /v1/chat/completions if present
+        if (cfg.url) {
+          cfg.url = this.normalizeUrl(cfg.url);
+        }
+        return of(cfg as LlmRuntimeConfig);
+      }),
+      tap(config => {
         this.config$.next(config);
       }),
       catchError(err => {
         console.error('Failed to load LLM config, using environment defaults', err);
-        // Fallback to environment
         const fallback = { ...environment.llm } as LlmRuntimeConfig;
         this.config$.next(fallback);
         return throwError(() => err);
@@ -104,9 +165,13 @@ export class SettingsService {
       // Validate it's a proper URL
       const parsed = new URL(normalized);
       return `${parsed.protocol}//${parsed.host}${parsed.pathname}`.replace(/\/$/, '');
-    } catch (e) {
-      console.warn('Failed to normalize URL, returning as-is:', url);
-      return url;
+    } catch (error) {
+        if (error instanceof Error) {
+            console.warn(`Failed to normalize URL '${url}': ${error.message}`);
+        } else {
+            console.warn(`Failed to normalize URL '${url}': Unknown error occurred`);
+        }
+        throw new Error(`Invalid URL format: ${url}. Please provide a valid URL.`);
     }
   }
 
@@ -115,10 +180,7 @@ export class SettingsService {
    */
   getChatCompletionsUrl(): string {
     const cfg = this.current;
-    if (!cfg || !cfg.url) {
-      return `${environment.llm.url}/v1/chat/completions`;
-    }
-    return `${cfg.url}/v1/chat/completions`;
+    return `${cfg?.url || environment.llm.url}/v1/chat/completions`;
   }
 
   /**
@@ -126,9 +188,6 @@ export class SettingsService {
    */
   getModelsUrl(): string {
     const cfg = this.current;
-    if (!cfg || !cfg.url) {
-      return `${environment.llm.url}/v1/models`;
-    }
-    return `${cfg.url}/v1/models`;
+    return `${cfg?.url || environment.llm.url}/v1/models`;
   }
 }

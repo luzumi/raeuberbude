@@ -24,14 +24,6 @@
           <!-- Tab 1: Modelle & Konfiguration -->
           <mat-tab label="Modelle & Env">
             <div class="tab-content">
-              <!-- Obere Button-Reihe (Tabs-artig), aktuell nur Global -->
-              <div class="main-mode-buttons">
-                <button mat-stroked-button color="primary" class="active" (click)="openGlobalConfigDialog()">
-                  Globale Einstellungen
-                </button>
-                <!-- Platzhalter für zukünftige Buttons, z.B. Debug / Advanced -->
-              </div>
-
               <!-- Abschnitt: LLM-Instanzen -->
               <h3>LLM-Instanzen</h3>
               <div class="llm-instances">
@@ -41,16 +33,16 @@
                      (click)="selectInstance(instance)"
                      title="Klicken um Konfiguration zu laden">
                   <div class="instance-header">
-                    <span class="health-badge" [attr.data-health]="getRoleBadge(instance)">
-                      {{ getRoleBadge(instance) }}
-                    </span>
+
                     <h4>{{ instance.model }}</h4>
                   </div>
                   <div class="instance-details">
                     <p><strong>LM Studio URL:</strong> {{ getLmStudioBaseUrl(instance.url) }}</p>
-                    <p><strong>Rolle:</strong> {{ (instance.role || 'other') | uppercase }}</p>
+                    <p><strong>Rolle:</strong> <span class="health-badge" [attr.data-health]="getRoleBadge(instance)" (click)="$event.stopPropagation(); changeLlmRole(instance)">
+                      {{ getRoleBadge(instance) }}
+                    </span></p>
 
-                    <p><strong>Aktiviert:</strong> {{ instance.enabled ? 'Ja' : 'Nein' }}</p>
+                    <p><strong>Geladen:</strong> {{ instance.isActive ? 'Ja' : 'Nein' }}</p>
                     <p><strong>Status:</strong> {{ getInstanceStatusLabel(instance) }}</p>
 
                     <p *ngIf="getLmStudioLoadedLabel(instance)">

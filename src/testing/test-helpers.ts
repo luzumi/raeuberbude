@@ -1,4 +1,4 @@
-﻿/// <reference types="jasmine" />
+/// <reference types="jasmine" />
 /**
  * Test Helpers & DI Provider Factories
  * Wiederverwendbare Test-Konfiguration für Services und Komponenten
@@ -9,19 +9,18 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import { MockMediaRecorder, createMockMediaStream } from './mock-media-recorder';
 
 // Ensure a global MediaRecorder mock exists for tests (prevents multiple specs from trying to spy it)
-if (typeof (globalThis as any).MediaRecorder === 'undefined') {
-  try {
-    (globalThis as any).MediaRecorder = MockMediaRecorder;
-    // Provide a default isTypeSupported implementation
-    (globalThis as any).MediaRecorder.isTypeSupported = (MockMediaRecorder as any).isTypeSupported || (() => true);
-  } catch (e) {
-    // ignore
-  }
+if ((globalThis as any).MediaRecorder === undefined) {
+    try {
+        (globalThis as any).MediaRecorder = MockMediaRecorder;
+        (globalThis as any).MediaRecorder.isTypeSupported = (MockMediaRecorder as any).isTypeSupported || (() => true);
+    } catch (error) {
+        console.warn('Failed to set up MediaRecorder mock:', error);
+    }
 }
 
 // Provide a default getUserMedia mock (success) in unit tests when no other mock is installed
 try {
-  const runningUnderTest = typeof (globalThis as any).__karma__ !== 'undefined' || !!(globalThis as any).__UNIT_TEST_MODE;
+  const runningUnderTest = (globalThis as any).__karma__ !== undefined || !!(globalThis as any).__UNIT_TEST_MODE;
   if (runningUnderTest) {
     if (typeof navigator !== 'undefined') {
       if (!navigator.mediaDevices) {
@@ -164,7 +163,7 @@ export function provideMockValidatorService(): Provider {
   };
 
   return {
-    provide: 'TranscriptionValidatorService',
+    provide: 'TranscriptionValidatorRuntimeService',
     useValue: mockService
   };
 }

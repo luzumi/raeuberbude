@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Body, Param, Query, Put, Delete } from '@nestjs/common';
 import { LoggingService } from './logging.service';
+import { LlmInstancesService } from '../llm/llm-instances.service';
 
 @Controller('/api')
 export class LoggingController {
-  constructor(private readonly svc: LoggingService) {}
+  constructor(
+    private readonly svc: LoggingService,
+    private readonly llmInstances: LlmInstancesService,
+  ) {}
 
   // ============================================================================
   // TRANSCRIPT ENDPOINTS
@@ -125,47 +129,48 @@ export class LoggingController {
 
   @Get('/llm-instances')
   listLlmInstances() {
-    return this.svc.getLlmInstances({ syncActive: true });
+    return this.llmInstances.list({ syncActive: true });
   }
 
   @Post('/llm-instances/scan')
   scanLlmInstances(@Body() body: any) {
-    return this.svc.scanLlmInstances();
+    return this.llmInstances.scan();
   }
 
   @Post('/llm-instances/cleanup')
   cleanupLlmInstances() {
-    return this.svc.cleanupDuplicates();
+    return this.llmInstances.cleanupDuplicates();
   }
 
   @Post('/llm-instances/sync-active')
   syncActiveInstances() {
-    return this.svc.syncInstanceActiveFlagsFromLmStudio();
+    return this.llmInstances.syncActiveFlagsFromLmStudio();
   }
 
   @Put('/llm-instances/:id/role')
   setInstanceRole(@Param('id') id: string, @Body() body: any) {
-    return this.svc.updateInstanceRole(id, body?.role);
+    return this.llmInstances.updateRole(id, body?.role);
   }
 
   @Post('/llm-instances/:id/load')
   loadLlmInstance(@Param('id') id: string) {
-    return this.svc.loadLlmInstance(id);
+    return this.llmInstances.load(id);
   }
 
   @Post('/llm-instances/:id/load-with-policy')
   loadLlmInstanceWithPolicy(@Param('id') id: string, @Body() body: any) {
-    return this.svc.loadLlmInstanceWithPolicy(id, body?.keepRoles);
+    // Policy-Load wird aktuell nicht gesondert implementiert; API-Kompatibilität
+    return this.llmInstances.load(id);
   }
 
   @Post('/llm-instances/:id/eject')
   ejectLlmInstance(@Param('id') id: string) {
-    return this.svc.ejectLlmInstance(id);
+    return this.llmInstances.eject(id);
   }
 
   @Delete('/llm-instances/:id')
   deleteLlmInstance(@Param('id') id: string) {
-    return this.svc.deleteLlmInstance(id);
+    return this.llmInstances.delete(id);
   }
 
   @Post('/llm-instances/normalize')
@@ -175,22 +180,22 @@ export class LoggingController {
 
   @Get('/llm-instances/:id/system-prompt')
   getSystemPrompt(@Param('id') id: string) {
-    return this.svc.getInstanceSystemPrompt(id);
+    return this.llmInstances.getSystemPrompt(id);
   }
 
   @Get('/llm-instances/:id/model-status')
   getModelStatusForInstance(@Param('id') id: string) {
-    return this.svc.getModelStatusForInstance(id);
+    return this.llmInstances.getModelStatusForInstance(id);
   }
 
   @Put('/llm-instances/:id/system-prompt')
   updateSystemPrompt(@Param('id') id: string, @Body() body: any) {
-    return this.svc.setSystemPrompt(id, body.systemPrompt);
+    return this.llmInstances.setSystemPrompt(id, body.systemPrompt);
   }
 
   @Put('/llm-instances/:id/config')
   updateInstanceConfig(@Param('id') id: string, @Body() body: any, @Query('autoReload') autoReload?: string) {
-    return this.svc.updateInstanceConfig(id, body, autoReload);
+    return this.llmInstances.updateConfig(id, body);
   }
 
   @Get('/system-prompt/default')

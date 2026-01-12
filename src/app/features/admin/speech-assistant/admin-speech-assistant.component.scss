@@ -221,7 +221,7 @@ mat-icon.green {
     &::before {
       content: '✓ Ausgewählt';
       position: absolute;
-      top: 8px;
+      top: -10px;
       right: 8px;
       background: #2196f3;
       color: white;
@@ -245,24 +245,27 @@ mat-icon.green {
 }
 
 .health-badge {
+    gap: 4px;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 0.85em;
   font-weight: 600;
 
   &[data-health="primary"] {
-    background: rgba(33, 150, 243, 0.22);
-    color: #1e88e5;
+    background: rgba(11, 154, 50, 1);
+    color: #e4ece3;
   }
 
   &[data-health="secondary"] {
-    background: rgba(100, 181, 246, 0.25);
-    color: #42a5f5;
+    background: rgba(162, 202, 29, 0.86);
+      color: #273c03;
+
   }
 
   &[data-health="none"] {
     background: rgba(158, 158, 158, 0.22);
-    color: #757575;
+      color: #e4ece3;
+
   }
 }
 

@@ -18,10 +18,17 @@ export class SpeechService {
 
   async create(createDto: CreateHumanInputDto): Promise<SpeechHumanInput> {
     try {
-      const humanInput = this.humanInputRepo.create({
-        ...createDto,
+      const humanInput: SpeechHumanInput = this.humanInputRepo.create({
         userId: createDto.userId,
-        terminalId: createDto.terminalId || undefined,
+        terminalId: createDto.terminalId ?? null,
+        text: createDto.inputText,
+        inputType: createDto.inputType || 'speech',
+        confidence: createDto.context?.confidence ?? null,
+        language: (createDto.metadata as any)?.language ?? null,
+          metadata: {
+              ...(createDto.metadata),
+              ...(createDto.context && { context: createDto.context }),
+          },
         status: 'pending',
       });
 

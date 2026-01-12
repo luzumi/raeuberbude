@@ -45,13 +45,13 @@ interface ModelOpResult {
       <div class="dialog-grid">
         <mat-form-field class="full-width">
           <mat-label>LLM URL</mat-label>
-          <input matInput [(ngModel)]="localConfig.url" placeholder="http://192.168.56.1:1234/v1/chat/completions">
+          <input matInput [(ngModel)]="localConfig.url" (ngModelChange)="userTouched.url = true" placeholder="http://192.168.56.1:1234/v1/chat/completions">
         </mat-form-field>
 
         <!-- Primäres Modell: immer Select (falls keine Modelle vorhanden: disabled option) -->
         <mat-form-field class="full-width">
           <mat-label>Primäres Modell</mat-label>
-          <mat-select [(ngModel)]="localConfig.model" [disabled]="models?.length === 0">
+          <mat-select [(ngModel)]="localConfig.model" (ngModelChange)="userTouched.model = true" [disabled]="models?.length === 0">
             <mat-option *ngIf="models?.length === 0" [value]="localConfig?.model">Keine Modelle gefunden</mat-option>
             <mat-option *ngFor="let m of models" [value]="m">{{ m }}</mat-option>
           </mat-select>
@@ -60,7 +60,7 @@ interface ModelOpResult {
         <!-- Fallback Modell: immer Select -->
         <mat-form-field class="full-width">
           <mat-label>Fallback Modell</mat-label>
-          <mat-select [(ngModel)]="localConfig.fallbackModel" [disabled]="models?.length === 0">
+          <mat-select [(ngModel)]="localConfig.fallbackModel" (ngModelChange)="userTouched.fallbackModel = true" [disabled]="models?.length === 0">
             <mat-option value="">(kein Fallback)</mat-option>
             <mat-option *ngFor="let m of models" [value]="m">{{ m }}</mat-option>
           </mat-select>
@@ -68,11 +68,11 @@ interface ModelOpResult {
 
         <mat-form-field class="full-width">
           <mat-label>Ziel-Latenz (ms)</mat-label>
-          <input matInput type="number" [(ngModel)]="localConfig.targetLatencyMs">
+          <input matInput type="number" [(ngModel)]="localConfig.targetLatencyMs" (ngModelChange)="userTouched.targetLatencyMs = true">
         </mat-form-field>
 
         <div class="toggle-wrap">
-          <mat-slide-toggle [(ngModel)]="localConfig.useGpu">GPU verwenden</mat-slide-toggle>
+          <mat-slide-toggle [(ngModel)]="localConfig.useGpu" (ngModelChange)="userTouched.useGpu = true">GPU verwenden</mat-slide-toggle>
         </div>
       </div>
 
@@ -150,6 +150,20 @@ export class AdminGlobalConfigDialogComponent {
   processingText = '';
   operationResults: ModelOpResult[] = [];
 
+  /**
+   * Guard: sobald der User ein Feld im Dialog ändert, sollen async Defaults aus den Instanzen
+   * die Eingaben nicht mehr überschreiben.
+   *
+   * Muss template-sichtbar sein, daher nicht `private`.
+   */
+  readonly userTouched = {
+    url: false,
+    model: false,
+    fallbackModel: false,
+    targetLatencyMs: false,
+    useGpu: false,
+  };
+
   constructor(
     private readonly dialogRef: MatDialogRef<AdminGlobalConfigDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any,
@@ -179,6 +193,98 @@ export class AdminGlobalConfigDialogComponent {
       targetLatencyMs: base.targetLatencyMs ?? 2000,
       useGpu: base.useGpu ?? true
     };
+
+    // Wichtig: Defaults aus Primary/Secondary-Rollen ableiten (Quelle der Wahrheit sind LLM-Instanzen)
+    // Async, damit Dialog sofort rendert.
+    void this.applyDefaultsFromInstances();
+  }
+
+  private normalizeUrlLikeSettings(url: string): string {
+    const raw = String(url || '').trim();
+    if (!raw) return '';
+
+    // Verhalten an SettingsService.normalizeUrl angelehnt, aber ohne Throw (UI soll nicht crashen)
+    try {
+      let normalized = raw
+        .replace(/\/v1\/chat\/completions\/?$/i, '')
+        .replace(/\/chat\/completions\/?$/i, '')
+        .replace(/\/v1\/models\/?$/i, '')
+        .replace(/\/models\/?$/i, '')
+        .replace(/\/+$/, '');
+
+      const parsed = new URL(normalized);
+      return `${parsed.protocol}//${parsed.host}${parsed.pathname}`.replace(/\/+$/, '');
+    } catch {
+      // Fallback: best-effort string normalization
+      return raw
+        .replace(/\/v1\/chat\/completions\/?$/i, '')
+        .replace(/\/chat\/completions\/?$/i, '')
+        .replace(/\/v1\/models\/?$/i, '')
+        .replace(/\/models\/?$/i, '')
+        .replace(/\/+$/, '');
+    }
+  }
+
+  private getInstanceId(inst: any): string {
+    return String(inst?._id || inst?.id || '').trim();
+  }
+
+  private normalizeInstanceUrl(url: string): string {
+    // Konsistent zur SettingsService Normalisierung, damit Anzeigen/Reload gleich aussehen.
+    return this.normalizeUrlLikeSettings(url);
+  }
+
+  private normalizeRole(role: any): 'primary' | 'secondary' | 'other' {
+    const r = String(role || '').toLowerCase();
+    if (r === 'primary') return 'primary';
+    if (r === 'secondary') return 'secondary';
+    return 'other';
+  }
+
+  private async applyDefaultsFromInstances(): Promise<void> {
+    try {
+      const instances = await lastValueFrom(this.llmService.listInstances());
+      const list = Array.isArray(instances) ? instances : [];
+
+      const enabled = list.filter(i => (i as any)?.enabled !== false);
+
+      const primary = enabled.find(i => this.normalizeRole((i as any).role) === 'primary') || null;
+      const secondary = enabled.find(i => this.normalizeRole((i as any).role) === 'secondary') || null;
+
+      const set = new Set<string>(this.models || []);
+      if (primary?.model) set.add(String(primary.model));
+      if (secondary?.model) set.add(String(secondary.model));
+      this.models = Array.from(set).map(String).sort((a, b) => a.localeCompare(b));
+
+      // Wichtig: In der UI sollen die Rollen sichtbar sein.
+      // D.h. primary/secondary sollen als Vorauswahl gesetzt werden.
+      // ABER: Wenn der User bereits angefangen hat zu tippen/auszuwählen, nicht mehr überschreiben.
+
+      if (primary) {
+        if (!this.userTouched.url) {
+          this.localConfig.url = this.normalizeInstanceUrl(primary.url);
+        }
+        if (!this.userTouched.model) {
+          this.localConfig.model = String(primary.model || '');
+        }
+      }
+
+      if (secondary) {
+        if (!this.userTouched.fallbackModel) {
+          this.localConfig.fallbackModel = String(secondary.model || '');
+        }
+      }
+
+      // Selekt-Optionen absichern
+      if (this.localConfig.model && !this.models.includes(this.localConfig.model)) {
+        this.models = [...this.models, this.localConfig.model].sort((a, b) => a.localeCompare(b));
+      }
+      if (this.localConfig.fallbackModel && !this.models.includes(this.localConfig.fallbackModel)) {
+        this.models = [...this.models, this.localConfig.fallbackModel].sort((a, b) => a.localeCompare(b));
+      }
+    } catch {
+      // ignore
+    }
   }
 
   onCancel() {
@@ -241,41 +347,41 @@ export class AdminGlobalConfigDialogComponent {
       const desiredSet = new Set(desiredModels);
 
       // Instances that provide desired models
-      const toLoad = instances.filter(i => i._id && desiredSet.has(i.model) && !i.isActive);
+      const toLoad = instances.filter(i => this.getInstanceId(i) && desiredSet.has((i as any).model) && !(i as any).isActive);
       // Active instances that are NOT in desired models -> eject
-      const toEject = instances.filter(i => i._id && i.isActive && !desiredSet.has(i.model));
+      const toEject = instances.filter(i => this.getInstanceId(i) && (i as any).isActive && !desiredSet.has((i as any).model));
 
       // First eject non-desired active instances (best-effort)
       for (const inst of toEject) {
+        const id = this.getInstanceId(inst);
         try {
-          this.processingText = `Entlade ${inst.model}...`;
+          this.processingText = `Entlade ${(inst as any).model}...`;
           // eslint-disable-next-line no-await-in-loop
-          const res = await lastValueFrom(this.llmService.eject(inst._id as string));
-          const ok = !!res?.ejectResult?.success;
-          // Build a helpful message from possible response shapes
-          const msg = res?.ejectResult?.message || res?.ejectResult?.error  || JSON.stringify(res || {});
-          results.push({ action: 'eject', instanceId: inst._id, instanceName: inst.name, model: inst.model, success: ok, message: String(msg), rawResponse: res });
+          const res = await lastValueFrom(this.llmService.eject(id));
+          const ok = !!(res as any)?.ejectResult?.success;
+          const msg = (res as any)?.ejectResult?.message || (res as any)?.ejectResult?.error || JSON.stringify(res || {});
+          results.push({ action: 'eject', instanceId: id, instanceName: (inst as any).name, model: (inst as any).model, success: ok, message: String(msg), rawResponse: res });
         } catch (e: any) {
-          // Http errors thrown by HttpClient may contain status and error body
           const errmsg = e?.message || (e?.error && JSON.stringify(e.error)) || String(e);
           const raw = { status: e?.status, error: e?.error || e };
-          results.push({ action: 'eject', instanceId: inst._id, instanceName: inst.name, model: inst.model, success: false, message: String(errmsg), rawResponse: raw });
+          results.push({ action: 'eject', instanceId: id, instanceName: (inst as any).name, model: (inst as any).model, success: false, message: String(errmsg), rawResponse: raw });
         }
       }
 
       // Then load desired models (best-effort)
       for (const inst of toLoad) {
+        const id = this.getInstanceId(inst);
         try {
-          this.processingText = `Lade ${inst.model}...`;
+          this.processingText = `Lade ${(inst as any).model}...`;
           // eslint-disable-next-line no-await-in-loop
-          const res = await lastValueFrom(this.llmService.load(inst._id as string));
-          const ok = !!res?.loadResult?.success;
-          const msg = res?.loadResult?.message || res?.loadResult?.error || JSON.stringify(res || {});
-          results.push({ action: 'load', instanceId: inst._id, instanceName: inst.name, model: inst.model, success: ok, message: String(msg), rawResponse: res });
+          const res = await lastValueFrom(this.llmService.load(id));
+          const ok = !!(res as any)?.loadResult?.success;
+          const msg = (res as any)?.loadResult?.message || (res as any)?.loadResult?.error || JSON.stringify(res || {});
+          results.push({ action: 'load', instanceId: id, instanceName: (inst as any).name, model: (inst as any).model, success: ok, message: String(msg), rawResponse: res });
         } catch (e: any) {
           const errmsg = e?.message || (e?.error && JSON.stringify(e.error)) || String(e);
           const raw = { status: e?.status, error: e?.error || e };
-          results.push({ action: 'load', instanceId: inst._id, instanceName: inst.name, model: inst.model, success: false, message: String(errmsg), rawResponse: raw });
+          results.push({ action: 'load', instanceId: id, instanceName: (inst as any).name, model: (inst as any).model, success: false, message: String(errmsg), rawResponse: raw });
         }
       }
 

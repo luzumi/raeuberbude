@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 import { SpeechService } from '../../../core/services/speech.service';
-import { ValidationResult } from '../../../core/services/transcription-validator.service';
+import { ValidationResult } from '../../../core/services/transcription-validator.runtime.service';
 
 @Component({
   selector: 'app-speech-feedback',

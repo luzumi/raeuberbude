@@ -1,11 +1,12 @@
-import { IsString, IsOptional, IsIn, IsObject, IsMongoId } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsObject, IsUUID } from 'class-validator';
 
 export class CreateHumanInputDto {
   @IsString()
+  @IsUUID()
   userId: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsUUID()
   terminalId?: string;
 
   @IsString()

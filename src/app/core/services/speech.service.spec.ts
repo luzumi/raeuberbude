@@ -7,7 +7,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController, TestRequest } from '@angular/common/http/testing';
 import { SpeechService } from './speech.service';
 import { TtsService } from './tts.service';
-import { TranscriptionValidatorService } from './transcription-validator.service';
+import { TranscriptionValidatorRuntimeService } from './transcription-validator.runtime.service';
 import { IntentActionService } from './intent-action.service';
 import { MockMediaRecorder } from '../../../testing/mock-media-recorder';
 import { mockGetUserMedia, GetUserMediaScenarios, unmockGetUserMedia } from '../../../testing/mock-getusermedia';
@@ -78,7 +78,7 @@ describe('SpeechService', () => {
       providers: [
         SpeechService,
         { provide: TtsService, useValue: mockTtsService },
-        { provide: TranscriptionValidatorService, useValue: mockValidatorService },
+        { provide: TranscriptionValidatorRuntimeService, useValue: mockValidatorService },
         { provide: IntentActionService, useValue: mockIntentActionService }
       ]
     });
