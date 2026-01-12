@@ -41,21 +41,20 @@
                      (click)="selectInstance(instance)"
                      title="Klicken um Konfiguration zu laden">
                   <div class="instance-header">
-                    <h4>{{ instance.model }}</h4>
-                    <span class="health-badge" [attr.data-health]="instance.health">
-                      {{ instance.health }}
+                    <span class="health-badge" [attr.data-health]="getRoleBadge(instance)">
+                      {{ getRoleBadge(instance) }}
                     </span>
+                    <h4>{{ instance.model }}</h4>
                   </div>
                   <div class="instance-details">
-                    <p><strong>URL:</strong> {{ instance.url }}</p>
+                    <p><strong>LM Studio URL:</strong> {{ getLmStudioBaseUrl(instance.url) }}</p>
                     <p><strong>Rolle:</strong> {{ (instance.role || 'other') | uppercase }}</p>
 
                     <p><strong>Aktiviert:</strong> {{ instance.enabled ? 'Ja' : 'Nein' }}</p>
-                    <p><strong>DB-Status:</strong> {{ instance.isActive ? 'Aktiv ✅' : 'Inaktiv' }}</p>
-                    <p>
-                      <strong>LM Studio:</strong>
-                      {{ instance.loadedInLmStudio === true ? 'Geladen ✅'
-                        : (instance.loadedInLmStudio === false ? 'Nicht geladen 🔴' : 'Unbekannt …') }}
+                    <p><strong>Status:</strong> {{ getInstanceStatusLabel(instance) }}</p>
+
+                    <p *ngIf="getLmStudioLoadedLabel(instance)">
+                      <strong>LM Studio:</strong> {{ getLmStudioLoadedLabel(instance) }}
                     </p>
 
                     <p *ngIf="hasStatusDrift(instance)" style="margin-top: 6px;">
@@ -68,39 +67,44 @@
                   </div>
                   <div class="instance-actions" (click)="$event.stopPropagation()">
                     <button mat-button (click)="testLlmInstance(instance)"
-                            [disabled]="!instance.enabled"
+                            [disabled]="!instance?.url"
                             title="Verbindung zu LM Studio testen">
                       <mat-icon>network_check</mat-icon>
                       Test
                     </button>
+
                     <button mat-raised-button class="load-btn"
                             *ngIf="instance.loadedInLmStudio === false"
                             (click)="loadLlmInstance(instance)"
-                            [disabled]="!instance.enabled"
+                            [disabled]="!(instance?._id || instance?.id) || !instance?.url"
                             title="Modell in LM Studio laden (via MCP)">
                       <mat-icon>download</mat-icon>
                       Load
                     </button>
+
                     <button mat-raised-button class="eject-btn"
                             *ngIf="instance.loadedInLmStudio === true"
                             (click)="ejectLlmInstance(instance)"
+                            [disabled]="!(instance?._id || instance?.id) || !instance?.url"
                             title="Modell aus LM Studio entladen (via MCP)">
                       <mat-icon>eject</mat-icon>
                       Eject
                     </button>
 
-                    <!-- Falls LM Studio Status unbekannt ist, zeige die Buttons anhand DB-Status (fallback) -->
+                    <!-- Fallback, wenn LM Studio Status unbekannt ist (z.B. MCP/CLI nicht verfügbar) -->
                     <button mat-raised-button class="load-btn"
                             *ngIf="instance.loadedInLmStudio == null && !instance.isActive"
                             (click)="loadLlmInstance(instance)"
-                            [disabled]="!instance.enabled"
+                            [disabled]="!(instance?._id || instance?.id) || !instance?.url"
                             title="Modell laden (LM Studio Status unbekannt)">
                       <mat-icon>download</mat-icon>
                       Load
                     </button>
+
                     <button mat-raised-button class="eject-btn"
                             *ngIf="instance.loadedInLmStudio == null && instance.isActive"
                             (click)="ejectLlmInstance(instance)"
+                            [disabled]="!(instance?._id || instance?.id) || !instance?.url"
                             title="Modell entladen (LM Studio Status unbekannt)">
                       <mat-icon>eject</mat-icon>
                       Eject

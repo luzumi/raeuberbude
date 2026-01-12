@@ -42,16 +42,15 @@ if (-not $nodeExe) {
 }
 
 # Run and stream output to both console and runLog
-$startInfo = "Running: $nodeExe $scriptDir\node-load-test.js"
+$startInfo = "Running: $nodeExe $scriptDir\node-load-test-fixed.js"
 Write-Host $startInfo
-& $nodeExe "$scriptDir\node-load-test.js" 2>&1 | Tee-Object -FilePath $runLog
+& $nodeExe "$scriptDir\node-load-test-fixed.js" 2>&1 | Tee-Object -FilePath $runLog
 
 # Copy artifacts
 $filesToCollect = @(
-  'node-load-started.txt',
-  'node-load-test.log',
-  'node-load-test-run.log',
-  'node-load-results.json'
+  'node-load-started-fixed.txt',
+
+  'node-load-test-run.log'
 )
 foreach ($f in $filesToCollect) {
   $src = Join-Path $scriptDir $f
@@ -93,11 +92,10 @@ Write-Host "`nArtifacts collected in: $artifacts"
 Pop-Location
 
 # Print simple summary of node-load-results.json if exists
-$resFile = Join-Path $artifacts 'node-load-results.json'
+$resFile = Join-Path $artifacts 'node-load-results-fixed.json'
 if (Test-Path $resFile) {
-  Write-Host "`n--- Summary (node-load-results.json) ---"
+  Write-Host "`n--- Summary (node-load-results-fixed.json) ---"
   Get-Content $resFile -Raw | ConvertFrom-Json | Format-List
 } else {
-  Write-Warning "No node-load-results.json found in artifacts. Check node-run log: $runLog"
+  Write-Warning "No node-load-results-fixed.json found in artifacts. Check node-run log: $runLog"
 }
-

@@ -145,9 +145,11 @@ export class LmStudioMcpService {
       });
 
       const content = result.content?.[0]?.text;
-      if (content) {
-        return JSON.parse(content);
-      }
+      if (!content) return [];
+
+      const parsed: any = JSON.parse(content);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && Array.isArray(parsed.data)) return parsed.data;
       return [];
     } catch (error) {
       this.logger.error('Failed to list models via MCP:', error);

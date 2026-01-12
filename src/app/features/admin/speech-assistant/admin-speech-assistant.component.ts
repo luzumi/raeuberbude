@@ -812,9 +812,22 @@ export class AdminSpeechAssistantComponent implements OnInit {
               return;
             }
             const res = await this.llmService.testConnection(inst);
-            inst.loadedInLmStudio = !!res.loaded;
+            // IMPORTANT: backend can return loaded: null when status is unavailable
+            if ((res as any).loaded === null || (res as any).loaded === undefined) {
+              inst.loadedInLmStudio = undefined;
+            } else {
+              inst.loadedInLmStudio = !!res.loaded;
+            }
           } catch {
             inst.loadedInLmStudio = undefined;
+          }
+
+          // UI-Semantik: wenn der Runtime-Status bekannt ist, spiegeln wir ihn in isActive,
+          // damit "geladen" auch als "aktiv" angezeigt wird, selbst wenn der DB-Flag driftet.
+          if (inst.loadedInLmStudio === true) {
+            inst.isActive = true;
+          } else if (inst.loadedInLmStudio === false) {
+            inst.isActive = false;
           }
         })
       );
@@ -844,6 +857,14 @@ export class AdminSpeechAssistantComponent implements OnInit {
     if (r === 'primary') return 'primary';
     if (r === 'secondary') return 'secondary';
     return 'other';
+  }
+
+  getRoleBadge(inst: LlmInstance | null | undefined): 'primary' | 'secondary' | 'none' {
+    if (!inst) return 'none';
+    const role = this.normalizeRole((inst as any).role);
+    if (role === 'primary') return 'primary';
+    if (role === 'secondary') return 'secondary';
+    return 'none';
   }
 
   async scanLlmInstances(): Promise<void> {
@@ -878,7 +899,6 @@ export class AdminSpeechAssistantComponent implements OnInit {
     const id = instance._id || instance.id;
     if (!id) return;
 
-    // Dialog: Rolle w e4hlen
     const dialogRef = this.dialog.open(AdminLlmLoadDialogComponent, {
       width: '520px',
       disableClose: false,
@@ -891,31 +911,32 @@ export class AdminSpeechAssistantComponent implements OnInit {
     const chosenRole: LlmLoadRoleChoice = dialogRes.role;
 
     try {
-      // 1) Rolle setzen
-      await lastValueFrom(this.llmService.setRole(id, chosenRole));
+      // Rolle optional setzen (ohne Side-Effects auf andere Modelle)
+      if (chosenRole !== 'none') {
+        // 1) Rolle setzen
+        await lastValueFrom(this.llmService.setRole(id, chosenRole));
 
-      // 2) Exklusivit e4t erzwingen: alle anderen dieser Rolle -> other
-      await this.enforceExclusiveRole(id, chosenRole);
+        // 2) Exklusivität der Rolle weiterhin erzwingen (nur Role-Demote, kein Eject)
+        await this.enforceExclusiveRole(id, chosenRole);
+      }
 
-      // 3) Laden + Policy: alles au dfer primary/secondary entladen
-      const policyRes = await lastValueFrom(this.llmService.loadWithPolicy(id, ['primary', 'secondary']));
+      // WICHTIG: Nur Zielmodell laden – keine Policy anwenden, nichts automatisch ejecten
+      const res = await lastValueFrom(this.llmService.load(id));
 
-      // 4) Status refresh (Backend macht zwar sync nach load/eject, aber UI soll sofort stimmen)
+      // Status refresh
       await lastValueFrom(this.llmService.syncActive());
 
-      // Snackbar
-      const ok = !!policyRes?.loaded?.loadResult?.success;
-      if (ok) {
-        this.snackBar.open(` dc2705 ${instance.model} als ${chosenRole} geladen!`, 'OK', { duration: 3500 });
+      const ok = !!res?.loadResult?.success;
+      if (chosenRole === 'none') {
+        this.snackBar.open(ok ? `✅ ${instance.model} geladen!` : `${instance.model} Load ausgeführt`, 'OK', { duration: 3500 });
       } else {
-        this.snackBar.open(`${instance.model} Load ausgef fchrt (Role: ${chosenRole})`, 'OK', { duration: 3500 });
+        this.snackBar.open(ok ? `✅ ${instance.model} als ${chosenRole} geladen!` : `${instance.model} Load ausgeführt (Role: ${chosenRole})`, 'OK', { duration: 3500 });
       }
 
       await this.loadLlmInstances();
     } catch (error) {
-      console.error('Failed to load LLM instance with role/policy:', error);
+      console.error('Failed to load LLM instance:', error);
       this.snackBar.open('Laden fehlgeschlagen', 'OK', { duration: 3500 });
-      // best effort refresh
       try {
         await this.loadLlmInstances();
       } catch {
@@ -1346,5 +1367,62 @@ export class AdminSpeechAssistantComponent implements OnInit {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
   }
-}
 
+  /**
+   * UI: stabile Anzeige der LM Studio Base URL (ohne /v1/chat/completions etc.)
+   */
+  getLmStudioBaseUrl(url: unknown): string {
+    const raw = typeof url === 'string' ? url : '';
+    if (!raw) return '';
+    try {
+      const u = new URL(raw);
+      return u.origin;
+    } catch {
+      // naive fallback
+      return raw
+        .replace(/\/v1\/chat\/completions$/i, '')
+        .replace(/\/chat\/completions$/i, '')
+        .replace(/\/+$/g, '');
+    }
+  }
+
+  /**
+   * UI: Statuslabel für die Kachel.
+   * Wichtig: "Aktiv" soll den Runtime-Status (LM Studio) widerspiegeln, wenn vorhanden.
+   */
+  getInstanceStatusLabel(inst: LlmInstance | null | undefined): string {
+    if (!inst) return 'Unbekannt';
+
+    // Wenn wir den Runtime-Status kennen, priorisieren wir ihn.
+    if (inst.loadedInLmStudio === true) return 'Aktiv';
+    if (inst.loadedInLmStudio === false) return 'Inaktiv';
+
+    // Fallback: DB-Status
+    if (inst.enabled === false) return 'Deaktiviert';
+    return inst.isActive ? 'Aktiv' : 'Inaktiv';
+  }
+
+  /**
+   * UI: Anzeige für den LM Studio Runtime-Status (falls vorhanden).
+   * Gibt '' zurück, wenn nicht ermittelbar.
+   */
+  getLmStudioLoadedLabel(inst: LlmInstance | null | undefined): string {
+    if (!inst) return '';
+    if (inst.loadedInLmStudio === true) return 'Geladen ✅';
+    if (inst.loadedInLmStudio === false) return 'Nicht geladen';
+    return '';
+  }
+
+  /**
+   * UI: Button-Regeln laut Anforderung
+   * - Eject nur wenn Status aktiv
+   * - Load nur wenn Status inaktiv
+   */
+  shouldShowLoad(inst: LlmInstance): boolean {
+    return !!inst && inst.enabled !== false && !inst.isActive;
+  }
+
+  shouldShowEject(inst: LlmInstance): boolean {
+    return !!inst && inst.enabled !== false && !!inst.isActive;
+  }
+}

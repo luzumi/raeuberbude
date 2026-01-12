@@ -2,9 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
-import {SpeechService} from '../../core/services/speech.service';
+import { SpeechService } from '../../core/services/speech.service';
 import { TtsService } from '../../core/services/tts.service';
-import { ValidationResult } from '../../core/services/transcription-validator.service';
+import { TranscriptionValidatorRuntimeService } from '../../core/services/transcription-validator.runtime.service';
+import { ValidationResult } from '../../core/services/transcription-validator.runtime.service';
 
 @Component({
   selector: 'app-speech-validation-demo',
