@@ -54,8 +54,8 @@
                       <span style="color:#b71c1c;">DB ≠ LM Studio</span>
                     </p>
 
-                    <p *ngIf="instance.config?.temperature"><strong>Temperature:</strong> {{ instance.config?.temperature }}</p>
-                    <p *ngIf="instance.config?.maxTokens"><strong>Max Tokens:</strong> {{ instance.config?.maxTokens }}</p>
+                    <p><strong>Temperature:</strong> {{ instance.config?.temperature }}</p>
+                    <p><strong>Max Tokens:</strong> {{ instance.config?.maxTokens }}</p>
                   </div>
                   <div class="instance-actions" (click)="$event.stopPropagation()">
                     <button mat-button (click)="testLlmInstance(instance)"
