@@ -135,12 +135,60 @@ export class LmStudioMcpService {
   }
 
   /**
-   * List all models currently loaded in LM Studio
+   * List all models currently loaded in LM Studio (source of truth via CLI `lms ps`)
+   */
+  async listLoadedModels(): Promise<any[]> {
+    try {
+      const result = await this.sendRequest('tools/call', {
+        name: 'list_models',
+        arguments: {},
+      });
+
+      const content = result.content?.[0]?.text;
+      if (!content) return [];
+
+      const parsed: any = JSON.parse(content);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && Array.isArray(parsed.data)) return parsed.data;
+      if (parsed && Array.isArray(parsed.models)) return parsed.models;
+      return [];
+    } catch (error) {
+      this.logger.error('Failed to list LOADED models via MCP:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * List all available/downloaded models in LM Studio (catalog via GET /v1/models)
+   */
+  async listAvailableModels(): Promise<any[]> {
+    try {
+      const result = await this.sendRequest('tools/call', {
+        name: 'list_available_models',
+        arguments: {},
+      });
+
+      const content = result.content?.[0]?.text;
+      if (!content) return [];
+
+      const parsed: any = JSON.parse(content);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && Array.isArray(parsed.data)) return parsed.data;
+      if (parsed && Array.isArray(parsed.models)) return parsed.models;
+      return [];
+    } catch (error) {
+      this.logger.error('Failed to list AVAILABLE models via MCP:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Backwards-compatible: List models (historisch: /v1/models Katalog)
    */
   async listModels(): Promise<any[]> {
     try {
       const result = await this.sendRequest('tools/call', {
-        name: 'list_models',
+        name: 'list_available_models',
         arguments: {},
       });
 

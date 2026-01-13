@@ -54,11 +54,36 @@ export class LlmInstanceEntity {
   @Column({ type: 'datetime', nullable: true, name: 'last_health_check' })
   lastHealthCheck: Date | null;
 
-  @Column({ type: 'json', nullable: true })
+  @Column({
+    type: 'json',
+    nullable: true
+  })
   config: {
+    // --- Generation / Sampling (Request-Parameter)
     temperature?: number;
     maxTokens?: number;
+    topK?: number;
+    topP?: number;
+    repeatPenalty?: number;
+    minPSampling?: number;
+
+    // --- UI-only / App-Policy (nicht direkt Request-relevant)
+    targetLatencyMs?: number;
+    confidenceShortcut?: number;
+
+    // --- Load & Performance (Model-Load/Runtime, nicht Chat-Request)
+    contextLength?: number;
+    evalBatchSize?: number;
+    cpuThreads?: number;
+    gpuOffload?: boolean;
+    keepModelInMemory?: boolean;
+    flashAttention?: boolean;
+    kCacheQuant?: boolean;
+    vCacheQuant?: boolean;
+
+    // --- Misc / legacy
     timeoutMs?: number;
+    autoReload?: boolean;
   } | null;
 
   @CreateDateColumn({ name: 'created_at' })

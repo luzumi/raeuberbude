@@ -25,8 +25,7 @@ export interface LlmResponse {
 /**
  * Central LLM Client Service
  *
- * MongoDB removed - uses hardcoded defaults.
- * TODO: Migrate to TypeORM for LLM instance configuration.
+ * MongoDB removed - uses TypeORM-backed LLM instances.
  */
 @Injectable()
 export class LlmClientService {
@@ -46,17 +45,7 @@ export class LlmClientService {
     return trimmed.replace(/\/+$/, '') + '/v1/chat/completions';
   }
 
-  private async pickInstance(instanceId?: string): Promise<LlmInstanceEntity> {
-    if (instanceId) {
-      const byId = await this.repo.findOne({ where: { id: instanceId, enabled: true } as any });
-      if (byId) return byId;
-    }
-
-    const all = await this.repo.find({ where: { enabled: true } as any, order: { createdAt: 'DESC' } });
-    if (!all.length) {
-      throw new ServiceUnavailableException('Kein LLM konfiguriert. Bitte im Admin /speech-assistant ein Primary setzen.');
-    }
-
+  private selectBestInstance(all: LlmInstanceEntity[]): LlmInstanceEntity {
     const primary = all.find(i => i.role === LlmRole.PRIMARY);
     if (primary) return primary;
 
@@ -69,6 +58,82 @@ export class LlmClientService {
     return all[0];
   }
 
+  private async pickInstance(instanceId?: string): Promise<LlmInstanceEntity> {
+    if (instanceId) {
+      const byId = await this.repo.findOne({ where: { id: instanceId } as any });
+      if (byId && byId.enabled !== false) return byId;
+      if (byId) {
+        throw new ServiceUnavailableException(
+          `LLM instance ${instanceId} ist deaktiviert (enabled=false). Bitte im Admin /speech-assistant aktivieren.`,
+        );
+      }
+    }
+
+    // Prefer enabled=true instances.
+    const enabled = await this.repo.find({ where: { enabled: true } as any, order: { createdAt: 'DESC' } });
+    if (enabled.length) {
+      return this.selectBestInstance(enabled);
+    }
+
+    // Fallback: if nothing is enabled, but instances exist (e.g. fresh migration / UI not toggled yet),
+    // still allow requests so the system isn't hard-bricked.
+    const all = await this.repo.find({ order: { createdAt: 'DESC' } });
+    if (!all.length) {
+      throw new ServiceUnavailableException('Kein LLM konfiguriert. Bitte im Admin /speech-assistant ein Primary setzen.');
+    }
+
+    this.logger.warn(
+      'No LLM instances are enabled (enabled=false for all). Falling back to role-based selection anyway. ' +
+        'Consider enabling a primary in Admin /speech-assistant.',
+    );
+
+    return this.selectBestInstance(all);
+  }
+
+  /**
+   * Applies generation/sampling config from the instance onto the outgoing request body.
+   * Only fields that belong to /v1/chat/completions are included.
+   */
+  private applyGenerationOptionsIfActive(instance: LlmInstanceEntity, requestBody: any) {
+    if (!instance.isActive) {
+      this.logger.debug(`Instance is not active (not loaded) -> skipping sampling config in request for ${instance.model}`);
+      return;
+    }
+
+    const cfg = (instance.config || {}) as any;
+
+    // OpenAI-compatible snake_case fields
+    if (cfg.temperature !== undefined) requestBody.temperature = cfg.temperature;
+    if (cfg.maxTokens !== undefined) requestBody.max_tokens = cfg.maxTokens;
+    if (cfg.topP !== undefined) requestBody.top_p = cfg.topP;
+
+    // LM Studio / llama.cpp style extras (may be ignored if unsupported)
+    if (cfg.topK !== undefined) requestBody.top_k = cfg.topK;
+    if (cfg.repeatPenalty !== undefined) requestBody.repeat_penalty = cfg.repeatPenalty;
+    if (cfg.minPSampling !== undefined) requestBody.min_p = cfg.minPSampling;
+
+    // NOTE: Load/performance knobs are NOT request parameters for /v1/chat/completions,
+    // therefore we intentionally do not send: contextLength, evalBatchSize, cpuThreads,
+    // gpuOffload, keepModelInMemory, flashAttention, kCacheQuant, vCacheQuant.
+  }
+
+  private buildMessagesWithOptionalSystemPrompt(systemPrompt: string | null | undefined, messages: Array<{ role: string; content: string }>) {
+    const safeMessages = messages || [];
+    return systemPrompt
+      ? [{ role: 'system', content: systemPrompt }, ...safeMessages]
+      : safeMessages;
+  }
+
+  private async postChatCompletion(url: string, requestBody: any) {
+    const timeout = 30000;
+    return lastValueFrom(
+      this.http.post(url, requestBody, {
+        timeout,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+  }
+
   async request(options: LlmRequestOptions): Promise<LlmResponse> {
     const startTime = Date.now();
     const instance = await this.pickInstance(options.instanceId);
@@ -77,10 +142,7 @@ export class LlmClientService {
 
     this.logger.debug(`Using LLM instance: ${instance.model}`);
 
-    const systemPrompt = instance.systemPrompt || undefined;
-    const messages = systemPrompt
-      ? [{ role: 'system', content: systemPrompt }, ...(options.messages || [])]
-      : (options.messages || []);
+    const messages = this.buildMessagesWithOptionalSystemPrompt(instance.systemPrompt || undefined, options.messages);
 
     const requestBody: any = {
       model: instance.model,
@@ -88,19 +150,19 @@ export class LlmClientService {
       stream: options.stream || false,
     };
 
-    this.logger.log(`Sending request:`, {
-      model: requestBody.model,
-      message_count: requestBody.messages.length,
-    });
+    // Requirement: if instance isn't loaded, do not try to apply per-request configs.
+    this.applyGenerationOptionsIfActive(instance, requestBody);
+
+    this.logger.log(
+      `Sending request meta: ${JSON.stringify({
+        model: requestBody.model,
+        message_count: requestBody.messages.length,
+        has_sampling_config: !!instance.isActive && !!instance.config,
+      })}`,
+    );
 
     try {
-      const timeout = 30000;
-      const response = await lastValueFrom(
-        this.http.post(instanceUrl, requestBody, {
-          timeout,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
+      const response = await this.postChatCompletion(instanceUrl, requestBody);
 
       const data = response.data;
       const content = data.choices?.[0]?.message?.content || '';
@@ -116,18 +178,31 @@ export class LlmClientService {
       };
     } catch (error: any) {
       const durationMs = Date.now() - startTime;
-      this.logger.error(`LLM request failed after ${durationMs}ms:`, error.message);
-      throw new Error(`LLM request failed: ${error.message}`);
+
+      const status = error?.response?.status;
+      const respData = error?.response?.data;
+      const respText = (() => {
+        try {
+          if (respData === undefined || respData === null) return '';
+          return typeof respData === 'string' ? respData : JSON.stringify(respData);
+        } catch {
+          return '';
+        }
+      })();
+
+      this.logger.error(`LLM request failed after ${durationMs}ms:`, {
+        message: error?.message,
+        status,
+        response: respData,
+      });
+
+      const details = [
+        status ? `status=${status}` : null,
+        respText ? `response=${respText}` : null,
+      ].filter(Boolean).join(' ');
+
+      const suffix = details ? ` (${details})` : '';
+      throw new Error(`LLM request failed: ${error.message}${suffix}`);
     }
   }
-
-  async getActiveInstanceConfig() {
-    const instance = await this.pickInstance();
-    return {
-      model: instance.model,
-      url: this.normalizeUrl(instance.url),
-      config: instance.config || {},
-    };
-  }
 }
-

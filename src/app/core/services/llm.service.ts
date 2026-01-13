@@ -177,4 +177,15 @@ export class LlmService {
       return { loaded: false, source: 'backend', details: { error: error?.message || String(error) } };
     }
   }
+
+  /**
+   * Holt die Modell-Liste serverseitig über das Backend (empfohlen, da CORS-frei und unabhängig vom Client).
+   */
+  getLmStudioModelsViaBackend(mode: 'available' | 'loaded' = 'available'): Observable<string[]> {
+    // liegt absichtlich nicht unter this.apiUrl, weil es kein llm-instances Subresource ist
+    const base = resolveBackendBase(environment.backendApiUrl || environment.apiUrl);
+    return this.http.get<{ models?: string[] }>(`${base}/api/llm-studio/models`, { params: { mode } as any }).pipe(
+      map((resp: any) => (Array.isArray(resp?.models) ? resp.models.map(String).filter(Boolean) : []))
+    );
+  }
 }

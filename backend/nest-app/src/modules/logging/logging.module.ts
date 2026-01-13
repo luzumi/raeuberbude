@@ -1,18 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
-import { TranscriptEntity } from './entities';
 import { LlmInstanceEntity } from '../llm/entities/llm-instance.entity';
 import { LoggingController } from './logging.controller';
 import { LoggingService } from './logging.service';
 import { LmStudioMcpService } from '../llm/lm-studio-mcp.service';
 import { LlmClientService } from '../llm/llm-client.service';
 import { LlmInstancesService } from '../llm/llm-instances.service';
+import { LlmValidationService } from '../llm/llm-validation.service';
 import {
   Category,
   IntentLog,
   Keyword,
   Suggestion,
+  TranscriptEntity,
   TranscriptKeyword,
   TranscriptSuggestion,
   IntentLogKeyword
@@ -34,7 +35,7 @@ import {
     ])
   ],
   controllers: [LoggingController],
-  providers: [LoggingService, LmStudioMcpService, LlmClientService, LlmInstancesService],
+  providers: [LoggingService, LmStudioMcpService, LlmClientService, LlmInstancesService, LlmValidationService],
   exports: [LoggingService, LlmClientService, LlmInstancesService]
 })
 export class LoggingModule {}

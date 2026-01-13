@@ -1,12 +1,17 @@
 import { Controller, Get, Post, Body, Param, Query, Put, Delete } from '@nestjs/common';
 import { LoggingService } from './logging.service';
 import { LlmInstancesService } from '../llm/llm-instances.service';
+import { LlmValidationService } from '../llm/llm-validation.service';
+import { ValidateTranscriptDto } from '../llm/dto/validate-transcript.dto';
+import { LmStudioMcpService } from '../llm/lm-studio-mcp.service';
 
 @Controller('/api')
 export class LoggingController {
   constructor(
     private readonly svc: LoggingService,
     private readonly llmInstances: LlmInstancesService,
+    private readonly llmValidation: LlmValidationService,
+    private readonly lmStudioMcp: LmStudioMcpService,
   ) {}
 
   // ============================================================================
@@ -20,8 +25,8 @@ export class LoggingController {
 
   @Get('/transcripts')
   listTranscripts(@Query() query: any) {
-    const page = parseInt(query.page || '1', 10);
-    const limit = parseInt(query.limit || '50', 10);
+    const page = Number.parseInt(query.page || '1', 10);
+    const limit = Number.parseInt(query.limit || '50', 10);
     const q: any = {};
     if (query.userId) q.userId = query.userId;
     if (query.terminalId) q.terminalId = query.terminalId;
@@ -87,8 +92,8 @@ export class LoggingController {
 
   @Get('/intent-logs')
   listIntentLogs(@Query() query: any) {
-    const page = parseInt(query.page || '1', 10);
-    const limit = parseInt(query.limit || '50', 10);
+    const page = Number.parseInt(query.page || '1', 10);
+    const limit = Number.parseInt(query.limit || '50', 10);
     const q: any = {};
     if (query.userId) q.userId = query.userId;
     if (query.terminalId) q.terminalId = query.terminalId;
@@ -226,5 +231,41 @@ export class LoggingController {
   async syncModels() {
     return this.svc.syncLmStudioModels();
   }
-}
 
+  // ============================================================================
+  // SPEECH / TRANSCRIPT VALIDATION (LLM)
+  // ============================================================================
+
+  @Post('/speech/validate')
+  validateSpeechTranscript(@Body() body: ValidateTranscriptDto) {
+    return this.llmValidation.validateTranscript(body);
+  }
+
+  // ============================================================================
+  // LLM STUDIO (server-side) HELPERS
+  // ============================================================================
+
+  /**
+   * Liefert die Modell-Liste aus LM Studio serverseitig (CORS-frei).
+   * WICHTIG: Das ist eine Momentaufnahme der /v1/models Liste (je nach LM Studio ggf. "loaded"/"available").
+   */
+  @Get('/llm-studio/models')
+  async listLmStudioModels(@Query('mode') mode?: 'available' | 'loaded') {
+    const m = (mode || 'available').toLowerCase() as any;
+    const models = m === 'loaded'
+      ? await this.lmStudioMcp.listLoadedModels().catch(() => [])
+      : await this.lmStudioMcp.listModels().catch(() => []);
+
+    const ids = (models || [])
+      .map((x: any) => x?.id || x?.model || x?.name)
+      .filter(Boolean)
+      .map(String);
+
+    return {
+      source: 'mcp',
+      mode: m,
+      count: ids.length,
+      models: ids,
+    };
+  }
+}

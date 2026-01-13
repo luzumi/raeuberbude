@@ -391,22 +391,18 @@ export class AdminSpeechAssistantComponent implements OnInit {
      * Fetch available models directly from configured LLM URL and merge into uniqueModels
      */
     private async fetchModelsFromConfig(): Promise<void> {
-        if ( !this.config?.url ) return;
+        // Statt Browser-Direktcall auf LM Studio: serverseitig über Backend (CORS-frei)
         try {
-            const models = await lastValueFrom( this.llmService.getModels( this.config.url ) );
-            this.frontendLogger.debug( 'AdminSpeech', 'fetchModelsFromConfig', { url: this.config.url, models } );
+            const models = await lastValueFrom( this.llmService.getLmStudioModelsViaBackend( 'available' ) );
+            this.frontendLogger.debug( 'AdminSpeech', 'fetchModelsFromConfig (backend)', { models } );
+
             const set = new Set( this.uniqueModels || [] );
             for ( const m of models ) set.add( m );
 
-            this.uniqueModels = Array.from( set ).map( m => String( m ) ).sort( (a, b) => a.localeCompare( b ) );
-
-            console.log( 'Fetched models from config url:', this.config.url, this.uniqueModels );
+            this.uniqueModels = Array.from( set ).map( String ).sort( (a, b) => a.localeCompare( b ) );
         } catch( e ) {
-            console.warn( 'Failed to fetch models from configured LLM:', e );
-            this.frontendLogger.warn( 'AdminSpeech', 'Failed to fetch models from configured LLM (inner)', {
-                url: this.config.url,
-                error: e
-            } );
+            console.warn( 'Failed to fetch models via backend:', e );
+            this.frontendLogger.warn( 'AdminSpeech', 'Failed to fetch models via backend (inner)', { error: e } );
         }
     }
 
@@ -853,6 +849,18 @@ export class AdminSpeechAssistantComponent implements OnInit {
             // Entdecke Modelle aus allen Instanzen
             const { modelSet, sourcesByModel } = await this.discoverModels( this.llmInstances );
             this.uniqueModelSources = sourcesByModel;
+
+            // Zusätzlich: serverseitig (Backend) die LM-Studio-Modelle holen (CORS-frei / zentraler Host)
+            try {
+                const backendModels = await lastValueFrom( this.llmService.getLmStudioModelsViaBackend( 'available' ) );
+                for ( const m of (backendModels || []) ) {
+                    modelSet.add( String( m ) );
+                }
+            } catch( e ) {
+                // Nicht fatal: UI soll nicht brechen, wenn MCP/Backend-Endpoint temporär nicht verfügbar ist
+                console.warn( 'Failed to fetch LM Studio models via backend', e );
+            }
+
             this.uniqueModels = Array.from( modelSet ).map( String ).sort( (a, b) => a.localeCompare( b ) );
 
             console.log( 'Loaded LLM instances:', this.llmInstances.length );
@@ -1544,3 +1552,4 @@ export class AdminSpeechAssistantComponent implements OnInit {
        return instance.role;
     }
 }
+
