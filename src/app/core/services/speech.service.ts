@@ -99,7 +99,7 @@ export class SpeechService {
   }
 
   setTTSEnabled(enabled: boolean): void {
-    this.ttsEnabled = !!enabled;
+    this.ttsEnabled = enabled;
     localStorage.setItem('tts-enabled', String(this.ttsEnabled));
     if (typeof (this.tts as any)?.setEnabled === 'function') {
       (this.tts as any).setEnabled(this.ttsEnabled);
@@ -132,7 +132,7 @@ export class SpeechService {
 
   /** Kompatibilitäts-API (UI/Tests): Auto-Stop Flag */
   setAutoStopEnabled(enabled: boolean): void {
-    this.autoStopEnabled = !!enabled;
+    this.autoStopEnabled = enabled;
     localStorage.setItem('speech-autostop-enabled', String(this.autoStopEnabled));
   }
 

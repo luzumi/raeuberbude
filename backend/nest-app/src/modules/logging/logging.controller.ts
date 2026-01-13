@@ -51,6 +51,11 @@ export class LoggingController {
     return this.svc.updateTranscript(id, body);
   }
 
+  @Delete('/transcripts/:id')
+  deleteTranscript(@Param('id') id: string) {
+    return this.svc.deleteTranscript(id);
+  }
+
   @Post('/transcripts/bulk-update')
   bulkUpdate(@Body() body: any) {
     const { ids, updates } = body;
