@@ -1,761 +1,809 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  Req,
-  Res,
-  HttpStatus,
-  HttpCode,
-  Logger,
-  InternalServerErrorException,
-  UploadedFile,
-  UseInterceptors,
-  BadRequestException,
+    BadRequestException,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpCode,
+    HttpStatus,
+    InternalServerErrorException,
+    Logger,
+    Param,
+    Post,
+    Put,
+    Query,
+    Req,
+    Res,
+    UploadedFile,
+    UseInterceptors,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiQuery,
-  ApiParam,
-} from '@nestjs/swagger';
-import { SpeechService } from './speech.service';
-import { RightsService } from './rights.service';
-import { TerminalsService } from './terminals.service';
-import { CreateHumanInputDto } from './dto/create-human-input.dto';
-import { UpdateHumanInputDto } from './dto/update-human-input.dto';
-import { CreateAppTerminalDto } from './dto/create-app-terminal.dto';
-import { UpdateAppTerminalDto } from './dto/update-app-terminal.dto';
-import { CreateUserRightsDto } from './dto/create-user-rights.dto';
-import { UpdateUserRightsDto } from './dto/update-user-rights.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { STTProviderService } from './stt/stt.provider';
-import { AudioConverterService } from './stt/audio-converter.service';
-import { memoryStorage } from 'multer';
-import { Request, Response } from 'express';
-import { randomUUID } from 'node:crypto';
+import {FileInterceptor} from '@nestjs/platform-express';
+import {ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags,} from '@nestjs/swagger';
+import {Request, Response} from 'express';
+import {memoryStorage} from 'multer';
+import {randomUUID} from 'node:crypto';
+import {CreateAppTerminalDto} from './dto/create-app-terminal.dto';
+import {CreateHumanInputDto} from './dto/create-human-input.dto';
+import {CreateUserRightsDto} from './dto/create-user-rights.dto';
+import {UpdateAppTerminalDto} from './dto/update-app-terminal.dto';
+import {UpdateHumanInputDto} from './dto/update-human-input.dto';
+import {UpdateUserRightsDto} from './dto/update-user-rights.dto';
+import {RightsService} from './rights.service';
+import {SpeechService} from './speech.service';
+import {AudioConverterService} from './stt/audio-converter.service';
+import {STTProviderService} from './stt/stt.provider';
+import {TerminalsService} from './terminals.service';
 
-@ApiTags('speech')
-@Controller('api/speech')
+@ApiTags( 'speech' )
+@Controller( 'api/speech' )
 export class SpeechController {
-  private readonly logger = new Logger(SpeechController.name);
+    private readonly logger = new Logger( SpeechController.name );
 
-  constructor(
-    private readonly speechService: SpeechService,
-    private readonly rightsService: RightsService,
-    private readonly terminalsService: TerminalsService,
-    private readonly sttProvider: STTProviderService,
-    private readonly audioConverter: AudioConverterService,
-  ) {}
+    constructor(
+        private readonly speechService: SpeechService,
+        private readonly rightsService: RightsService,
+        private readonly terminalsService: TerminalsService,
+        private readonly sttProvider: STTProviderService,
+        private readonly audioConverter: AudioConverterService,
+    ) {}
 
-  // ============ Human Input Endpoints ============
+    // ============ Human Input Endpoints ============
 
-  @Post('input')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new human input record' })
-  @ApiResponse({ status: 201, description: 'Input created successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient rights' })
-  async createInput(@Body() createDto: CreateHumanInputDto, @Req() req: Request) {
-    // Rechteprüfung optional: über ENV steuerbar (Default: AUS)
-    if (process.env.SPEECH_RIGHTS_ENABLED === 'true') {
-      await this.rightsService.checkPermission(createDto.userId, 'speech.use');
+    @Post( 'input' )
+    @HttpCode( HttpStatus.CREATED )
+    @ApiOperation( { summary: 'Create a new human input record' } )
+    @ApiResponse( { status: 201, description: 'Input created successfully' } )
+    @ApiResponse( { status: 400, description: 'Bad request' } )
+    @ApiResponse( { status: 403, description: 'Forbidden - insufficient rights' } )
+    private isUuid(value: any): boolean {
+        return typeof value === 'string' &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test( value.trim() );
     }
 
-    // Terminal aus Cookie auflösen, falls nicht im DTO enthalten
-    const cookieName = 'rb_terminal_id';
-    const cookieTerminalId = (req as any)?.cookies?.[cookieName] as string | undefined;
-    let publicTerminalIdForActivity: string | null = null;
-    if (!createDto.terminalId && cookieTerminalId) {
-      try {
-        const termDoc = await this.terminalsService.findByTerminalId(cookieTerminalId);
-        if (termDoc?.id) {
-          createDto.terminalId = termDoc.id;
-          publicTerminalIdForActivity = termDoc.terminalId;
+    private async resolveTerminalId(terminalId: string): Promise<{ internalId: string; publicId: string } | null> {
+        try {
+            const termDoc = await this.terminalsService.findByTerminalId( terminalId );
+            return termDoc?.id
+                ? { internalId: termDoc.id, publicId: termDoc.terminalId }
+                : null;
+        } catch {
+            return null;
         }
-      } catch { /* Terminal nicht gefunden – ignorieren */ }
     }
 
-    // Terminal-Aktivität aktualisieren (Public-ID bevorzugt)
-    try {
-      if (publicTerminalIdForActivity) {
-        await this.terminalsService.updateActivity(publicTerminalIdForActivity);
-      } else if (cookieTerminalId) {
-        await this.terminalsService.updateActivity(cookieTerminalId);
-      }
-    } catch (e: unknown) {
-      const error = e as Error;
-      this.logger.warn('updateActivity failed', error?.message || e);
+    private getTerminalIdFromCookies(req: Request): string | undefined {
+        const cookieName = 'rb_terminal_id';
+        return (req as any)?.cookies?.[cookieName];
     }
 
-    const input = await this.speechService.create(createDto);
-    this.logger.log(`Created input from user ${createDto.userId}`);
-
-    return {
-      success: true,
-      data: input,
-      message: 'Speech input recorded successfully',
-    };
-  }
-
-  @Get('terminals/me')
-  @ApiOperation({ summary: 'Get terminal bound to current cookie (rb_terminal_id)' })
-  async getMyTerminal(@Req() req: Request) {
-    const cookieName = 'rb_terminal_id';
-    const cookieTerminalId = (req as any)?.cookies?.[cookieName] as string | undefined;
-    if (!cookieTerminalId) {
-      return {
-        success: false,
-        data: null,
-        message: 'No terminal cookie present',
-      };
+    private async updateTerminalActivity(terminalId: string): Promise<void> {
+        try {
+            await this.terminalsService.updateActivity( terminalId );
+        } catch( error ) {
+            this.logger.warn( `Failed to update terminal activity for ${ terminalId }`, error?.message || String( error ) );
+        }
     }
 
-    try {
-      const terminal = await this.terminalsService.findByTerminalId(cookieTerminalId);
-      return { success: true, data: terminal };
-    } catch { return { success: false, data: null, message: 'Terminal not found for cookie' }; }
-  }
+    async createInput(
+        @Body() createDto: CreateHumanInputDto,
+        @Req() req: Request
+    ): Promise<{ success: boolean; data: any; message: string }> {
+        // Rechteprüfung
+        if ( process.env.SPEECH_RIGHTS_ENABLED === 'true' ) {
+            await this.rightsService.checkPermission( createDto.userId, 'speech.use' );
+        }
 
-  @Post('terminals/claim')
-  @ApiOperation({ summary: 'Bind current device to an existing terminalId (sets cookie)' })
-  async claimTerminal(
-    @Body('terminalId') terminalId: string,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    if (!terminalId) {
-      throw new BadRequestException('terminalId is required');
-    }
-    const existing = await this.terminalsService.findByTerminalId(terminalId);
-    const isProd = (process.env.NODE_ENV === 'production');
-    const cookieName = 'rb_terminal_id';
+        // Terminal-ID auflösen
+        let terminalInfo = await this.resolveTerminal( createDto.terminalId, req );
+        if ( terminalInfo ) {
+            createDto.terminalId = terminalInfo.internalId;
+        }
 
-    // In development we allow cross-site cookies by setting SameSite=None so browsers accept
-    // the cookie when frontend and backend run on different origins (e.g. 4301 -> 3001).
-    // Note: modern browsers require SameSite=None to be paired with 'Secure' in production/HTTPS.
-    const cookieOptions: any = {
-      httpOnly: true,
-      sameSite: isProd ? 'lax' : 'none',
-      secure: isProd, // keep secure in production
-      maxAge: 365 * 24 * 60 * 60 * 1000,
-    };
+        // Terminal-Aktivität aktualisieren
+        if ( terminalInfo?.publicId ) {
+            await this.updateTerminalActivity( terminalInfo.publicId );
+        } else {
+            const cookieTerminalId = this.getTerminalIdFromCookies( req );
+            if ( cookieTerminalId ) {
+                await this.updateTerminalActivity( cookieTerminalId );
+            }
+        }
 
-    res.cookie(cookieName, existing.terminalId, cookieOptions);
-    await this.terminalsService.updateActivity(existing.terminalId);
-    return { success: true, data: existing, message: 'Terminal claimed for this device' };
-  }
+        // Eingabe speichern
+        const input = await this.speechService.create( createDto );
+        this.logger.log( `Created input from user ${ createDto.userId }` );
 
-  @Post('terminals/unclaim')
-  @ApiOperation({ summary: 'Unbind current device from terminal (clears cookie)' })
-  async unclaimTerminal(
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const cookieName = 'rb_terminal_id';
-    const isProd = (process.env.NODE_ENV === 'production');
-    const clearOptions: any = {
-      httpOnly: true,
-      sameSite: isProd ? 'lax' : 'none',
-      secure: isProd,
-    };
-    res.clearCookie(cookieName, clearOptions);
-    return { success: true, message: 'Terminal unclaimed for this device' };
-  }
-
-  @Get('inputs')
-  @ApiOperation({ summary: 'Get all human inputs with filters' })
-  @ApiQuery({ name: 'userId', required: false })
-  @ApiQuery({ name: 'terminalId', required: false })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'inputType', required: false })
-  @ApiQuery({ name: 'startDate', required: false })
-  @ApiQuery({ name: 'endDate', required: false })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'skip', required: false, type: Number })
-  async getInputs(@Query() query: Record<string, any>) {
-    const { userId, terminalId, status, inputType, startDate, endDate, limit, skip } = query;
-    const filters = { userId, terminalId, status, inputType, startDate, endDate };
-    const options = { limit, skip };
-
-    const inputs = await this.speechService.findAll(filters, options);
-
-    return {
-      success: true,
-      data: inputs,
-      count: inputs.length,
-    };
-  }
-
-  @Get('inputs/latest')
-  @ApiOperation({ summary: 'Get latest human inputs' })
-  @ApiQuery({ name: 'count', required: false, type: Number })
-  async getLatestInputs(@Query('count') count: number = 10) {
-    const inputs = await this.speechService.findLatest(count);
-
-    return {
-      success: true,
-      data: inputs,
-      count: inputs.length,
-    };
-  }
-
-  @Get('inputs/user/:userId')
-  @ApiOperation({ summary: 'Get inputs by user' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async getUserInputs(
-    @Param('userId') userId: string,
-    @Query('limit') limit?: number,
-    @Query('skip') skip?: number,
-  ) {
-    const inputs = await this.speechService.findByUser(userId, { limit, skip });
-
-    return {
-      success: true,
-      data: inputs,
-      count: inputs.length,
-    };
-  }
-
-  @Get('inputs/:id')
-  @ApiOperation({ summary: 'Get a specific human input by ID' })
-  @ApiParam({ name: 'id', description: 'Input ID' })
-  async getInput(@Param('id') id: string) {
-    const input = await this.speechService.findOne(id);
-
-    return {
-      success: true,
-      data: input,
-    };
-  }
-
-  // ============ Speech-to-Text (STT) Endpoints ============
-
-  @Post('transcribe')
-  @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('audio', {
-    limits: {
-      fileSize: 25 * 1024 * 1024, // 25MB max
-    },
-    storage: memoryStorage(),
-    fileFilter: (req, file, callback) => {
-      const allowedMimes = [
-        'audio/webm',
-        'audio/wav',
-        'audio/wave',
-        'audio/ogg',
-        'audio/mpeg',
-        'audio/mp3',
-        'audio/x-wav',
-        'audio/x-m4a',
-      ];
-
-      if (allowedMimes.includes(file.mimetype)) {
-        callback(null, true);
-      } else {
-        callback(new BadRequestException(`Invalid file type: ${file.mimetype}. Allowed types: ${allowedMimes.join(', ')}`), false);
-      }
-    },
-  }))
-  @ApiOperation({ summary: 'Transcribe audio to text using STT providers' })
-  @ApiResponse({ status: 200, description: 'Audio transcribed successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid audio file or parameters' })
-  @ApiResponse({ status: 413, description: 'File too large' })
-  @ApiResponse({ status: 503, description: 'STT service unavailable' })
-  async transcribeAudio(
-    @UploadedFile() file: Express.Multer.File,
-    @Body('language') language?: string,
-    @Body('maxDurationMs') maxDurationMs?: string,
-  ) {
-    try {
-      if (!file) {
-        throw new BadRequestException('No audio file provided');
-      }
-
-      // Vorab: Status prüfen – schneller Fehler statt langer Timeout-Kette
-      const providerStatus = await this.sttProvider.getProvidersStatus();
-      const anyUp = Object.values(providerStatus).includes(true);
-      if (!anyUp) {
         return {
-          success: false,
-          error: 'stt_unavailable',
-          message: 'Kein STT Provider verfügbar',
-          providers: providerStatus,
+            success: true,
+            data: input,
+            message: 'Speech input recorded successfully',
         };
-      }
+    }
 
-      this.logger.log(`Received audio for transcription: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
+    private async resolveTerminal(
+        terminalId: string | undefined,
+        req: Request
+    ): Promise<{ internalId: string; publicId: string } | null> {
+        // Terminal aus DTO auflösen
+        if ( terminalId && !this.isUuid( terminalId ) ) {
+            return this.resolveTerminalId( terminalId.trim() );
+        }
 
-      const maxDuration = maxDurationMs ? Number.parseInt(maxDurationMs, 10) : 30000;
-      const validation = await this.audioConverter.validateAudio(
-        file.buffer,
-        file.mimetype,
-        maxDuration,
-      );
+        // Terminal aus Cookie auflösen, falls nicht im DTO
+        if ( !terminalId ) {
+            const cookieTerminalId = this.getTerminalIdFromCookies( req );
+            if ( cookieTerminalId ) {
+                return this.resolveTerminalId( cookieTerminalId );
+            }
+        }
 
-      if (!validation.valid) {
-        throw new BadRequestException(validation.error || 'Invalid audio file');
-      }
+        return null;
+    }
 
-      // Transcribe audio
-      const result = await this.sttProvider.transcribe(
-        file.buffer,
-        file.mimetype,
-        language,
-        maxDuration,
-      );
+    @Get( 'terminals/me' )
+    @ApiOperation( { summary: 'Get terminal bound to current cookie (rb_terminal_id)' } )
+    async getMyTerminal(@Req() req: Request) {
+        const cookieName = 'rb_terminal_id';
+        const cookieTerminalId = (req as any)?.cookies?.[cookieName] as string | undefined;
+        if ( !cookieTerminalId ) {
+            return {
+                success: false,
+                data: null,
+                message: 'No terminal cookie present',
+            };
+        }
 
-      return {
-        success: true,
-        data: {
-          provider: result.provider,
-          transcript: result.transcript,
-          confidence: result.confidence,
-          durationMs: result.durationMs,
-          language: result.language || language || 'de-DE',
-          audioDurationMs: validation.duration,
+        try {
+            const terminal = await this.terminalsService.findByTerminalId( cookieTerminalId );
+            return { success: true, data: terminal };
+        } catch { return { success: false, data: null, message: 'Terminal not found for cookie' }; }
+    }
+
+    @Post( 'terminals/claim' )
+    @ApiOperation( { summary: 'Bind current device to an existing terminalId (sets cookie)' } )
+    async claimTerminal(
+        @Body( 'terminalId' ) terminalId: string,
+        @Req() req: Request,
+        @Res( { passthrough: true } ) res: Response,
+    ) {
+        if ( !terminalId ) {
+            throw new BadRequestException( 'terminalId is required' );
+        }
+        const existing = await this.terminalsService.findByTerminalId( terminalId );
+        const isProd = (process.env.NODE_ENV === 'production');
+        const cookieName = 'rb_terminal_id';
+
+        // In development we allow cross-site cookies by setting SameSite=None so browsers accept
+        // the cookie when frontend and backend run on different origins (e.g. 4301 -> 3001).
+        // Note: modern browsers require SameSite=None to be paired with 'Secure' in production/HTTPS.
+        const cookieOptions: any = {
+            httpOnly: true,
+            sameSite: isProd ? 'lax' : 'none',
+            secure: isProd, // keep secure in production
+            maxAge: 365 * 24 * 60 * 60 * 1000,
+        };
+
+        res.cookie( cookieName, existing.terminalId, cookieOptions );
+        await this.terminalsService.updateActivity( existing.terminalId );
+        return { success: true, data: existing, message: 'Terminal claimed for this device' };
+    }
+
+    @Post( 'terminals/unclaim' )
+    @ApiOperation( { summary: 'Unbind current device from terminal (clears cookie)' } )
+    async unclaimTerminal(
+        @Res( { passthrough: true } ) res: Response,
+    ) {
+        const cookieName = 'rb_terminal_id';
+        const isProd = (process.env.NODE_ENV === 'production');
+        const clearOptions: any = {
+            httpOnly: true,
+            sameSite: isProd ? 'lax' : 'none',
+            secure: isProd,
+        };
+        res.clearCookie( cookieName, clearOptions );
+        return { success: true, message: 'Terminal unclaimed for this device' };
+    }
+
+    @Get( 'inputs' )
+    @ApiOperation( { summary: 'Get all human inputs with filters' } )
+    @ApiQuery( { name: 'userId', required: false } )
+    @ApiQuery( { name: 'terminalId', required: false } )
+    @ApiQuery( { name: 'status', required: false } )
+    @ApiQuery( { name: 'inputType', required: false } )
+    @ApiQuery( { name: 'startDate', required: false } )
+    @ApiQuery( { name: 'endDate', required: false } )
+    @ApiQuery( { name: 'limit', required: false, type: Number } )
+    @ApiQuery( { name: 'skip', required: false, type: Number } )
+    async getInputs(@Query() query: Record<string, any>) {
+        const { userId, terminalId, status, inputType, startDate, endDate, limit, skip } = query;
+        const filters = { userId, terminalId, status, inputType, startDate, endDate };
+        const options = { limit, skip };
+
+        const inputs = await this.speechService.findAll( filters, options );
+
+        return {
+            success: true,
+            data: inputs,
+            count: inputs.length,
+        };
+    }
+
+    @Get( 'inputs/latest' )
+    @ApiOperation( { summary: 'Get latest human inputs' } )
+    @ApiQuery( { name: 'count', required: false, type: Number } )
+    async getLatestInputs(@Query( 'count' ) count: number = 10) {
+        const inputs = await this.speechService.findLatest( count );
+
+        return {
+            success: true,
+            data: inputs,
+            count: inputs.length,
+        };
+    }
+
+    @Get( 'inputs/user/:userId' )
+    @ApiOperation( { summary: 'Get inputs by user' } )
+    @ApiParam( { name: 'userId', description: 'User ID' } )
+    async getUserInputs(
+        @Param( 'userId' ) userId: string,
+        @Query( 'limit' ) limit?: number,
+        @Query( 'skip' ) skip?: number,
+    ) {
+        const inputs = await this.speechService.findByUser( userId, { limit, skip } );
+
+        return {
+            success: true,
+            data: inputs,
+            count: inputs.length,
+        };
+    }
+
+    @Get( 'inputs/:id' )
+    @ApiOperation( { summary: 'Get a specific human input by ID' } )
+    @ApiParam( { name: 'id', description: 'Input ID' } )
+    async getInput(@Param( 'id' ) id: string) {
+        const input = await this.speechService.findOne( id );
+
+        return {
+            success: true,
+            data: input,
+        };
+    }
+
+    // ============ Speech-to-Text (STT) Endpoints ============
+
+    @Post( 'transcribe' )
+    @HttpCode( HttpStatus.OK )
+    @UseInterceptors( FileInterceptor( 'audio', {
+        limits: {
+            fileSize: 25 * 1024 * 1024, // 25MB max
         },
-      };
-    } catch (error: unknown) {
-      const err = error as Error;
-      const msg = err?.message || '';
+        storage: memoryStorage(),
+        fileFilter: (req, file, callback) => {
+            const allowedMimes = [
+                'audio/webm',
+                'audio/wav',
+                'audio/wave',
+                'audio/ogg',
+                'audio/mpeg',
+                'audio/mp3',
+                'audio/x-wav',
+                'audio/x-m4a',
+            ];
 
-      // Spezielle Behandlung: Alle Provider down
-      if (msg.includes('All STT providers failed')) {
-        const status = await this.sttProvider.getProvidersStatus().catch(() => ({}));
-        this.logger.warn('STT unavailable for request');
-        return {
-          success: false,
-          error: 'stt_unavailable',
-          message: 'Alle STT Provider nicht verfügbar',
-          providers: status,
-        };
-      }
-
-      if (error instanceof BadRequestException) {
-        throw error; // unverändert weiterreichen
-      }
-
-      const errorObj = error as Error;
-      this.logger.error(`Transcription failed: ${msg}`, errorObj?.stack);
-
-      // Service temporär nicht erreichbar / Timeout
-      if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('unavailable')) {
-        return {
-          success: false,
-          error: 'stt_timeout',
-          message: 'STT Dienst vorübergehend nicht erreichbar',
-        };
-      }
-
-      return {
-        success: false,
-        error: 'stt_failure',
-        message: msg || 'Transcription failed',
-      };
-    }
-  }
-
-  @Get('transcribe/status')
-  @ApiOperation({ summary: 'Get STT providers status' })
-  @ApiResponse({ status: 200, description: 'Provider status retrieved' })
-  async getTranscribeStatus() {
-    const status = await this.sttProvider.getProvidersStatus();
-
-    return {
-      success: true,
-      data: {
-        providers: status,
-        config: {
-          primary: process.env.STT_PRIMARY || 'vosk',
-          secondary: process.env.STT_SECONDARY || 'whisper',
-          language: process.env.STT_LANG || 'de-DE',
+            if ( allowedMimes.includes( file.mimetype ) ) {
+                callback( null, true );
+            } else {
+                callback( new BadRequestException( `Invalid file type: ${ file.mimetype }. Allowed types: ${ allowedMimes.join( ', ' ) }` ), false );
+            }
         },
-      },
-    };
-  }
+    } ) )
+    @ApiOperation( { summary: 'Transcribe audio to text using STT providers' } )
+    @ApiResponse( { status: 200, description: 'Audio transcribed successfully' } )
+    @ApiResponse( { status: 400, description: 'Invalid audio file or parameters' } )
+    @ApiResponse( { status: 413, description: 'File too large' } )
+    @ApiResponse( { status: 503, description: 'STT service unavailable' } )
+    async transcribeAudio(
+        @UploadedFile() file: Express.Multer.File,
+        @Body( 'language' ) language?: string,
+        @Body( 'maxDurationMs' ) maxDurationMs?: string,
+    ) {
+        try {
+            if ( !file ) {
+                return {
+                    success: false,
+                    error: 'no_audio_file',
+                    message: 'No audio file provided'
+                };
+            }
 
-  @Put('inputs/:id')
-  @ApiOperation({ summary: 'Update a human input' })
-  @ApiParam({ name: 'id', description: 'Input ID' })
-  async updateInput(
-    @Param('id') id: string,
-    @Body() updateDto: UpdateHumanInputDto,
-  ) {
-    const input = await this.speechService.update(id, updateDto);
+            // Vorab: Status prüfen – schneller Fehler statt langer Timeout-Kette
+            const providerStatus = await this.sttProvider.getProvidersStatus();
+            const anyUp = Object.values( providerStatus ).includes( true );
+            if ( !anyUp ) {
+                return {
+                    success: false,
+                    error: 'stt_unavailable',
+                    message: 'Kein STT Provider verfügbar',
+                    providers: providerStatus,
+                };
+            }
 
-    return {
-      success: true,
-      data: input,
-      message: 'Input updated successfully',
-    };
-  }
+            this.logger.log( `Received audio for transcription: ${ file.originalname } (${ file.size } bytes, ${ file.mimetype })` );
 
-  @Delete('inputs/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a human input' })
-  @ApiParam({ name: 'id', description: 'Input ID' })
-  async deleteInput(@Param('id') id: string) {
-    await this.speechService.delete(id);
-  }
+            const maxDuration = maxDurationMs ? Number.parseInt( maxDurationMs, 10 ) : 30000;
+            const validation = await this.audioConverter.validateAudio(
+                file.buffer,
+                file.mimetype,
+                maxDuration,
+            );
 
-  @Get('inputs/stats')
-  @ApiOperation({ summary: 'Get input statistics' })
-  @ApiQuery({ name: 'userId', required: false })
-  async getInputStats(@Query('userId') userId?: string) {
-    const stats = await this.speechService.getStatistics(userId);
+            if ( !validation.valid ) {
+                return {
+                    success: false,
+                    error: 'invalid_audio',
+                    message: validation.error || 'Invalid audio file'
+                };
+            }
 
-    return {
-      success: true,
-      data: stats,
-    };
-  }
+            // Transcribe audio
+            const result = await this.sttProvider.transcribe(
+                file.buffer,
+                file.mimetype,
+                language,
+                maxDuration,
+            );
 
-  // ============ Terminal Management Endpoints ============
+            return {
+                success: true,
+                data: {
+                    provider: result.provider,
+                    transcript: result.transcript,
+                    confidence: result.confidence,
+                    durationMs: result.durationMs,
+                    language: result.language || language || 'de-DE',
+                    audioDurationMs: validation.duration,
+                },
+            };
+        } catch( error: unknown ) {
+            if ( error instanceof BadRequestException ) {
+                throw error; // Explizites Weiterwerfen spezifischer Fehler
+            }
+            const err = error as Error;
+            const msg = err?.message || '';
 
-  @Post('terminals')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new app terminal' })
-  async createTerminal(@Body() createDto: CreateAppTerminalDto) {
-    const terminal = await this.terminalsService.create(createDto);
+            // Spezielle Behandlung: Alle Provider down
+            if ( msg.includes( 'All STT providers failed' ) ) {
+                const status = await this.sttProvider.getProvidersStatus().catch( () => ({}) );
+                this.logger.warn( 'STT unavailable for request' );
+                return {
+                    success: false,
+                    error: 'stt_unavailable',
+                    message: 'Alle STT Provider nicht verfügbar',
+                    providers: status,
+                };
+            }
 
-    return {
-      success: true,
-      data: terminal,
-      message: 'Terminal created successfully',
-    };
-  }
+            if ( error instanceof BadRequestException ) {
+                throw error; // unverändert weiterreichen
+            }
 
-  @Post('terminals/register')
-  @ApiOperation({ summary: 'Register or update a terminal' })
-  async registerTerminal(@Body() terminalData: any, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    try {
-      const cookieName = 'rb_terminal_id';
-      let termId = (req as any)?.cookies?.[cookieName] as string | undefined;
-      const secure = (process.env.NODE_ENV === 'production');
+            const errorObj = error as Error;
+            this.logger.error( `Transcription failed: ${ msg }`, errorObj?.stack );
 
-      if (termId) {
-        // Refresh cookie expiration for existing terminal
-        res.cookie(cookieName, termId, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure,
-          maxAge: 365 * 24 * 60 * 60 * 1000,
-        });
-      } else {
-        // Create new terminal ID
-        termId = randomUUID();
-        res.cookie(cookieName, termId, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure,
-          maxAge: 365 * 24 * 60 * 60 * 1000, // 1 Jahr
-        });
-      }
+            // Service temporär nicht erreichbar / Timeout
+            if ( msg.toLowerCase().includes( 'timeout' ) || msg.toLowerCase().includes( 'unavailable' ) ) {
+                return {
+                    success: false,
+                    error: 'stt_timeout',
+                    message: 'STT Dienst vorübergehend nicht erreichbar',
+                };
+            }
 
-      const terminal = await this.terminalsService.registerTerminal({
-        ...terminalData,
-        terminalId: termId,
-      });
-
-      return {
-        success: true,
-        data: terminal,
-        message: 'Terminal registered successfully',
-      };
-    } catch (err: any) {
-      this.logger.error('registerTerminal failed', err?.stack || err);
-      // Bekannte Nest-HTTP-Exceptions durchreichen, Unbekannte als 500 melden
-      if (err && typeof err.getStatus === 'function') throw err;
-      throw new InternalServerErrorException(err?.message || 'Failed to claim terminal');
+            return {
+                success: false,
+                error: 'stt_failure',
+                message: msg || 'Transcription failed',
+            };
+        }
     }
-  }
 
-  @Get('terminals')
-  @ApiOperation({ summary: 'Get all terminals' })
-  @ApiQuery({ name: 'type', required: false })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'location', required: false })
-  async getTerminals(
-    @Query('type') type?: string,
-    @Query('status') status?: string,
-    @Query('location') location?: string,
-  ) {
-    const filters = { type, status, location };
-    const terminals = await this.terminalsService.findAll(filters);
-    return {
-      success: true,
-      data: terminals,
-      count: terminals.length,
-    };
-  }
+    @Get( 'transcribe/status' )
+    @ApiOperation( { summary: 'Get STT providers status' } )
+    @ApiResponse( { status: 200, description: 'Provider status retrieved' } )
+    async getTranscribeStatus() {
+        const status = await this.sttProvider.getProvidersStatus();
 
-  @Get('terminals/active')
-  @ApiOperation({ summary: 'Get active terminals' })
-  async getActiveTerminals() {
-    const terminals = await this.terminalsService.getActiveTerminals();
-
-    return {
-      success: true,
-      data: terminals,
-      count: terminals.length,
-    };
-  }
-
-  @Get('terminals/stats')
-  @ApiOperation({ summary: 'Get terminal statistics' })
-  async getTerminalStats() {
-    const stats = await this.terminalsService.getStatistics();
-
-    return {
-      success: true,
-      data: stats,
-    };
-  }
-
-  @Get('terminals/:id')
-  @ApiOperation({ summary: 'Get a specific terminal' })
-  @ApiParam({ name: 'id', description: 'Terminal ID or terminalId' })
-  async getTerminal(@Param('id') id: string) {
-    const terminal = await this.terminalsService.findOne(id);
-
-    return {
-      success: true,
-      data: terminal,
-    };
-  }
-
-  @Put('terminals/:id')
-  @ApiOperation({ summary: 'Update a terminal' })
-  @ApiParam({ name: 'id', description: 'Terminal ID or terminalId' })
-  async updateTerminal(
-    @Param('id') id: string,
-    @Body() updateDto: UpdateAppTerminalDto,
-  ) {
-    const terminal = await this.terminalsService.update(id, updateDto);
-
-    return {
-      success: true,
-      data: terminal,
-      message: 'Terminal updated successfully',
-    };
-  }
-
-  @Put('terminals/:id/status')
-  @ApiOperation({ summary: 'Update terminal status' })
-  @ApiParam({ name: 'id', description: 'Terminal ID' })
-  async updateTerminalStatus(
-    @Param('id') id: string,
-    @Body('status') status: 'active' | 'inactive' | 'maintenance',
-  ) {
-    const terminal = await this.terminalsService.setStatus(id, status);
-
-    return {
-      success: true,
-      data: terminal,
-      message: `Terminal status updated to ${status}`,
-    };
-  }
-
-  @Put('terminals/:id/assign')
-  @ApiOperation({ summary: 'Assign user to terminal' })
-  @ApiParam({ name: 'id', description: 'Terminal ID' })
-  async assignTerminal(
-    @Param('id') id: string,
-    @Body('userId') userId: string | null,
-  ) {
-    const terminal = await this.terminalsService.assignUser(id, userId);
-
-    return {
-      success: true,
-      data: terminal,
-      message: userId ? 'Terminal assigned successfully' : 'Terminal unassigned',
-    };
-  }
-
-  @Delete('terminals/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a terminal' })
-  @ApiParam({ name: 'id', description: 'Terminal ID' })
-  async deleteTerminal(@Param('id') id: string) {
-    await this.terminalsService.delete(id);
-  }
-
-  // ============ Rights Management Endpoints ============
-
-  @Post('rights')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create user rights' })
-  async createRights(@Body() createDto: CreateUserRightsDto) {
-    const rights = await this.rightsService.create(createDto);
-
-    return {
-      success: true,
-      data: rights,
-      message: 'User rights created successfully',
-    };
-  }
-
-  @Get('rights')
-  @ApiOperation({ summary: 'Get all user rights' })
-  @ApiQuery({ name: 'role', required: false })
-  @ApiQuery({ name: 'status', required: false })
-  async getRights(
-    @Query('role') role?: string,
-    @Query('status') status?: string,
-  ) {
-    const filters = { role, status };
-    const rights = await this.rightsService.findAll(filters);
-
-    return {
-      success: true,
-      data: rights,
-      count: rights.length,
-    };
-  }
-
-  @Get('rights/stats')
-  @ApiOperation({ summary: 'Get rights statistics' })
-  async getRightsStats() {
-    const stats = await this.rightsService.getRoleStatistics();
-
-    return {
-      success: true,
-      data: stats,
-    };
-  }
-
-  @Get('rights/user/:userId')
-  @ApiOperation({ summary: 'Get rights for a specific user' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async getUserRights(@Param('userId') userId: string) {
-    const rights = await this.rightsService.findByUserId(userId);
-
-    return {
-      success: true,
-      data: rights,
-    };
-  }
-
-  @Put('rights/user/:userId')
-  @ApiOperation({ summary: 'Update user rights' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async updateRights(
-    @Param('userId') userId: string,
-    @Body() updateDto: UpdateUserRightsDto,
-  ) {
-    const rights = await this.rightsService.update(userId, updateDto);
-
-    return {
-      success: true,
-      data: rights,
-      message: 'User rights updated successfully',
-    };
-  }
-
-  @Put('rights/user/:userId/role')
-  @ApiOperation({ summary: 'Assign role to user' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async assignRole(
-    @Param('userId') userId: string,
-    @Body('role') role: string,
-  ) {
-    const rights = await this.rightsService.assignRole(userId, role);
-
-    return {
-      success: true,
-      data: rights,
-      message: `Role ${role} assigned successfully`,
-    };
-  }
-
-  // ============ Test Inputs Endpoints ============
-
-  @Post('test-inputs')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Save a test input for later reuse' })
-  async saveTestInput(@Body() data: {
-    transcript: string;
-    audioData: string;
-    mimeType: string;
-    metadata?: any;
-  }) {
-    try {
-      const result = await this.speechService.saveTestInput(data);
-      return {
-        success: true,
-        data: result,
-        message: 'Test input saved successfully',
-      };
-    } catch (error) {
-      this.logger.error('Failed to save test input:', error);
-      throw new InternalServerErrorException('Failed to save test input');
+        return {
+            success: true,
+            data: {
+                providers: status,
+                config: {
+                    primary: process.env.STT_PRIMARY || 'vosk',
+                    secondary: process.env.STT_SECONDARY || 'whisper',
+                    language: process.env.STT_LANG || 'de-DE',
+                },
+            },
+        };
     }
-  }
 
-  @Get('test-inputs')
-  @ApiOperation({ summary: 'Get all saved test inputs' })
-  async getTestInputs() {
-    try {
-      const inputs = await this.speechService.getTestInputs();
-      return {
-        success: true,
-        data: inputs,
-        count: inputs.length,
-      };
-    } catch (error) {
-      this.logger.error('Failed to get test inputs:', error);
-      throw new InternalServerErrorException('Failed to get test inputs');
+    @Put( 'inputs/:id' )
+    @ApiOperation( { summary: 'Update a human input' } )
+    @ApiParam( { name: 'id', description: 'Input ID' } )
+    async updateInput(
+        @Param( 'id' ) id: string,
+        @Body() updateDto: UpdateHumanInputDto,
+    ) {
+        const input = await this.speechService.update( id, updateDto );
+
+        return {
+            success: true,
+            data: input,
+            message: 'Input updated successfully',
+        };
     }
-  }
 
-  @Get('test-inputs/:id')
-  @ApiOperation({ summary: 'Get a specific test input by ID' })
-  @ApiParam({ name: 'id', description: 'Test Input ID' })
-  async getTestInput(@Param('id') id: string) {
-    try {
-      const input = await this.speechService.getTestInput(id);
-      return {
-        success: true,
-        data: input,
-      };
-    } catch (error) {
-      this.logger.error('Failed to get test input:', error);
-      throw new InternalServerErrorException('Failed to get test input');
+    @Delete( 'inputs/:id' )
+    @HttpCode( HttpStatus.NO_CONTENT )
+    @ApiOperation( { summary: 'Delete a human input' } )
+    @ApiParam( { name: 'id', description: 'Input ID' } )
+    async deleteInput(@Param( 'id' ) id: string) {
+        await this.speechService.delete( id );
     }
-  }
 
-  @Delete('test-inputs/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a test input' })
-  @ApiParam({ name: 'id', description: 'Test Input ID' })
-  async deleteTestInput(@Param('id') id: string) {
-    try {
-      await this.speechService.deleteTestInput(id);
-    } catch (error) {
-      this.logger.error('Failed to delete test input:', error);
-      throw new InternalServerErrorException('Failed to delete test input');
+    @Get( 'inputs/stats' )
+    @ApiOperation( { summary: 'Get input statistics' } )
+    @ApiQuery( { name: 'userId', required: false } )
+    async getInputStats(@Query( 'userId' ) userId?: string) {
+        const stats = await this.speechService.getStatistics( userId );
+
+        return {
+            success: true,
+            data: stats,
+        };
     }
-  }
 
-  @Get('rights/check/:userId/:permission')
-  @ApiOperation({ summary: 'Check if user has permission' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  @ApiParam({ name: 'permission', description: 'Permission to check' })
-  async checkPermission(
-    @Param('userId') userId: string,
-    @Param('permission') permission: string,
-  ) {
-    const hasPermission = await this.rightsService.hasPermission(userId, permission);
+    // ============ Terminal Management Endpoints ============
 
-    return {
-      success: true,
-      hasPermission,
-    };
-  }
+    @Post( 'terminals' )
+    @HttpCode( HttpStatus.CREATED )
+    @ApiOperation( { summary: 'Create a new app terminal' } )
+    async createTerminal(@Body() createDto: CreateAppTerminalDto) {
+        const terminal = await this.terminalsService.create( createDto );
+
+        return {
+            success: true,
+            data: terminal,
+            message: 'Terminal created successfully',
+        };
+    }
+
+    @Post( 'terminals/register' )
+    @ApiOperation( { summary: 'Register or update a terminal' } )
+    async registerTerminal(@Body() terminalData: any, @Req() req: Request, @Res( { passthrough: true } ) res: Response) {
+        try {
+            const cookieName = 'rb_terminal_id';
+            let termId = (req as any)?.cookies?.[cookieName] as string | undefined;
+            const secure = (process.env.NODE_ENV === 'production');
+
+            if ( termId ) {
+                // Refresh cookie expiration for existing terminal
+                res.cookie( cookieName, termId, {
+                    httpOnly: true,
+                    sameSite: 'lax',
+                    secure,
+                    maxAge: 365 * 24 * 60 * 60 * 1000,
+                } );
+            } else {
+                // Create new terminal ID
+                termId = randomUUID();
+                res.cookie( cookieName, termId, {
+                    httpOnly: true,
+                    sameSite: 'lax',
+                    secure,
+                    maxAge: 365 * 24 * 60 * 60 * 1000, // 1 Jahr
+                } );
+            }
+
+            const terminal = await this.terminalsService.registerTerminal( {
+                ...terminalData,
+                terminalId: termId,
+            } );
+
+            return {
+                success: true,
+                data: terminal,
+                message: 'Terminal registered successfully',
+            };
+        } catch( err: any ) {
+            this.logger.error( 'registerTerminal failed', err?.stack || err );
+            // Bekannte Nest-HTTP-Exceptions durchreichen, Unbekannte als 500 melden
+            if ( err && typeof err.getStatus === 'function' ) throw err;
+            throw new InternalServerErrorException( err?.message || 'Failed to claim terminal' );
+        }
+    }
+
+    @Get( 'terminals' )
+    @ApiOperation( { summary: 'Get all terminals' } )
+    @ApiQuery( { name: 'type', required: false } )
+    @ApiQuery( { name: 'status', required: false } )
+    @ApiQuery( { name: 'location', required: false } )
+    async getTerminals(
+        @Query( 'type' ) type?: string,
+        @Query( 'status' ) status?: string,
+        @Query( 'location' ) location?: string,
+    ) {
+        const filters = { type, status, location };
+        const terminals = await this.terminalsService.findAll( filters );
+        return {
+            success: true,
+            data: terminals,
+            count: terminals.length,
+        };
+    }
+
+    @Get( 'terminals/active' )
+    @ApiOperation( { summary: 'Get active terminals' } )
+    async getActiveTerminals() {
+        const terminals = await this.terminalsService.getActiveTerminals();
+
+        return {
+            success: true,
+            data: terminals,
+            count: terminals.length,
+        };
+    }
+
+    @Get( 'terminals/stats' )
+    @ApiOperation( { summary: 'Get terminal statistics' } )
+    async getTerminalStats() {
+        const stats = await this.terminalsService.getStatistics();
+
+        return {
+            success: true,
+            data: stats,
+        };
+    }
+
+    @Get( 'terminals/:id' )
+    @ApiOperation( { summary: 'Get a specific terminal' } )
+    @ApiParam( { name: 'id', description: 'Terminal ID or terminalId' } )
+    async getTerminal(@Param( 'id' ) id: string) {
+        const terminal = await this.terminalsService.findOne( id );
+
+        return {
+            success: true,
+            data: terminal,
+        };
+    }
+
+    @Put( 'terminals/:id' )
+    @ApiOperation( { summary: 'Update a terminal' } )
+    @ApiParam( { name: 'id', description: 'Terminal ID or terminalId' } )
+    async updateTerminal(
+        @Param( 'id' ) id: string,
+        @Body() updateDto: UpdateAppTerminalDto,
+    ) {
+        const terminal = await this.terminalsService.update( id, updateDto );
+
+        return {
+            success: true,
+            data: terminal,
+            message: 'Terminal updated successfully',
+        };
+    }
+
+    @Put( 'terminals/:id/status' )
+    @ApiOperation( { summary: 'Update terminal status' } )
+    @ApiParam( { name: 'id', description: 'Terminal ID' } )
+    async updateTerminalStatus(
+        @Param( 'id' ) id: string,
+        @Body( 'status' ) status: 'active' | 'inactive' | 'maintenance',
+    ) {
+        const terminal = await this.terminalsService.setStatus( id, status );
+
+        return {
+            success: true,
+            data: terminal,
+            message: `Terminal status updated to ${ status }`,
+        };
+    }
+
+    @Put( 'terminals/:id/assign' )
+    @ApiOperation( { summary: 'Assign user to terminal' } )
+    @ApiParam( { name: 'id', description: 'Terminal ID' } )
+    async assignTerminal(
+        @Param( 'id' ) id: string,
+        @Body( 'userId' ) userId: string | null,
+    ) {
+        const terminal = await this.terminalsService.assignUser( id, userId );
+
+        return {
+            success: true,
+            data: terminal,
+            message: userId ? 'Terminal assigned successfully' : 'Terminal unassigned',
+        };
+    }
+
+    @Delete( 'terminals/:id' )
+    @HttpCode( HttpStatus.NO_CONTENT )
+    @ApiOperation( { summary: 'Delete a terminal' } )
+    @ApiParam( { name: 'id', description: 'Terminal ID' } )
+    async deleteTerminal(@Param( 'id' ) id: string) {
+        await this.terminalsService.delete( id );
+    }
+
+    // ============ Rights Management Endpoints ============
+
+    @Post( 'rights' )
+    @HttpCode( HttpStatus.CREATED )
+    @ApiOperation( { summary: 'Create user rights' } )
+    async createRights(@Body() createDto: CreateUserRightsDto) {
+        const rights = await this.rightsService.create( createDto );
+
+        return {
+            success: true,
+            data: rights,
+            message: 'User rights created successfully',
+        };
+    }
+
+    @Get( 'rights' )
+    @ApiOperation( { summary: 'Get all user rights' } )
+    @ApiQuery( { name: 'role', required: false } )
+    @ApiQuery( { name: 'status', required: false } )
+    async getRights(
+        @Query( 'role' ) role?: string,
+        @Query( 'status' ) status?: string,
+    ) {
+        const filters = { role, status };
+        const rights = await this.rightsService.findAll( filters );
+
+        return {
+            success: true,
+            data: rights,
+            count: rights.length,
+        };
+    }
+
+    @Get( 'rights/stats' )
+    @ApiOperation( { summary: 'Get rights statistics' } )
+    async getRightsStats() {
+        const stats = await this.rightsService.getRoleStatistics();
+
+        return {
+            success: true,
+            data: stats,
+        };
+    }
+
+    @Get( 'rights/user/:userId' )
+    @ApiOperation( { summary: 'Get rights for a specific user' } )
+    @ApiParam( { name: 'userId', description: 'User ID' } )
+    async getUserRights(@Param( 'userId' ) userId: string) {
+        const rights = await this.rightsService.findByUserId( userId );
+
+        return {
+            success: true,
+            data: rights,
+        };
+    }
+
+    @Put( 'rights/user/:userId' )
+    @ApiOperation( { summary: 'Update user rights' } )
+    @ApiParam( { name: 'userId', description: 'User ID' } )
+    async updateRights(
+        @Param( 'userId' ) userId: string,
+        @Body() updateDto: UpdateUserRightsDto,
+    ) {
+        const rights = await this.rightsService.update( userId, updateDto );
+
+        return {
+            success: true,
+            data: rights,
+            message: 'User rights updated successfully',
+        };
+    }
+
+    @Put( 'rights/user/:userId/role' )
+    @ApiOperation( { summary: 'Assign role to user' } )
+    @ApiParam( { name: 'userId', description: 'User ID' } )
+    async assignRole(
+        @Param( 'userId' ) userId: string,
+        @Body( 'role' ) role: string,
+    ) {
+        const rights = await this.rightsService.assignRole( userId, role );
+
+        return {
+            success: true,
+            data: rights,
+            message: `Role ${ role } assigned successfully`,
+        };
+    }
+
+    // ============ Test Inputs Endpoints ============
+
+    @Post( 'test-inputs' )
+    @HttpCode( HttpStatus.CREATED )
+    @ApiOperation( { summary: 'Save a test input for later reuse' } )
+    async saveTestInput(@Body() data: {
+        transcript: string;
+        audioData: string;
+        mimeType: string;
+        metadata?: any;
+    }) {
+        try {
+            const result = await this.speechService.saveTestInput( data );
+            return {
+                success: true,
+                data: result,
+                message: 'Test input saved successfully',
+            };
+        } catch( error ) {
+            this.logger.error( 'Failed to save test input:', error );
+            throw new InternalServerErrorException( 'Failed to save test input' );
+        }
+    }
+
+    @Get( 'test-inputs' )
+    @ApiOperation( { summary: 'Get all saved test inputs' } )
+    async getTestInputs() {
+        try {
+            const inputs = await this.speechService.getTestInputs();
+            return {
+                success: true,
+                data: inputs,
+                count: inputs.length,
+            };
+        } catch( error ) {
+            this.logger.error( 'Failed to get test inputs:', error );
+            throw new InternalServerErrorException( 'Failed to get test inputs' );
+        }
+    }
+
+    @Get( 'test-inputs/:id' )
+    @ApiOperation( { summary: 'Get a specific test input by ID' } )
+    @ApiParam( { name: 'id', description: 'Test Input ID' } )
+    async getTestInput(@Param( 'id' ) id: string) {
+        try {
+            const input = await this.speechService.getTestInput( id );
+            return {
+                success: true,
+                data: input,
+            };
+        } catch( error ) {
+            this.logger.error( 'Failed to get test input:', error );
+            throw new InternalServerErrorException( 'Failed to get test input' );
+        }
+    }
+
+    @Delete( 'test-inputs/:id' )
+    @HttpCode( HttpStatus.NO_CONTENT )
+    @ApiOperation( { summary: 'Delete a test input' } )
+    @ApiParam( { name: 'id', description: 'Test Input ID' } )
+    async deleteTestInput(@Param( 'id' ) id: string) {
+        try {
+            await this.speechService.deleteTestInput( id );
+        } catch( error ) {
+            this.logger.error( 'Failed to delete test input:', error );
+            throw new InternalServerErrorException( 'Failed to delete test input' );
+        }
+    }
+
+    @Get( 'rights/check/:userId/:permission' )
+    @ApiOperation( { summary: 'Check if user has permission' } )
+    @ApiParam( { name: 'userId', description: 'User ID' } )
+    @ApiParam( { name: 'permission', description: 'Permission to check' } )
+    async checkPermission(
+        @Param( 'userId' ) userId: string,
+        @Param( 'permission' ) permission: string,
+    ) {
+        const hasPermission = await this.rightsService.hasPermission( userId, permission );
+
+        return {
+            success: true,
+            hasPermission,
+        };
+    }
 }
 

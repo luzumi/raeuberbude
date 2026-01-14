@@ -558,42 +558,63 @@ export class SpeechService {
   /**
    * Speichert Transkript in Datenbank
    */
-  private async saveTranscript(
-    transcript: string,
-    confidence: number,
-    transcriptionResult: TranscriptionResult,
-    validation?: ValidationResult
-  ): Promise<void> {
-    try {
-      // Terminal-ID holen (kann null sein)
-      let terminalId: string | null = null;
-      try {
-        const terminalResult = await this.terminal.getMyTerminal();
-        if (terminalResult?.success && terminalResult?.data?.terminalId) {
-          terminalId = terminalResult.data.terminalId;
+// src/app/core/services/speech.service.ts
+
+    private async saveTranscript(
+        transcript: string,
+        confidence: number,
+        transcriptionResult: TranscriptionResult,
+        validation?: ValidationResult
+    ): Promise<void> {
+        try {
+            // Failsafe: sicherstellen, dass eine User-ID gesetzt ist (sonst landen Logs "woanders")
+            try {
+                const currentUserId =
+                    typeof (this.persistence as any)?.getUserId === 'function'
+                        ? (this.persistence as any).getUserId()
+                        : null;
+
+                if (!currentUserId) {
+                    const storedUserId = localStorage.getItem('userId') || localStorage.getItem('currentUserId');
+                    if (storedUserId && typeof (this.persistence as any)?.setUserId === 'function') {
+                        (this.persistence as any).setUserId(storedUserId);
+                        console.warn('[Speech] User ID was missing. Restored from localStorage for persistence.');
+                    }
+                }
+            } catch (e) {
+                console.warn('[Speech] Could not ensure user id before saving transcript:', e);
+            }
+
+            // Terminal-ID holen (kann null sein)
+            let terminalId: string | null = null;
+            try {
+                const terminalResult = await this.terminal.getMyTerminal();
+                if (terminalResult?.success && terminalResult?.data?.terminalId) {
+                    terminalId = terminalResult.data.terminalId;
+                }
+            } catch (error) {
+                console.warn('[Speech] Could not get terminal ID:', error);
+            }
+
+            // Metriken zusammenstellen
+            const metrics = {
+                audioDurationMs: transcriptionResult.audioDurationMs,
+                transcriptionDurationMs: transcriptionResult.transcriptionDurationMs,
+                provider: transcriptionResult.provider,
+                language: transcriptionResult.language,
+                recordingStartedAt: this.recordingStartTime,
+                clientNow: Date.now(),
+                validationFailed: validation && !validation.isValid,
+                validationIssues: validation?.issues || []
+            };
+
+            await this.persistence.saveTranscript(transcript, confidence, terminalId, metrics);
+        } catch (error) {
+            console.warn('[Speech] Failed to save transcript:', error);
+            // Nicht werfen - Fehler beim Speichern soll User-Flow nicht unterbrechen
         }
-      } catch (error) {
-        console.warn('[Speech] Could not get terminal ID:', error);
-      }
-
-      // Metriken zusammenstellen
-      const metrics = {
-        audioDurationMs: transcriptionResult.audioDurationMs,
-        transcriptionDurationMs: transcriptionResult.transcriptionDurationMs,
-        provider: transcriptionResult.provider,
-        language: transcriptionResult.language,
-        recordingStartedAt: this.recordingStartTime,
-        clientNow: Date.now(),
-        validationFailed: validation && !validation.isValid,
-        validationIssues: validation?.issues || []
-      };
-
-      await this.persistence.saveTranscript(transcript, confidence, terminalId, metrics);
-    } catch (error) {
-      console.warn('[Speech] Failed to save transcript:', error);
-      // Nicht werfen - Fehler beim Speichern soll User-Flow nicht unterbrechen
     }
-  }
+
 
   /**
    * Zeigt Status im UI an
