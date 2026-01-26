@@ -10,6 +10,17 @@ import {
 } from './entity-admin.types';
 
 /**
+ * Check if a value is a Promise
+ * More robust than duck typing with .catch
+ */
+function isPromise(value: any): value is Promise<any> {
+  return value != null && 
+         typeof value === 'object' && 
+         typeof value.then === 'function' &&
+         typeof value.catch === 'function';
+}
+
+/**
  * Check if a badge is clickable (has onClick or routerLink)
  */
 export function isBadgeClickable<T = any>(badge: EntityBadgeConfig<T>): boolean {
@@ -170,8 +181,8 @@ export async function handleBadgeClick<T = any>(
       const result = badge.onClick(ctx);
       
       // Handle async onClick
-      if (result && typeof (result as any).catch === 'function') {
-        await (result as Promise<void>);
+      if (isPromise(result)) {
+        await result;
       }
       
       return true;
@@ -217,8 +228,8 @@ export async function handleActionClick<T = any>(
       const result = action.onClick(ctx);
       
       // Handle async onClick
-      if (result && typeof (result as any).catch === 'function') {
-        await (result as Promise<void>);
+      if (isPromise(result)) {
+        await result;
       }
       
       return true;
@@ -289,12 +300,31 @@ export function getColumnValue<T = any>(
 }
 
 /**
- * Format value for display
+ * Options for formatting values
  */
-export function formatValue(value: any): string {
-  if (value == null) return '-';
-  if (typeof value === 'boolean') return value ? 'Ja' : 'Nein';
-  if (value instanceof Date) return value.toLocaleDateString('de-DE');
+export interface FormatValueOptions {
+  booleanTrue?: string;
+  booleanFalse?: string;
+  locale?: string;
+  nullValue?: string;
+}
+
+/**
+ * Format value for display
+ * @param value The value to format
+ * @param options Formatting options (optional)
+ */
+export function formatValue(value: any, options?: FormatValueOptions): string {
+  const opts = {
+    booleanTrue: options?.booleanTrue ?? 'Ja',
+    booleanFalse: options?.booleanFalse ?? 'Nein',
+    locale: options?.locale ?? 'de-DE',
+    nullValue: options?.nullValue ?? '-',
+  };
+  
+  if (value == null) return opts.nullValue;
+  if (typeof value === 'boolean') return value ? opts.booleanTrue : opts.booleanFalse;
+  if (value instanceof Date) return value.toLocaleDateString(opts.locale);
   if (Array.isArray(value)) return value.join(', ');
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
