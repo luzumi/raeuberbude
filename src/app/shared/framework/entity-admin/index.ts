@@ -3,7 +3,10 @@
  */
 
 // Types
-export * from './entity-admin.types';
+export * from './models/entity-admin.types';
 
 // Builder
-export * from './entity-admin.builder';
+export * from './models/entity-admin.builder';
+
+// Utilities
+export * from './models/entity-admin.utils';
