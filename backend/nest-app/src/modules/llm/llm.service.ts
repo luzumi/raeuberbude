@@ -186,7 +186,8 @@ Transkript: "${transcript}"
 
 Validiere diese Spracheingabe.`;
 
-    // Mistral supports only user/assistant roles - combine system prompt
+    // LM Studio with Mistral requires combining system and user prompts
+    // (not a Mistral limitation, but specific to this LM Studio setup)
     const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
 
     const request: LMStudioRequest = {
@@ -251,10 +252,16 @@ Validiere diese Spracheingabe.`;
         throw new HttpException('LLM request timeout', HttpStatus.GATEWAY_TIMEOUT);
       }
 
-      // Check for connection errors
-      if (error.code === 'ECONNREFUSED' || error.response?.status === 0) {
+      // Check for connection errors (network issues)
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
         this.logger.warn('LM Studio not reachable at', this.llmUrl);
         throw new HttpException('LM Studio not available', HttpStatus.SERVICE_UNAVAILABLE);
+      }
+
+      // Check for HTTP errors
+      if (error.response?.status >= 400) {
+        this.logger.warn(`LLM HTTP error: ${error.response.status}`);
+        throw new HttpException(`LLM service error: ${error.response.status}`, error.response.status);
       }
 
       throw error;
@@ -289,9 +296,14 @@ Validiere diese Spracheingabe.`;
     }
 
     try {
-      // Try a simple health check
+      // Try a simple health check - extract base URL properly
+      const baseUrl = this.llmUrl.includes('/v1/') 
+        ? this.llmUrl.split('/v1/')[0] 
+        : this.llmUrl;
+      const modelsUrl = `${baseUrl}/v1/models`;
+
       const response = await firstValueFrom(
-        this.httpService.get(`${this.llmUrl.replace('/v1/chat/completions', '')}/v1/models`, {
+        this.httpService.get(modelsUrl, {
           timeout: 2000
         })
       );
