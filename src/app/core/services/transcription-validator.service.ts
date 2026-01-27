@@ -31,6 +31,8 @@ interface LMStudioResponse {
   providedIn: 'root'
 })
 export class TranscriptionValidatorService {
+  // Legacy direct LM Studio connection (now using backend)
+  // kept for potential fallback scenarios
   private readonly lmStudioUrl = 'http://192.168.56.1:1234/v1/chat/completions';
   private readonly model = 'mistralai/mistral-7b-instruct-v0.3';
 
@@ -125,7 +127,7 @@ export class TranscriptionValidatorService {
   }
 
   /**
-   * Validate transcription using LLM (Mistral via LM Studio)
+   * Validate transcription using LLM (via backend)
    */
   async validateLocally(
     transcript: string,
@@ -144,12 +146,12 @@ export class TranscriptionValidatorService {
     }
 
     try {
-      // LLM-Validierung
-      const llmResult = await this.validateWithLLM(transcript, originalConfidence);
-      return llmResult;
+      // Call backend LLM validation endpoint
+      const result = await this.validateWithBackend(transcript, originalConfidence);
+      return result;
     } catch (error) {
-      console.error('LLM validation failed, using simple fallback:', error);
-      // Fallback: Bei LLM-Fehler akzeptieren wir die Eingabe mit reduzierter Confidence
+      console.error('Backend LLM validation failed, using simple fallback:', error);
+      // Fallback: Bei Backend-Fehler akzeptieren wir die Eingabe mit reduzierter Confidence
       return {
         isValid: true,
         confidence: originalConfidence * 0.7,
@@ -161,9 +163,68 @@ export class TranscriptionValidatorService {
   }
 
   /**
-   * Validate transcription using LLM (Mistral via LM Studio)
+   * Validate transcription using backend LLM endpoint
    */
-  private async validateWithLLM(
+  private async validateWithBackend(
+    transcript: string,
+    originalConfidence: number
+  ): Promise<ValidationResult> {
+    try {
+      const response = await lastValueFrom(
+        this.http.post<any>(
+          '/api/speech/validate-intent',
+          {
+            transcript,
+            confidence: originalConfidence,
+            location: globalThis.location?.pathname,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+      );
+
+      if (!response.success) {
+        throw new Error(response.message || 'Backend validation failed');
+      }
+
+      const data = response.data;
+
+      // Map backend response to ValidationResult
+      const result: ValidationResult = {
+        isValid: data.isValid === true,
+        confidence: typeof data.confidence === 'number' ? data.confidence : originalConfidence,
+        hasAmbiguity: data.hasAmbiguity === true,
+        clarificationNeeded: data.clarificationNeeded === true,
+        clarificationQuestion: data.clarificationQuestion || undefined,
+        suggestions: Array.isArray(data.suggestions) ? data.suggestions : undefined,
+        issues: data.issues || undefined,
+        intent: data.intent || undefined
+      };
+
+      console.log('Backend LLM Validation Result:', result);
+      console.log('Detected Intent:', result.intent?.intent, result.intent?.summary);
+      return result;
+
+    } catch (error: any) {
+      console.error('Backend LLM validation error:', error);
+
+      // Bei Netzwerkfehler oder Backend nicht erreichbar
+      if (error.status === 0 || error.status === 404 || error.status === 503) {
+        console.warn('Backend LLM service not reachable');
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Legacy direct LLM validation (kept as fallback)
+   * Now we prefer backend validation via validateWithBackend
+   */
+  private async validateWithLLMDirect(
     transcript: string,
     originalConfidence: number
   ): Promise<ValidationResult> {

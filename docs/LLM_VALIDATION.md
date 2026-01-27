@@ -4,47 +4,216 @@
 
 Die Sprachvalidierung nutzt jetzt ein **lokales Mistral 7B Instruct Modell** über LM Studio statt Code-Heuristiken. Das LLM versteht natürliche Sprache deutlich besser und erkennt Sinn und Kontext zuverlässiger.
 
+**NEU:** Die LLM-Integration läuft jetzt über das **Backend** (NestJS) statt direkt vom Frontend. Dies bietet:
+- ✅ Keine CORS-Probleme
+- ✅ Server-seitige Secrets (LLM URL kann privat bleiben)
+- ✅ Zentrales Logging und Monitoring
+- ✅ Timeout- und Retry-Logik
+- ✅ Konsistente Error-Handling
+
+## Architektur
+
+```
+┌─────────────┐                  ┌─────────────┐                  ┌─────────────┐
+│   Angular   │ HTTP POST        │   NestJS    │ HTTP POST        │ LM Studio   │
+│  Frontend   │───────────────>│   Backend   │───────────────>│   (Local)   │
+│             │ /api/speech/     │             │ :1234/v1/chat/   │             │
+│             │ validate-intent  │ LlmService  │ completions      │ Mistral 7B  │
+└─────────────┘                  └─────────────┘                  └─────────────┘
+       │                                │                                │
+       │                                │ ┌────────────────┐            │
+       │                                └─│   MongoDB      │            │
+       │                                  │ (HumanInput +  │            │
+       │                                  │  LLM Metadata) │            │
+       └──────────────────────────────────└────────────────┘────────────┘
+                     Ergebnis zurück + Intent-Daten gespeichert
+```
+
 ## Setup
 
 ### Voraussetzungen
 
 1. **LM Studio** installiert und gestartet
 2. **Mistral 7B Instruct v0.3** Modell geladen
-3. **Local Server** aktiv auf `http://192.168.56.1:1234`
+3. **Local Server** aktiv auf `http://127.0.0.1:1234` (oder konfigurierbar)
 
 ### LM Studio Konfiguration
 
 1. LM Studio öffnen
 2. Modell laden: `mistralai/mistral-7b-instruct-v0.3`
 3. Local Server starten (Port 1234)
-4. API-Endpoint prüfen: `http://192.168.56.1:1234/v1/chat/completions`
+4. API-Endpoint prüfen: `http://127.0.0.1:1234/v1/chat/completions`
+
+### Backend-Konfiguration (.env)
+
+```bash
+# LLM Service Configuration
+LLM_ENABLED=true
+LLM_URL=http://127.0.0.1:1234/v1/chat/completions
+LLM_MODEL=mistralai/mistral-7b-instruct-v0.3
+LLM_TIMEOUT_MS=10000
+
+# STT Configuration (existing)
+STT_PRIMARY=whisper
+STT_SECONDARY=vosk
+STT_LANG=de-DE
+STT_ENABLED=true
+```
+
+## API Endpoints
+
+### 1. POST `/api/speech/validate-intent`
+
+Validiert ein Transkript und erkennt die Benutzerabsicht (Intent).
+
+**Request:**
+```json
+{
+  "transcript": "Schalte das Licht im Wohnzimmer aus",
+  "confidence": 0.92,
+  "userId": "optional-user-id",
+  "location": "/dashboard"
+}
+```
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "data": {
+    "isValid": true,
+    "confidence": 0.95,
+    "hasAmbiguity": false,
+    "clarificationNeeded": false,
+    "intent": {
+      "intent": "home_assistant_command",
+      "summary": "Licht ausschalten im Wohnzimmer",
+      "keywords": ["licht", "wohnzimmer", "aus"],
+      "homeAssistant": {
+        "action": "turn_off",
+        "entityType": "light",
+        "location": "wohnzimmer"
+      }
+    }
+  }
+}
+```
+
+**Response (Validation Failed):**
+```json
+{
+  "success": false,
+  "error": "validation_failed",
+  "message": "LM Studio not available"
+}
+```
+
+### 2. GET `/api/speech/llm/status`
+
+Prüft ob LM Studio erreichbar ist.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "available": true,
+    "url": "http://127.0.0.1:1234/v1/chat/completions",
+    "model": "mistralai/mistral-7b-instruct-v0.3"
+  }
+}
+```
 
 ## Funktionsweise
 
-### Validierungs-Flow
+### Validierungs-Flow (NEU: via Backend)
 
 ```
-1. User spricht → STT transkribiert
+1. User spricht → STT transkribiert (Vosk/Whisper)
    ↓
-2. Transkript + STT-Confidence → LLM
+2. Frontend: Transkript + STT-Confidence → Backend POST /api/speech/validate-intent
    ↓
-3. LLM analysiert auf Deutsch:
+3. Backend: LlmService ruft LM Studio auf
+   ↓
+4. LM Studio analysiert auf Deutsch:
    - Ist es ein sinnvoller Satz?
    - Ist es ein gültiger Befehl?
    - Ist es eine Begrüßung?
    - Ist es unklar/mehrdeutig?
    ↓
-4. LLM antwortet mit JSON:
+5. LM Studio antwortet mit JSON:
    {
      "isValid": true/false,
      "confidence": 0.0-1.0,
      "hasAmbiguity": true/false,
      "clarificationNeeded": true/false,
      "clarificationQuestion": "...",
-     "suggestions": [...]
+     "intent": { ... }
    }
    ↓
-5. App nutzt Ergebnis für UI/TTS
+6. Backend: Speichert Ergebnis + Metadaten in MongoDB (HumanInput collection)
+   ↓
+7. Backend: Gibt ValidationResult an Frontend zurück
+   ↓
+8. Frontend: Nutzt Ergebnis für UI/TTS/Intent-Ausführung
+```
+
+### Backend LLM Service
+
+Der neue `LlmService` (`backend/nest-app/src/modules/llm/llm.service.ts`) übernimmt:
+
+- **LLM-Aufrufe**: Zentrale Verwaltung der LM Studio API-Calls
+- **Timeout-Handling**: Configurable timeout (default 10s)
+- **Fallback-Logik**: Bei LLM-Ausfall akzeptiert mit reduzierter Confidence
+- **Error-Handling**: Unterscheidet zwischen Timeout, Connection Error, JSON Parse Error
+- **Health-Check**: Prüft ob LM Studio erreichbar ist
+
+**Code-Beispiel:**
+```typescript
+// Backend: LlmService
+async validateIntent(dto: ValidateIntentDto): Promise<ValidationResult> {
+  if (!this.llmEnabled) {
+    return this.fallbackValidation(dto.transcript, dto.confidence);
+  }
+  
+  try {
+    const result = await this.callLLMForValidation(
+      dto.transcript, 
+      dto.confidence,
+      { location: dto.location, userId: dto.userId }
+    );
+    return result;
+  } catch (error) {
+    // Fallback bei Fehler
+    return this.fallbackValidation(dto.transcript, dto.confidence);
+  }
+}
+```
+
+### Frontend Integration
+
+Das Frontend (`src/app/core/services/transcription-validator.service.ts`) ruft jetzt das Backend auf:
+
+```typescript
+// Frontend: TranscriptionValidatorService
+private async validateWithBackend(
+  transcript: string,
+  originalConfidence: number
+): Promise<ValidationResult> {
+  const response = await lastValueFrom(
+    this.http.post<any>('/api/speech/validate-intent', {
+      transcript,
+      confidence: originalConfidence,
+      location: globalThis.location?.pathname,
+    })
+  );
+  
+  if (!response.success) {
+    throw new Error(response.message || 'Backend validation failed');
+  }
+  
+  return response.data;
+}
 ```
 
 ### LLM Prompt
@@ -110,7 +279,108 @@ Validiere diese Spracheingabe.
 }
 ```
 
-## Vorteile gegenüber Code-Heuristiken
+## MongoDB Persistenz
+
+Alle validierten Transkripte werden mit LLM-Metadaten in MongoDB gespeichert:
+
+**HumanInput Collection Schema:**
+```typescript
+{
+  userId: ObjectId,
+  terminalId: ObjectId?,
+  inputText: string,
+  inputType: 'speech' | 'text' | 'gesture',
+  status: 'pending' | 'processing' | 'processed' | 'failed',
+  context: {
+    confidence: number,
+    device: string,
+    browser: string,
+    sessionId: string,
+    location: string
+  },
+  metadata: {
+    // STT Metadata
+    provider: 'vosk' | 'whisper' | 'web-speech',
+    language: 'de-DE',
+    audioDurationMs: number,
+    transcriptionDurationMs: number,
+    sttMode: 'browser' | 'server',
+    
+    // LLM Validation Metadata (NEU)
+    llmValidated: boolean,
+    llmProvider: 'lm-studio',
+    llmModel: 'mistralai/mistral-7b-instruct-v0.3',
+    llmUrl: string,
+    llmConfidence: number,
+    llmDurationMs: number,
+    intent: {
+      type: 'home_assistant_command' | 'navigation' | 'web_search' | ...,
+      summary: string,
+      keywords: string[],
+      homeAssistant: { action, entityType, location },
+      navigation: { target },
+      webSearch: { query, searchType }
+    }
+  },
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+**Beispiel-Dokument:**
+```json
+{
+  "_id": "67a1b2c3d4e5f6g7h8i9j0k1",
+  "userId": "60a1b2c3d4e5f6g7h8i9j0k1",
+  "inputText": "Schalte das Licht im Wohnzimmer aus",
+  "inputType": "speech",
+  "status": "processed",
+  "context": {
+    "confidence": 0.92,
+    "sessionId": "sess_1234567890",
+    "location": "/dashboard"
+  },
+  "metadata": {
+    "provider": "whisper",
+    "language": "de-DE",
+    "audioDurationMs": 2340,
+    "transcriptionDurationMs": 450,
+    "llmValidated": true,
+    "llmModel": "mistralai/mistral-7b-instruct-v0.3",
+    "llmConfidence": 0.95,
+    "llmDurationMs": 320,
+    "intent": {
+      "type": "home_assistant_command",
+      "summary": "Licht ausschalten im Wohnzimmer",
+      "keywords": ["licht", "wohnzimmer", "aus"],
+      "homeAssistant": {
+        "action": "turn_off",
+        "entityType": "light",
+        "location": "wohnzimmer"
+      }
+    }
+  },
+  "createdAt": "2025-01-27T12:30:00.000Z",
+  "updatedAt": "2025-01-27T12:30:01.000Z"
+}
+```
+
+## Vorteile der Backend-Integration
+
+### ✅ Sicherheit & Architektur
+- **Keine CORS-Probleme**: Backend → LM Studio ist same-origin
+- **Server-seitige Secrets**: LLM URL nicht im Frontend-Code sichtbar
+- **Zentrale Konfiguration**: Alle LLM-Settings in Backend .env
+
+### ✅ Monitoring & Logging
+- **Strukturiertes Logging**: NestJS Logger für alle LLM-Calls
+- **Performance-Tracking**: Timings in MongoDB gespeichert
+- **Error-Analytics**: Zentrale Fehlerbehandlung im Backend
+
+### ✅ Bessere Wartbarkeit
+- **DRY-Prinzip**: Ein Service für alle LLM-Calls (Frontend + andere Module)
+- **Testbarkeit**: Backend-Service isoliert testbar
+- **Versionierung**: API-Versionierung möglich
 
 ### ✅ Besseres Sprachverständnis
 - Erkennt **Kontext** und **Bedeutung**

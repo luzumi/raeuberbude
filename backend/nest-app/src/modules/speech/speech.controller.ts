@@ -36,6 +36,8 @@ import { UpdateUserRightsDto } from './dto/update-user-rights.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { STTProviderService } from './stt/stt.provider';
 import { AudioConverterService } from './stt/audio-converter.service';
+import { LlmService } from '../llm/llm.service';
+import { ValidateIntentDto } from '../llm/dto/validate-intent.dto';
 import { memoryStorage } from 'multer';
 import { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
@@ -51,6 +53,7 @@ export class SpeechController {
     private readonly terminalsService: TerminalsService,
     private readonly sttProvider: STTProviderService,
     private readonly audioConverter: AudioConverterService,
+    private readonly llmService: LlmService,
   ) {}
 
   // ============ Human Input Endpoints ============
@@ -374,6 +377,47 @@ export class SpeechController {
           language: process.env.STT_LANG || 'de-DE',
         },
       },
+    };
+  }
+
+  // ============ Intent Validation Endpoints ============
+
+  @Post('validate-intent')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Validate transcript and recognize intent using LLM' })
+  @ApiResponse({ status: 200, description: 'Intent validation successful' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 503, description: 'LLM service unavailable' })
+  async validateIntent(@Body() dto: ValidateIntentDto) {
+    try {
+      const result = await this.llmService.validateIntent(dto);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      const msg = (error as any)?.message || '';
+      this.logger.error(`Intent validation failed: ${msg}`);
+
+      // Return error details
+      return {
+        success: false,
+        error: 'validation_failed',
+        message: msg || 'Intent validation failed',
+      };
+    }
+  }
+
+  @Get('llm/status')
+  @ApiOperation({ summary: 'Get LLM service status' })
+  @ApiResponse({ status: 200, description: 'LLM status retrieved' })
+  async getLLMStatus() {
+    const status = await this.llmService.checkHealth();
+
+    return {
+      success: true,
+      data: status,
     };
   }
 
