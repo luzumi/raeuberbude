@@ -7,6 +7,7 @@ WORKDIR /app
 # Copy package definitions and install production dependencies only
 # Using two steps allows Docker to cache node_modules unless package files change
 COPY package.json package-lock.json* ./
+COPY backend/legacy/server.js /app/server.js
 RUN npm install --production && npm cache clean --force
 
 # Copy the backend source code into the image
