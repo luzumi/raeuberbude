@@ -27,28 +27,43 @@ function buildMongoUri(config: ConfigService): string {
   return `mongodb://${host}:${port}/${db}`;
 }
 
-@Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: [
-        // allow using a .env in backend/ when running from nest-app/
-        '../.env',
-        // fallback to local .env in nest-app/
-        '.env',
-      ],
-      load: [databaseConfig],
+// Build imports array dynamically so TypeOrmModule can be skipped when not needed
+const APP_IMPORTS = [
+  ConfigModule.forRoot({
+    isGlobal: true,
+    envFilePath: [
+      // allow using a .env in backend/ when running from nest-app/
+      '../.env',
+      // fallback to local .env in nest-app/
+      '.env',
+    ],
+    load: [databaseConfig],
+  }),
+  MongooseModule.forRootAsync({
+    inject: [ConfigService],
+    useFactory: (config: ConfigService) => ({
+      uri: buildMongoUri(config),
     }),
-    MongooseModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        uri: buildMongoUri(config),
-      }),
-    }),
+  }),
+];
+
+// Decide whether to enable TypeORM at runtime. Use environment flags so the app
+// does not attempt to connect to MariaDB when it's not required/available.
+const DATABASE_ENABLED = (process.env['DATABASE_ENABLED'] || '').toLowerCase() === 'true';
+const DATABASE_TYPE = (process.env['DATABASE_TYPE'] || '').toLowerCase();
+
+if (DATABASE_ENABLED || DATABASE_TYPE === 'mariadb' || DATABASE_TYPE === 'mysql' || process.env['MARIADB_HOST']) {
+  APP_IMPORTS.push(
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => config.get('database'),
     }),
+  );
+}
+
+@Module({
+  imports: [
+    ...APP_IMPORTS,
     UsersModule,
     HealthModule,
     HomeAssistantModule,
