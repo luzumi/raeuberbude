@@ -27,3 +27,4 @@ export class ConfigService {
   get homeAssistantUrl() { return this.config.homeAssistantUrl; }
   get token() { return this.config.token; }
 }
+

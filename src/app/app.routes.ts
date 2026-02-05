@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { BudeComponent } from '@bude/bude-component/bude.component';
 import { ZuhauseComponent } from '@rooms/zuhause_flur/zuhause-component/zuhause-component';
+import { FlurComponent } from '@rooms/flur/flur-component/flur.component';
 import { authGuard } from '@services/auth.guard';
 import {AdminAreasComponent} from './features/admin/areas/admin-areas.component';
 import {AdminRolesComponent} from './features/admin/roles/admin-roles.component';
@@ -22,6 +23,11 @@ export const routes: Routes = [
     path: 'raeuberbude',
     component: BudeComponent,
     canActivate: [authGuard], // "Bude" ebenfalls geschützt
+  },
+  {
+    path: 'flur',
+    component: FlurComponent,
+    canActivate: [authGuard],
   },
   {
     path: 'menu',
