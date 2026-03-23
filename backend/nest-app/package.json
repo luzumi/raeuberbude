@@ -12,6 +12,7 @@
     "import:ha": "ts-node src/cli/import-ha-data.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@nestjs/axios": "^3.0.3",
     "@nestjs/common": "^10.4.15",
     "@nestjs/config": "^3.2.0",
