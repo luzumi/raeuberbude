@@ -1,6 +1,16 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(find /home/corataca/WebstormProjects/raeuberbude/tests -type f -name *.ts)",
+      "Bash(find /home/corataca/WebstormProjects/raeuberbude/backend/nest-app/test -type f -name *.spec.ts)",
+      "Bash(npm uninstall:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "nx-mcp"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

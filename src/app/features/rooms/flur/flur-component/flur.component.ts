@@ -301,13 +301,15 @@ export class FlurComponent implements OnInit {
       return;
     }
 
+    this.setSignal(row, signal);
+
     this.haWs.callService(row.domain, service, { entity_id: row.entityId }).subscribe({
       next: (res: any) => {
         if (res && res.success === false) {
           this.showMessage('Aktion abgelehnt', 'error');
           return;
         }
-        this.recordSignal(row, signal);
+        this.showMessage(`Signal \"${signal}\" gesetzt`, 'success');
       },
       error: (err) => {
         console.error('[Flur] Action failed:', err);
@@ -316,12 +318,11 @@ export class FlurComponent implements OnInit {
     });
   }
 
-  private recordSignal(row: FlurEntityRow, signal: string): void {
+  private setSignal(row: FlurEntityRow, signal: string): void {
     const timestamp = new Date().toISOString();
     row.lastAction = signal;
     row.lastActionAt = timestamp;
     this.updateAnnotation(row.entityId, { lastAction: signal, lastActionAt: timestamp });
-    this.showMessage(`Signal "${signal}" gesetzt`, 'success');
   }
 
   private parseLabels(input: string): string[] {
@@ -452,12 +453,12 @@ export class FlurComponent implements OnInit {
   private async loadEntities(): Promise<any[]> {
     const response = await firstValueFrom(this.haDb.getAllEntities());
     if (Array.isArray(response)) return response;
-    return response?.entities || [];
+    return response?.['entities'] || [];
   }
 
   private async loadAreas(): Promise<AreaOption[]> {
     const response = await firstValueFrom(this.haDb.getAllAreas());
-    const areas = Array.isArray(response) ? response : response?.areas || [];
+    const areas = Array.isArray(response) ? response : response?.['areas'] || [];
     return areas
       .map((area: any) => ({
         id: area.areaId || area.area_id,
@@ -471,7 +472,7 @@ export class FlurComponent implements OnInit {
       const response = await firstValueFrom(
         this.http.get<any[]>(`${this.apiBase}/users`, { withCredentials: true })
       );
-      const users = Array.isArray(response) ? response : response?.data || [];
+      const users = Array.isArray(response) ? response : response?.['data'] || [];
       return users
         .map((user: any) => ({
           id: user._id || user.id || user.userId,
