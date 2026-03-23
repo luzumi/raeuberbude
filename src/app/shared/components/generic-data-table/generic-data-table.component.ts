@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   Component,
   Input,
   Output,
@@ -14,7 +15,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatSortModule, Sort } from '@angular/material/sort';
+import { MatSortModule, MatSort, Sort } from '@angular/material/sort';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -251,8 +252,9 @@ import {
   `,
   styleUrls: ['./generic-data-table.component.scss'],
 })
-export class GenericDataTableComponent<T extends Record<string, any>> implements OnInit, DoCheck {
+export class GenericDataTableComponent<T extends Record<string, any>> implements OnInit, DoCheck, AfterViewInit {
   @Input() config!: DataTableConfig<T>;
+  @ViewChild(MatSort) matSort!: MatSort;
 
   @Output() rowSelected = new EventEmitter<T[]>();
   @Output() rowActionTriggered = new EventEmitter<{ action: string; row: T }>();
@@ -275,11 +277,18 @@ export class GenericDataTableComponent<T extends Record<string, any>> implements
     this.lastDataLength = this.config?.data?.length || 0;
   }
 
+  ngAfterViewInit(): void {
+    if (this.dataSource && this.matSort) {
+      this.dataSource.sort = this.matSort;
+    }
+  }
+
   ngDoCheck(): void {
     // Prüfe ob sich die Datenlänge geändert hat
     const currentDataLength = this.config?.data?.length || 0;
     if (currentDataLength !== this.lastDataLength && this.dataSource) {
       this.dataSource.data = this.config.data || [];
+      if (this.matSort) this.dataSource.sort = this.matSort;
       this.buildDisplayColumns();
       this.lastDataLength = currentDataLength;
     }
@@ -329,6 +338,7 @@ export class GenericDataTableComponent<T extends Record<string, any>> implements
   }
 
   onSortChange(sort: Sort): void {
+    // MatTableDataSource handles sorting automatically via dataSource.sort
     this.sortChanged.emit(sort);
   }
 
