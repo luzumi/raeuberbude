@@ -6,6 +6,8 @@ import { HumanInput, HumanInputDocument } from './schemas/human-input.schema';
 import { TestInput, TestInputDocument } from './schemas/test-input.schema';
 import { CreateHumanInputDto } from './dto/create-human-input.dto';
 import { UpdateHumanInputDto } from './dto/update-human-input.dto';
+import { ClaudeService } from '../llm/claude.service';
+import { HaQueryService } from '../homeassistant/services/ha-query.service';
 
 @Injectable()
 export class SpeechService {
@@ -16,6 +18,8 @@ export class SpeechService {
     private readonly humanInputModel: Model<HumanInputDocument>,
     @InjectModel(TestInput.name)
     private readonly testInputModel: Model<TestInputDocument>,
+    private readonly claudeService: ClaudeService,
+    private readonly haQueryService: HaQueryService,
   ) {}
 
   async create(createDto: CreateHumanInputDto): Promise<HumanInput> {
@@ -233,32 +237,43 @@ export class SpeechService {
 
   private async processInput(inputId: string): Promise<void> {
     try {
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const input = await this.humanInputModel.findById(inputId).lean();
+      if (!input) return;
 
-      // Here you would integrate with actual speech processing services
-      // For now, we just mark it as processed
-      await this.humanInputModel.findByIdAndUpdate(
-        inputId,
-        {
-          status: 'processed',
-          processedAt: new Date(),
-          processedResponse: 'Input received and processed successfully',
-        }
+      const transcript = input.inputText;
+      this.logger.log(`Processing input "${transcript}" via Claude...`);
+
+      // Entities aus MongoDB laden und für Claude aufbereiten
+      const rawEntities = await this.haQueryService.getAllEntities();
+      const entities = rawEntities
+        .filter(e => e.entityId && e.friendlyName)
+        .map(e => ({
+          entityId: e.entityId,
+          friendlyName: e.friendlyName,
+          domain: e.domain || e.entityId?.split('.')[0] || 'unknown',
+        }));
+
+      const intent = await this.claudeService.recognizeIntent(transcript, entities);
+
+      this.logger.log(
+        `Intent erkannt: entity=${intent.entityId}, action=${intent.action}, confidence=${intent.confidence}`,
       );
 
-      this.logger.log(`Processed human input: ${inputId}`);
+      await this.humanInputModel.findByIdAndUpdate(inputId, {
+        status: 'processed',
+        processedAt: new Date(),
+        processedResponse: intent.action
+          ? `${intent.action} → ${intent.entityId}`
+          : 'Keine passende Aktion gefunden',
+        metadata: { intentResult: intent },
+      });
     } catch (error) {
       this.logger.error(`Failed to process input ${inputId}:`, error);
-
-      await this.humanInputModel.findByIdAndUpdate(
-        inputId,
-        {
-          status: 'failed',
-          processedAt: new Date(),
-          processedResponse: error.message,
-        }
-      );
+      await this.humanInputModel.findByIdAndUpdate(inputId, {
+        status: 'failed',
+        processedAt: new Date(),
+        processedResponse: error.message,
+      });
     }
   }
 
