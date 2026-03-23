@@ -50,6 +50,27 @@
   </mat-form-field>
 </ng-template>
 
+<ng-template #toggleTemplate let-row>
+  @if (isOnOffDomain(row.domain)) {
+    <mat-slide-toggle
+      [checked]="row.isOn"
+      (change)="onToggle(row, $event.checked)"
+      color="primary">
+    </mat-slide-toggle>
+  }
+</ng-template>
+
+<ng-template #statusTemplate let-row>
+  <span
+    class="status-dot"
+    [class.status-dot--on]="row.currentState === 'on'"
+    [class.status-dot--off]="row.currentState === 'off'"
+    [class.status-dot--unavailable]="row.currentState === 'unavailable'"
+    [class.status-dot--unknown]="row.currentState === null || (row.currentState !== 'on' && row.currentState !== 'off' && row.currentState !== 'unavailable')"
+    [title]="row.currentState ?? 'unbekannt'"
+  ></span>
+</ng-template>
+
 <ng-template #labelsTemplate let-row>
   <mat-form-field appearance="outline" class="cell-field">
     <input

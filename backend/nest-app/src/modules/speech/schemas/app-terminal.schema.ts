@@ -17,8 +17,8 @@ export class AppTerminal {
   @Prop({ type: String, enum: ['browser', 'mobile', 'tablet', 'kiosk', 'smart-tv', 'other'], default: 'browser' })
   type: string;
 
-  @Prop()
-  location?: string;
+  @Prop({ type: [String], default: [] })
+  location: string[];
 
   @Prop({ type: Object })
   capabilities?: {

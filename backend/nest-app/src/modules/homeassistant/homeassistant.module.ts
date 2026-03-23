@@ -16,6 +16,7 @@ import { HaAutomation, HaAutomationSchema } from './schemas/ha-automation.schema
 import { HaMediaPlayer, HaMediaPlayerSchema } from './schemas/ha-media-player.schema';
 import { HaService, HaServiceSchema } from './schemas/ha-service.schema';
 import { HaBootstrapService } from './services/ha-bootstrap.service';
+import { HaLiveFetchService } from './services/ha-live-fetch.service';
 
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { HaBootstrapService } from './services/ha-bootstrap.service';
     HaMediaPlayersController,
     HaServicesController
   ],
-  providers: [HaImportService, HaQueryService, HaBootstrapService],
+  providers: [HaImportService, HaQueryService, HaBootstrapService, HaLiveFetchService],
   exports: [HaImportService, HaQueryService]
 })
 export class HomeAssistantModule {}

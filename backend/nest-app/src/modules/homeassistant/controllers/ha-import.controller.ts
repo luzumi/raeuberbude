@@ -2,6 +2,7 @@ import { Controller, Post, Body, UseInterceptors, UploadedFile, Get, Param } fro
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { HaImportService } from '../services/ha-import.service';
+import { HaLiveFetchService } from '../services/ha-live-fetch.service';
 import { HaSnapshot } from '../schemas/ha-snapshot.schema';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -16,7 +17,10 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 @ApiTags('HomeAssistant Import')
 @Controller('api/homeassistant/import')
 export class HaImportController {
-  constructor(private readonly importService: HaImportService) {}
+  constructor(
+    private readonly importService: HaImportService,
+    private readonly liveFetch: HaLiveFetchService,
+  ) {}
 
   @Post('file')
   @UseInterceptors(FileInterceptor('file', {
@@ -111,20 +115,31 @@ export class HaImportController {
   }
 
   @Post('reimport')
-  @ApiOperation({ summary: 'Re-import from configured HA structure file' })
+  @ApiOperation({ summary: 'Re-import: live from HA if configured, otherwise from file' })
   @ApiResponse({ status: 201, description: 'Re-import successful' })
-  @ApiResponse({ status: 400, description: 'No file configured or file not found' })
+  @ApiResponse({ status: 400, description: 'No HA config and no file found' })
   async reimport(@Body() body: { filePath?: string }): Promise<HaSnapshot> {
+    // Bevorzuge Live-Import wenn HA_BASE_URL + HA_TOKEN gesetzt sind
+    if (this.liveFetch.isConfigured()) {
+      const liveData = await this.liveFetch.fetchLiveData();
+      const tempPath = path.join(UPLOAD_DIR, `live-import-${Date.now()}.json`);
+      if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+      fs.writeFileSync(tempPath, JSON.stringify(liveData));
+      try {
+        return await this.importService.importFromFile(tempPath);
+      } finally {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      }
+    }
+
+    // Fallback: vorhandene Datei
     const filePath = body?.filePath || this.findDefaultImportFile();
-
     if (!filePath) {
-      throw new Error('No import file found. Please specify filePath or configure HA_IMPORT_FILE');
+      throw new Error('Kein Live-Import möglich (HA_BASE_URL/HA_TOKEN fehlen) und keine ha_structure_*.json gefunden');
     }
-
     if (!fs.existsSync(filePath)) {
-      throw new Error(`File not found: ${filePath}`);
+      throw new Error(`Datei nicht gefunden: ${filePath}`);
     }
-
     return await this.importService.importFromFile(filePath);
   }
 

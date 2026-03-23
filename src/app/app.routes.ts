@@ -10,6 +10,7 @@ import { MenuComponent } from '@shared/components/menu/menu';
 import { UserProfileComponent } from '@components/user-profile/user-profile.component';
 import { TerminalSetupComponent } from './features/terminal/terminal-setup.component';
 import { RightsManagementComponent } from './features/admin/rights-management/rights-management.component';
+import { AdminTerminalsComponent } from './features/admin/terminals/admin-terminals.component';
 import { AdminUsersComponent } from './features/admin/users/admin-users.component';
 import { AdminHomeAssistantComponent } from './features/admin/homeassistant/admin-homeassistant.component';
 
@@ -59,7 +60,7 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'rechte', pathMatch: 'full' },
       { path: 'rechte', component: RightsManagementComponent },
-      { path: 'terminals', component: RightsManagementComponent },
+      { path: 'terminals', component: AdminTerminalsComponent },
       { path: 'users', component: AdminUsersComponent },
       { path: 'bereiche', component: AdminAreasComponent },
       { path: 'rollen', component: AdminRolesComponent },

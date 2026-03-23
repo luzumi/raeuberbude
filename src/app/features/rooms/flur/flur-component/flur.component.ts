@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { firstValueFrom } from 'rxjs';
@@ -35,6 +36,9 @@ interface FlurEntityRow {
   labelsText: string;
   lastAction?: string;
   lastActionAt?: string;
+  isOn: boolean;
+  currentState: string | null;
+  isAvailable: boolean;
 }
 
 interface DeviceAnnotation {
@@ -68,6 +72,16 @@ interface GroupDef {
 }
 
 const STORAGE_KEY = 'flur-device-annotations';
+
+const DEFAULT_ROOM_OPTIONS: AreaOption[] = [
+  { id: 'Flur', label: 'Flur' },
+  { id: 'Küche', label: 'Küche' },
+  { id: 'Büro', label: 'Büro' },
+  { id: 'Wohnzimmer', label: 'Wohnzimmer' },
+  { id: 'Schlafzimmer 1 (Catwoman)', label: 'Schlafzimmer 1 (Catwoman)' },
+  { id: 'Schlafzimmer 2 (Räuberbude)', label: 'Schlafzimmer 2 (Räuberbude)' },
+  { id: 'Mobil', label: 'Mobil' },
+];
 
 const GROUP_DEFS: GroupDef[] = [
   { key: 'lighting', label: 'Beleuchtung', domains: ['light'] },
@@ -109,6 +123,7 @@ const PRESS_DOMAINS = new Set(['button']);
     MatIconModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatInputModule,
     MatSnackBarModule,
   ],
@@ -119,6 +134,8 @@ export class FlurComponent implements OnInit {
   @ViewChild('roomTemplate', { static: true }) roomTemplate!: TemplateRef<any>;
   @ViewChild('userTemplate', { static: true }) userTemplate!: TemplateRef<any>;
   @ViewChild('labelsTemplate', { static: true }) labelsTemplate!: TemplateRef<any>;
+  @ViewChild('toggleTemplate', { static: true }) toggleTemplate!: TemplateRef<any>;
+  @ViewChild('statusTemplate', { static: true }) statusTemplate!: TemplateRef<any>;
 
   userName = '';
   loading = false;
@@ -186,6 +203,17 @@ export class FlurComponent implements OnInit {
     }
   }
 
+  isOnOffDomain(domain: string): boolean {
+    return ON_OFF_DOMAINS.has(domain);
+  }
+
+  onToggle(row: FlurEntityRow, checked: boolean): void {
+    row.isOn = checked;
+    const service = checked ? 'turn_on' : 'turn_off';
+    const signal = checked ? 'on' : 'off';
+    this.triggerAction(row, service, signal);
+  }
+
   onRoomChange(row: FlurEntityRow): void {
     const roomId = row.assignedRoomId || '';
     row.assignedRoomName = this.areaById.get(roomId)?.label || '';
@@ -206,6 +234,13 @@ export class FlurComponent implements OnInit {
 
   private initColumns(): void {
     this.tableColumns = [
+      {
+        field: 'isAvailable',
+        header: 'Status',
+        type: 'custom',
+        template: this.statusTemplate,
+        sortable: true,
+      },
       { field: 'friendlyName', header: 'Name', sortable: true, filterable: true },
       { field: 'entityId', header: 'Entity ID', sortable: true, filterable: true },
       { field: 'domain', header: 'Domain', sortable: true, filterable: true },
@@ -233,7 +268,13 @@ export class FlurComponent implements OnInit {
         sortable: true,
         filterable: true,
       },
-      { field: 'lastAction', header: 'Signal', sortable: true },
+      {
+        field: 'isOn',
+        header: 'An/Aus',
+        type: 'custom',
+        template: this.toggleTemplate,
+        sortable: false,
+      },
       { field: 'lastActionAt', header: 'Zeit', type: 'date', sortable: true },
     ];
   }
@@ -241,18 +282,11 @@ export class FlurComponent implements OnInit {
   private initRowActions(): void {
     this.rowActions = [
       {
-        icon: 'toggle_on',
-        tooltip: 'Einschalten',
+        icon: 'play_arrow',
+        tooltip: 'Ausführen',
         color: 'primary',
         action: row => this.triggerAction(row, 'turn_on', 'on'),
-        visible: row => this.canTurnOn(row.domain),
-      },
-      {
-        icon: 'toggle_off',
-        tooltip: 'Ausschalten',
-        color: 'warn',
-        action: row => this.triggerAction(row, 'turn_off', 'off'),
-        visible: row => this.canTurnOff(row.domain),
+        visible: row => TURN_ON_ONLY_DOMAINS.has(row.domain),
       },
       {
         icon: 'north',
@@ -356,6 +390,9 @@ export class FlurComponent implements OnInit {
         : friendlyName ? [friendlyName] : [];
       const labelsText = labels.join(', ');
 
+      const currentState: string | null = entity.currentState ?? null;
+      const isAvailable = currentState !== 'unavailable';
+
       rows.push({
         entityId,
         friendlyName,
@@ -368,6 +405,9 @@ export class FlurComponent implements OnInit {
         labelsText,
         lastAction: annotation.lastAction,
         lastActionAt: annotation.lastActionAt,
+        isOn: annotation.lastAction === 'on',
+        currentState,
+        isAvailable,
       });
     }
     return rows;
@@ -457,14 +497,27 @@ export class FlurComponent implements OnInit {
   }
 
   private async loadAreas(): Promise<AreaOption[]> {
-    const response = await firstValueFrom(this.haDb.getAllAreas());
-    const areas = Array.isArray(response) ? response : response?.['areas'] || [];
-    return areas
-      .map((area: any) => ({
-        id: area.areaId || area.area_id,
-        label: area.name || area.area_id || 'Unbekannt',
-      }))
-      .filter((area: AreaOption) => !!area.id);
+    let haAreas: AreaOption[] = [];
+    try {
+      const response = await firstValueFrom(this.haDb.getAllAreas());
+      const raw = Array.isArray(response) ? response : response?.['areas'] || [];
+      haAreas = raw
+        .map((area: any) => ({
+          id: area.areaId || area.area_id,
+          label: area.name || area.area_id || 'Unbekannt',
+        }))
+        .filter((area: AreaOption) => !!area.id);
+    } catch {
+      // HA-Daten nicht verfügbar – Standardräume werden trotzdem gezeigt
+    }
+    // Standardräume mit HA-Areas mergen (HA-Areas überschreiben bei gleicher ID)
+    const merged = new Map<string, AreaOption>();
+    for (const r of DEFAULT_ROOM_OPTIONS) merged.set(r.id, r);
+    for (const a of haAreas) merged.set(a.id, a);
+    const result = [...merged.values()];
+    // Mobil ans Ende
+    result.sort((a, b) => a.id === 'Mobil' ? 1 : b.id === 'Mobil' ? -1 : a.label.localeCompare(b.label, 'de'));
+    return result;
   }
 
   private async loadUsers(): Promise<UserOption[]> {

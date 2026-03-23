@@ -134,6 +134,12 @@ export class TerminalService {
     } catch { /* ignore */ }
   }
 
+  async updateTerminal(id: string, data: { location?: string[]; name?: string; type?: string; status?: string }): Promise<any> {
+    return await lastValueFrom(
+      this.http.put(`${this.apiUrl}/terminals/${id}`, data, { withCredentials: true })
+    );
+  }
+
   async listTerminals(params?: { type?: string; status?: string }): Promise<any> {
     const qs = new URLSearchParams();
     if ( params?.type ) qs.append( 'type', params.type );
@@ -143,13 +149,16 @@ export class TerminalService {
     );
   }
 
-  async createTerminal(terminalId: string, type: string, location?: string, name?: string): Promise<any> {
+  async createTerminal(terminalId: string, type: string, location?: string | string[], name?: string): Promise<any> {
     const computedName = name ?? `Browser - ${ this.getDeviceType() }`;
+    const locationArr = location
+      ? (Array.isArray(location) ? location : [location]).filter(Boolean)
+      : [];
     const payload = {
       terminalId,
       name: computedName,
       type,
-      ...(location ? { location } : {}),
+      ...(locationArr.length ? { location: locationArr } : {}),
       capabilities: {
         hasMicrophone: await this.checkMicrophoneCapability(),
         hasCamera: await this.checkCameraCapability(),
