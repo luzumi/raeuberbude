@@ -34,7 +34,9 @@
       "Bash(xdg-mime default:*)",
       "Bash(update-desktop-database ~/.local/share/applications/)",
       "Bash(ls:*)",
-      "Bash(gh pr:*)"
+      "Bash(gh pr:*)",
+      "Bash(docker compose:*)",
+      "Bash(find /home/corataca/WebstormProjects/raeuberbude/backend/nest-app/src -name *.ts)"
     ]
   },
   "enableAllProjectMcpServers": true,
