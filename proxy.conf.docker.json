@@ -1,0 +1,24 @@
+{
+  "/api/speech": {
+    "target": "http://api:3001",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true
+  },
+  "/users": {
+    "target": "http://api:3001",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/homeassistant": {
+    "target": "http://api:3001",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api": {
+    "target": "http://homeassistant.local:8123",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true
+  }
+}
