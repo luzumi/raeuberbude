@@ -1,0 +1,111 @@
+// Neon microphone button – idle glow + recording scan + pulse-ring animation.
+//
+// --neon: single CSS custom-property keeps the colour DRY.
+
+:host {
+  --neon: 0, 229, 255;
+
+  display: block;
+  position: relative;      // anchor for the ::after pulse ring
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+// ─── Expanding pulse ring (recording only) ──────────────────────────
+// Rendered as a ::after circle so it lives outside the SVG bounding box.
+// Parent .speech-button must NOT have overflow:hidden.
+:host::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid rgba(var(--neon), 0);
+  pointer-events: none;
+}
+
+:host(.recording)::after {
+  border-color: rgba(var(--neon), 1);
+  animation: pulse-ring 1.4s ease-out infinite;
+}
+
+// ─── SVG base styles ────────────────────────────────────────────────
+svg {
+  width: 100%;
+  height: 100%;
+  will-change: filter;
+  filter:
+    drop-shadow(0 0 4px rgba(var(--neon), .4))
+    drop-shadow(0 0 8px rgba(var(--neon), .2));
+  animation: glow-breathe 3s ease-in-out infinite;
+  transition: filter .3s ease;
+}
+
+.mic-outline {
+  stroke: rgba(var(--neon), 1);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+// ─── Scan line (hidden by default) ──────────────────────────────────
+.scan-line {
+  fill: rgba(var(--neon), .7);
+  opacity: 0;
+}
+
+// ─── Recording state ────────────────────────────────────────────────
+:host(.recording) {
+  svg {
+    filter:
+      drop-shadow(0 0  6px rgba(var(--neon), .9))
+      drop-shadow(0 0 16px rgba(var(--neon), .6))
+      drop-shadow(0 0 28px rgba(var(--neon), .3));
+    animation: glow-pulse 1s ease-in-out infinite;
+  }
+
+  .scan-line {
+    animation: scan-sweep 1.2s linear infinite;
+  }
+}
+
+// ─── Keyframes ──────────────────────────────────────────────────────
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 1; }
+  80%  { transform: scale(6.5); opacity: 0; }
+  100% { transform: scale(6.5); opacity: 0; }
+}
+
+@keyframes glow-breathe {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 4px rgba(var(--neon), .35))
+      drop-shadow(0 0 8px rgba(var(--neon), .15));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 5px rgba(var(--neon), .5))
+      drop-shadow(0 0 10px rgba(var(--neon), .25));
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0  6px rgba(var(--neon), .9))
+      drop-shadow(0 0 16px rgba(var(--neon), .6))
+      drop-shadow(0 0 28px rgba(var(--neon), .3));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 12px rgba(var(--neon), 1))
+      drop-shadow(0 0 24px rgba(var(--neon), .7))
+      drop-shadow(0 0 36px rgba(var(--neon), .4));
+  }
+}
+
+@keyframes scan-sweep {
+  0%   { transform: translateY(0);    opacity: 0; }
+  8%   { opacity: .75; }
+  92%  { opacity: .75; }
+  100% { transform: translateY(23px); opacity: 0; }
+}

@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { SpeechFeedbackComponent } from '../speech-feedback/speech-feedback.component';
 import { AppButtonComponent } from '../app-button/app-button';
 import { LogoutButtonComponent } from '../logout-button/logout-button';
+import { MicButtonComponent } from '../mic-button/mic-button.component';
 import { SpeechService } from '../../../core/services/speech.service';
 import { TerminalService } from '../../../core/services/terminal.service';
 import { Subject } from 'rxjs';
@@ -18,6 +19,7 @@ import { takeUntil, take, skip, filter} from 'rxjs/operators';
     CommonModule,
     AppButtonComponent,
     LogoutButtonComponent,
+    MicButtonComponent,
     NgOptimizedImage,
     SpeechFeedbackComponent,
   ],
@@ -150,7 +152,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
         let sub: any = null;
         sub = this.speechService.lastInput$
           .pipe(skip(1), filter((v: string) => !!v && v !== 'Verarbeite...'), take(1))
-          .subscribe(val => {
+          .subscribe(_ => {
             // clear fallback once we got a meaningful emission
             clearTimeout(fallbackTimeout);
             if (sub) { sub.unsubscribe(); }
