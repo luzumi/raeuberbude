@@ -2,6 +2,7 @@ import { Injectable, Injector } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 /**
  * Simple authentication service storing a flag in localStorage.
@@ -18,9 +19,7 @@ export class AuthService {
     private readonly router: Router,
     private readonly injector: Injector
   ) {
-    const host = (globalThis as any)?.location?.hostname || 'localhost';
-    const port = 3001;
-    this.apiBase = `http://${host}:${port}`;
+    this.apiBase = environment.backendApiUrl ?? environment.apiUrl ?? '';
 
     // Versuche beim Start persistierte User-Informationen zu laden
     this.loadPersistedUser();

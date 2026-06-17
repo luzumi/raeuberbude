@@ -74,7 +74,7 @@ export class TranscriptAssignmentFormComponent implements OnInit {
   // Manually valid flag (admin marks transcript as valid)
   manuallyValid = false;
 
-  private readonly backendUrl = resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001');
+  private readonly backendUrl = resolveBackendBase(environment.backendApiUrl ?? environment.apiUrl ?? '');
 
   constructor(
     private readonly http: HttpClient,

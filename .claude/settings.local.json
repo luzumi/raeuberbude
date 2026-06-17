@@ -60,7 +60,12 @@
       "Bash(bash /home/corataca/WebstormProjects/raeuberbude/backend/nginx/generate-certs.sh localhost)",
       "Bash(node:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(npm show:*)"
+      "Bash(npm show:*)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(python3 -c \":*)",
+      "Bash(done)",
+      "Bash(python3:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

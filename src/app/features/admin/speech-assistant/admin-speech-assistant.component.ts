@@ -185,7 +185,7 @@ export class AdminSpeechAssistantComponent implements OnInit {
   isTesting = false;
 
   // Use configured backend base URL (resolve localhost -> runtime hostname for LAN devices)
-  private readonly backendUrl = resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001');
+  private readonly backendUrl = resolveBackendBase(environment.backendApiUrl ?? environment.apiUrl ?? '');
 
   constructor(
     private readonly http: HttpClient,

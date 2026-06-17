@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import {HeaderComponent} from '@shared/components/header/header.component';
 import { firstValueFrom } from 'rxjs';
+import { environment } from 'environments/environment';
 
 @Component({
   selector: 'app-admin-users',
@@ -132,8 +133,7 @@ export class AdminUsersComponent implements OnInit {
     private readonly snack: MatSnackBar,
   ) {
     const host = (globalThis as any)?.location?.hostname || 'localhost';
-    const port = 3001;
-    this.nestBase = `http://${host}:${port}`;
+    this.nestBase = environment.backendApiUrl ?? environment.apiUrl ?? '';
     this.form = this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
       email: [''],

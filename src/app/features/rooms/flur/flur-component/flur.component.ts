@@ -23,6 +23,7 @@ import {
 import { AuthService } from '@services/auth.service';
 import { HomeAssistantService as HaWsService } from '@services/home-assistant/home-assistant.service';
 import { HomeAssistantService as HaDbService } from '../../../../core/services/homeassistant.service';
+import { environment } from 'environments/environment';
 
 interface FlurEntityRow {
   entityId: string;
@@ -162,8 +163,7 @@ export class FlurComponent implements OnInit {
     private readonly http: HttpClient,
     private readonly snackBar: MatSnackBar,
   ) {
-    const host = (globalThis as any)?.location?.hostname || 'localhost';
-    this.apiBase = `http://${host}:3001`;
+    this.apiBase = environment.backendApiUrl ?? environment.apiUrl ?? '';
   }
 
   ngOnInit(): void {

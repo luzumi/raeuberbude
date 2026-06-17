@@ -29,7 +29,7 @@ export class AdminTranscriptEditDialogComponent {
   transcript: Transcript;
   isSaving = false;
 
-  private readonly backendUrl = resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001');
+  private readonly backendUrl = resolveBackendBase(environment.backendApiUrl ?? environment.apiUrl ?? '');
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { transcript: Transcript },

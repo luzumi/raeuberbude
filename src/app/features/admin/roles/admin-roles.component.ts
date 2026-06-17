@@ -8,6 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import {HeaderComponent} from '@shared/components/header/header.component';
 import { firstValueFrom } from 'rxjs';
+import { environment } from 'environments/environment';
 
 @Component({
   selector: 'app-admin-roles',
@@ -97,8 +98,7 @@ export class AdminRolesComponent implements OnInit {
     private readonly snack: MatSnackBar,
   ) {
     const host = (globalThis as any)?.location?.hostname || 'localhost';
-    const port = 3001;
-    this.nestBase = `http://${host}:${port}`;
+    this.nestBase = environment.backendApiUrl ?? environment.apiUrl ?? '';
   }
 
   ngOnInit(): void {
