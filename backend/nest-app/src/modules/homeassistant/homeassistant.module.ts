@@ -16,9 +16,7 @@ import { HaAutomation, HaAutomationSchema } from './schemas/ha-automation.schema
 import { HaMediaPlayer, HaMediaPlayerSchema } from './schemas/ha-media-player.schema';
 import { HaService, HaServiceSchema } from './schemas/ha-service.schema';
 import { HaBootstrapService } from './services/ha-bootstrap.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { HaEntityEntity } from './entities/ha-entity.entity';
-import { HaSyncService } from './services/ha-sync.service';
+import { HaLiveFetchService } from './services/ha-live-fetch.service';
 
 @Module({
   imports: [
@@ -35,7 +33,6 @@ import { HaSyncService } from './services/ha-sync.service';
       { name: HaMediaPlayer.name, schema: HaMediaPlayerSchema },
       { name: HaService.name, schema: HaServiceSchema },
     ]),
-    TypeOrmModule.forFeature([HaEntityEntity]),
   ],
   controllers: [
     HaImportController,
@@ -46,7 +43,7 @@ import { HaSyncService } from './services/ha-sync.service';
     HaMediaPlayersController,
     HaServicesController
   ],
-  providers: [HaImportService, HaQueryService, HaBootstrapService, HaSyncService],
-  exports: [HaImportService, HaQueryService, HaSyncService]
+  providers: [HaImportService, HaQueryService, HaBootstrapService, HaLiveFetchService],
+  exports: [HaImportService, HaQueryService]
 })
 export class HomeAssistantModule {}

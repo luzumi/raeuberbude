@@ -1,0 +1,83 @@
+<app-header [userName]="userName"></app-header>
+
+<div class="flur-page">
+  <section class="flur-header">
+    <div class="flur-title">
+      <h1>Flur</h1>
+      <p>
+        Entwicklungsansicht fuer Home Assistant Geraete aus der Datenbank. Aktionen setzen ein
+        klares Signal, und jedes Geraet kann mit Raum, Benutzer und Bezeichnern versehen werden.
+      </p>
+    </div>
+    <button mat-stroked-button color="primary" (click)="loadData()" [disabled]="loading">
+      <mat-icon>refresh</mat-icon>
+      Aktualisieren
+    </button>
+  </section>
+
+  <mat-card class="flur-card">
+    <mat-tab-group>
+      <mat-tab *ngFor="let tab of groupTabs" [label]="tab.label">
+        <app-generic-data-table class="flur-table" [config]="tab.config"></app-generic-data-table>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-card>
+</div>
+
+<ng-template #roomTemplate let-row>
+  <mat-form-field appearance="outline" class="cell-field">
+    <mat-select
+      [(ngModel)]="row.assignedRoomId"
+      (selectionChange)="onRoomChange(row)"
+      placeholder="Raum"
+    >
+      <mat-option [value]="''">Keine</mat-option>
+      <mat-option *ngFor="let area of areas" [value]="area.id">{{ area.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+</ng-template>
+
+<ng-template #userTemplate let-row>
+  <mat-form-field appearance="outline" class="cell-field">
+    <mat-select
+      [(ngModel)]="row.assignedUserId"
+      (selectionChange)="onUserChange(row)"
+      placeholder="Benutzer"
+    >
+      <mat-option [value]="''">Keine</mat-option>
+      <mat-option *ngFor="let user of users" [value]="user.id">{{ user.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+</ng-template>
+
+<ng-template #toggleTemplate let-row>
+  @if (isOnOffDomain(row.domain)) {
+    <mat-slide-toggle
+      [checked]="row.isOn"
+      (change)="onToggle(row, $event.checked)"
+      color="primary">
+    </mat-slide-toggle>
+  }
+</ng-template>
+
+<ng-template #statusTemplate let-row>
+  <span
+    class="status-dot"
+    [class.status-dot--on]="row.currentState === 'on'"
+    [class.status-dot--off]="row.currentState === 'off'"
+    [class.status-dot--unavailable]="row.currentState === 'unavailable'"
+    [class.status-dot--unknown]="row.currentState === null || (row.currentState !== 'on' && row.currentState !== 'off' && row.currentState !== 'unavailable')"
+    [title]="row.currentState ?? 'unbekannt'"
+  ></span>
+</ng-template>
+
+<ng-template #labelsTemplate let-row>
+  <mat-form-field appearance="outline" class="cell-field">
+    <input
+      matInput
+      [(ngModel)]="row.labelsText"
+      (blur)="onLabelsBlur(row)"
+      placeholder="z.B. orange, wohnzimmer"
+    />
+  </mat-form-field>
+</ng-template>

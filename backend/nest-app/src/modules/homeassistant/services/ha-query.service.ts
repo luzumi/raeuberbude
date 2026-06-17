@@ -32,16 +32,28 @@ export class HaQueryService {
     const filter: any = {};
     if (type) filter.entityType = type;
     const entities = await this.entityModel.find(filter).lean().exec();
-    // Enrich with device and area objects
+    // Enrich with device, area and current state
+    const entityIds = entities.map(e => e.entityId);
     const deviceIds = Array.from(new Set(entities.map(e => e.deviceId).filter(Boolean)));
     const areaIds = Array.from(new Set(entities.map(e => e.areaId).filter(Boolean)));
-    const [devices, areas] = await Promise.all([
+    const [devices, areas, latestStates] = await Promise.all([
       deviceIds.length ? this.deviceModel.find({ deviceId: { $in: deviceIds } }).lean().exec() : Promise.resolve([]),
       areaIds.length ? this.areaModel.find({ areaId: { $in: areaIds } }).lean().exec() : Promise.resolve([]),
+      entityIds.length ? this.stateModel.aggregate([
+        { $match: { entityId: { $in: entityIds } } },
+        { $sort: { entityId: 1, createdAt: -1 } },
+        { $group: { _id: '$entityId', state: { $first: '$state' } } },
+      ]) : Promise.resolve([]),
     ]);
     const dMap = new Map(devices.map(d => [d.deviceId, d]));
     const aMap = new Map(areas.map(a => [a.areaId, a]));
-    return entities.map(e => ({ ...e, device: e.deviceId ? dMap.get(e.deviceId) : undefined, area: e.areaId ? aMap.get(e.areaId) : undefined }));
+    const sMap = new Map((latestStates as any[]).map(s => [s._id, s.state]));
+    return entities.map(e => ({
+      ...e,
+      device: e.deviceId ? dMap.get(e.deviceId) : undefined,
+      area: e.areaId ? aMap.get(e.areaId) : undefined,
+      currentState: sMap.get(e.entityId) ?? null,
+    }));
   }
 
   async getEntityById(entityId: string): Promise<any> {

@@ -1,0 +1,74 @@
+:host {
+  display: block;
+}
+
+.flur-page {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.flur-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.flur-title h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.flur-title p {
+  margin: 0.35rem 0 0;
+  max-width: 70ch;
+  opacity: 0.75;
+}
+
+.flur-card {
+  padding: 0.5rem;
+}
+
+:host ::ng-deep .flur-table .cell-field {
+  width: 100%;
+}
+
+:host ::ng-deep .flur-table .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+:host ::ng-deep .flur-table .mat-mdc-form-field-infix {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  min-height: unset;
+}
+
+:host ::ng-deep .flur-table .mat-mdc-text-field-wrapper {
+  padding: 0 0.35rem;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #9e9e9e;
+
+  &--on {
+    background: #4caf50;
+    box-shadow: 0 0 4px #4caf50;
+  }
+
+  &--off {
+    background: #9e9e9e;
+  }
+
+  &--unavailable {
+    background: #f44336;
+  }
+
+  &--unknown {
+    background: #ff9800;
+  }
+}

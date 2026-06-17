@@ -32,7 +32,7 @@ export class ZuhauseComponent implements OnInit {
     { name: 'Räuberbude', route: '/raeuberbude', icon: 'single_bed' },
     { name: 'Küche', icon: 'chef_hat' },
     { name: 'Büro', icon: 'desktop_cloud_stack' },
-    { name: 'Flur', icon: 'nest_multi_room' }
+    { name: 'Flur', route: '/flur', icon: 'nest_multi_room' }
   ];
 
 }

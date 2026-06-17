@@ -18,6 +18,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatOptionModule } from '@angular/material/core';
 import {HeaderComponent} from '@shared/components/header/header.component';
 import { firstValueFrom } from 'rxjs';
+import { environment } from 'environments/environment';
 
 interface UserRights {
   _id?: string;
@@ -123,8 +124,7 @@ export class RightsManagementComponent implements OnInit {
     this.rightsForm = this.createRightsForm();
     this.terminalForm = this.createTerminalForm();
     const host = (globalThis as any)?.location?.hostname || 'localhost';
-    const port = 3001;
-    this.nestBase = `http://${host}:${port}`;
+    this.nestBase = environment.backendApiUrl ?? environment.apiUrl ?? '';
     this.speechApiBase = `${this.nestBase}/api/speech`;
     this.usersApiBase = `${this.nestBase}/users`;
     this.permissionsCtrl.valueChanges.subscribe((q) => this.applyPermFilter(q || ''));

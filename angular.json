@@ -47,7 +47,20 @@
                   "maximumError": "128kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                },
+                {
+                  "replace": "src/environments/environments.ts",
+                  "with": "src/environments/environments.prod.ts"
+                }
+              ],
+              "optimization": {
+                "fonts": false
+              }
             },
             "development": {
               "optimization": false,
@@ -59,8 +72,7 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": {
-          },
+          "options": {},
           "configurations": {
             "production": {
               "buildTarget": "raeuberbude:build:production"

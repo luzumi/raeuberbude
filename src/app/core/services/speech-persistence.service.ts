@@ -32,7 +32,7 @@ export class SpeechPersistenceService {
                               !!(globalThis as any).__UNIT_TEST_MODE;
     this.apiUrl = runningUnderTest
       ? '/api/speech'
-      : `${resolveBackendBase(environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001')}/api/speech`;
+      : `${resolveBackendBase(environment.backendApiUrl ?? environment.apiUrl ?? '')}/api/speech`;
 
     this.sessionId = this.generateSessionId();
   }

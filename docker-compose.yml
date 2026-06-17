@@ -25,7 +25,7 @@ services:
       - mongo-data:/data/db
     ports:
       # Expose the database port for local connections
-      - "27017:27017"
+      - "27018:27017"
 
 # Define the named volume for MongoDB data
 volumes:

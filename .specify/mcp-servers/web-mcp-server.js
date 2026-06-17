@@ -1,8 +1,9 @@
-/*
-  Web MCP Server – Chrome DevTools (Puppeteer)
-  - HTTP API auf Port 4200 (konfigurierbar via MCP_PORT)
-  - Steuert echte Webseiten: Sessions, Navigieren, Klicken, Tippen, Evaluate, Screenshot, Logs
-  - Designed als generisches "Tool" für Agenten: GET /tools liefert definierte Operationen + Schemas
+/**
+ * @type {NodeJS.Process}
+ * @fileoverview Web MCP Server – Chrome DevTools (Puppeteer)
+ * - HTTP API auf Port 4200 (konfigurierbar via MCP_PORT)
+ * - Steuert echte Webseiten: Sessions, Navigieren, Klicken, Tippen, Evaluate, Screenshot, Logs
+ * - Designed als generisches "Tool" für Agenten: GET /tools liefert definierte Operationen + Schemas
 
   ENV Variablen (optional):
    - MCP_PORT=4200

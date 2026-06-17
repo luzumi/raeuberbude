@@ -14,7 +14,7 @@ require('dotenv').config();
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 
-const PORT = process.env.AGENT_ORCHESTRATOR_PORT || 4300;
+const PORT = process.env.AGENT_ORCHESTRATOR_PORT || 4301;
 const YOUTRACK_MCP = process.env.YOUTRACK_MCP_URL || 'http://localhost:5180';
 const WEB_MCP = process.env.WEB_MCP_URL || 'http://localhost:4200';
 

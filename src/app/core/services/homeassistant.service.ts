@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'environments/environments';
 
 /**
  * Service für HomeAssistant-Daten-Zugriff
@@ -14,8 +15,7 @@ export class HomeAssistantService {
 
   constructor(private http: HttpClient) {
     const host = (globalThis as any)?.location?.hostname || 'localhost';
-    const port = 3001;
-    this.apiBase = `http://${host}:${port}/api/homeassistant`;
+    this.apiBase = `${environment.backendApiUrl ?? environment.apiUrl ?? ''}/api/homeassistant`;
   }
 
   /**

@@ -33,7 +33,7 @@ export class SpeechTranscriptionService {
 
   async transcribe(request: TranscriptionRequest): Promise<TranscriptionResult> {
     const formData = new FormData();
-    formData.append('audio', request.audioBlob, 'recording.webm');
+    formData.append('audio', new File([request.audioBlob], 'recording.webm', { type: request.audioBlob.type }));
     formData.append('language', request.language || 'de-DE');
     formData.append('maxDurationMs', String(request.maxDurationMs || 30000));
 

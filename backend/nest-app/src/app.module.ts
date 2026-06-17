@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { HealthModule } from './health/health.module';
 import { HomeAssistantModule } from './modules/homeassistant/homeassistant.module';
 import { SpeechModule } from './modules/speech/speech.module';
 import { BootstrapService } from './bootstrap/bootstrap.service';
 import { LoggingModule } from './modules/logging/logging.module';
-import databaseConfig from './config/database.config';
+import { LlmModule } from './modules/llm/llm.module';
 
 function buildMongoUri(config: ConfigService): string {
   const direct = config.get<string>('MONGO_URI');
@@ -27,34 +26,34 @@ function buildMongoUri(config: ConfigService): string {
   return `mongodb://${host}:${port}/${db}`;
 }
 
+const APP_IMPORTS = [
+  ConfigModule.forRoot({
+    isGlobal: true,
+    envFilePath: [
+      // allow using a .env in backend/ when running from nest-app/
+      '../.env',
+      // fallback to local .env in nest-app/
+      '.env',
+    ],
+  }),
+  MongooseModule.forRootAsync({
+    inject: [ConfigService],
+    useFactory: (config: ConfigService) => ({
+      uri: buildMongoUri(config),
+    }),
+  }),
+];
+
+
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: [
-        // allow using a .env in backend/ when running from nest-app/
-        '../.env',
-        // fallback to local .env in nest-app/
-        '.env',
-      ],
-      load: [databaseConfig],
-    }),
-    MongooseModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        uri: buildMongoUri(config),
-      }),
-    }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => config.get('database'),
-    }),
+    ...APP_IMPORTS,
     UsersModule,
     HealthModule,
     HomeAssistantModule,
     SpeechModule,
-    // Logging module: ersetzt das separate backend/server.js
     LoggingModule,
+    LlmModule,
   ],
   providers: [BootstrapService],
 })

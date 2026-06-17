@@ -5,6 +5,8 @@ import { LoggingService } from './logging.service';
 export class LoggingController {
   constructor(private readonly svc: LoggingService) {}
 
+  // ── Transcripts ──────────────────────────────────────────────────────────
+
   @Post('/transcripts')
   createTranscript(@Body() body: any) {
     return this.svc.createTranscript(body);
@@ -55,20 +57,19 @@ export class LoggingController {
     return this.svc.statsSummary(q);
   }
 
-  @Get('/llm-config')
-  async llmConfig() {
-    return this.svc.getLlmConfig();
+  // ── Categories ────────────────────────────────────────────────────────────
+
+  @Get('/categories')
+  categories() {
+    return this.svc.listCategories();
   }
 
-  @Post('/llm-config')
-  async saveLlmConfig(@Body() body: any) {
-    return this.svc.saveLlmConfig(body);
+  @Post('/categories')
+  createCategory(@Body() body: any) {
+    return this.svc.createCategory(body);
   }
 
-  @Get('/llm-config/runtime')
-  async runtimeConfig() {
-    return this.svc.getRuntimeConfig();
-  }
+  // ── Intent Logs ───────────────────────────────────────────────────────────
 
   @Get('/intent-logs')
   listIntentLogs(@Query() query: any) {
@@ -95,84 +96,22 @@ export class LoggingController {
     return this.svc.intentStats();
   }
 
-  @Get('/categories')
-  categories() {
-    return this.svc.listCategories();
-  }
+  // ── Claude / LLM ──────────────────────────────────────────────────────────
 
-  @Post('/categories')
-  createCategory(@Body() body: any) {
-    return this.svc.createCategory(body);
-  }
-
-  @Get('/dbinfo')
-  dbinfo() {
-    return this.svc.dbInfo();
-  }
-
-  @Get('/llm-instances')
-  llmInstances() {
-    return this.svc.listLlmInstances();
-  }
-
-  @Post('/llm-instances/scan')
-  scanLlmInstances(@Body() body: any) {
-    return this.svc.scanLlmInstances(body?.llmUrls, body?.defaultModel);
-  }
-
-  @Post('/llm-instances/cleanup')
-  cleanupLlmInstances() {
-    return this.svc.cleanupLlmInstances();
-  }
-
-  @Post('/llm-instances/:id/load')
-  loadModel(@Param('id') id: string) {
-    return this.svc.loadLlmInstance(id);
-  }
-
-  @Post('/llm-instances/:id/eject')
-  ejectModel(@Param('id') id: string) {
-    return this.svc.ejectLlmInstance(id);
-  }
-
-  @Post('/llm-instances/:id/delete')
-  deleteInstance(@Param('id') id: string) {
-    return this.svc.deleteLlmInstance(id);
-  }
-
-  @Post('/llm-instances/normalize-cleanup')
-  normalizeAndCleanup() {
-    return this.svc.normalizeAndCleanupInstances();
-  }
-
-  @Get('/llm-instances/:id/system-prompt')
-  getSystemPrompt(@Param('id') id: string) {
-    return this.svc.getSystemPrompt(id);
-  }
-
-  @Get('/llm-instances/:id/model-status')
-  async getModelStatus(@Param('id') id: string) {
-    return this.svc.getModelStatusForInstance(id);
-  }
-
-  @Put('/llm-instances/:id/system-prompt')
-  updateSystemPrompt(@Param('id') id: string, @Body() body: any) {
-    return this.svc.updateSystemPrompt(id, body.systemPrompt);
-  }
-
-  @Put('/llm-instances/:id/config')
-  updateInstanceConfig(@Param('id') id: string, @Body() body: any) {
-    const { autoReload, ...config } = body;
-    return this.svc.updateInstanceConfig(id, config, autoReload !== false);
-  }
-
-  @Get('/llm-instances/default-prompt')
+  @Get('/llm/default-prompt')
   getDefaultPrompt() {
     return this.svc.getDefaultSystemPrompt();
   }
 
-  @Post('/llm-instances/test-request')
-  testLlmRequest(@Body() body: { prompt?: string; instanceId?: string }) {
-    return this.svc.testLlmRequest(body.prompt, body.instanceId);
+  @Post('/llm/test')
+  testLlmRequest(@Body() body: { prompt?: string }) {
+    return this.svc.testLlmRequest(body.prompt);
+  }
+
+  // ── Misc ──────────────────────────────────────────────────────────────────
+
+  @Get('/dbinfo')
+  dbinfo() {
+    return this.svc.dbInfo();
   }
 }

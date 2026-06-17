@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { BudeComponent } from '@bude/bude-component/bude.component';
 import { ZuhauseComponent } from '@rooms/zuhause_flur/zuhause-component/zuhause-component';
+import { FlurComponent } from '@rooms/flur/flur-component/flur.component';
 import { authGuard } from '@services/auth.guard';
 import {AdminAreasComponent} from './features/admin/areas/admin-areas.component';
 import {AdminRolesComponent} from './features/admin/roles/admin-roles.component';
@@ -9,6 +10,7 @@ import { MenuComponent } from '@shared/components/menu/menu';
 import { UserProfileComponent } from '@components/user-profile/user-profile.component';
 import { TerminalSetupComponent } from './features/terminal/terminal-setup.component';
 import { RightsManagementComponent } from './features/admin/rights-management/rights-management.component';
+import { AdminTerminalsComponent } from './features/admin/terminals/admin-terminals.component';
 import { AdminUsersComponent } from './features/admin/users/admin-users.component';
 import { AdminHomeAssistantComponent } from './features/admin/homeassistant/admin-homeassistant.component';
 
@@ -22,6 +24,11 @@ export const routes: Routes = [
     path: 'raeuberbude',
     component: BudeComponent,
     canActivate: [authGuard], // "Bude" ebenfalls geschützt
+  },
+  {
+    path: 'flur',
+    component: FlurComponent,
+    canActivate: [authGuard],
   },
   {
     path: 'menu',
@@ -53,7 +60,7 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'rechte', pathMatch: 'full' },
       { path: 'rechte', component: RightsManagementComponent },
-      { path: 'terminals', component: RightsManagementComponent },
+      { path: 'terminals', component: AdminTerminalsComponent },
       { path: 'users', component: AdminUsersComponent },
       { path: 'bereiche', component: AdminAreasComponent },
       { path: 'rollen', component: AdminRolesComponent },

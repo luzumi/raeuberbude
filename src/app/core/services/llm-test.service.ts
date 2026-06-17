@@ -57,7 +57,7 @@ export class LlmTestService {
     private readonly settings: SettingsService
   ) {
     this.backendUrl = resolveBackendBase(
-      environment.backendApiUrl || environment.apiUrl || 'http://localhost:3001'
+      environment.backendApiUrl ?? environment.apiUrl ?? ''
     );
   }
 

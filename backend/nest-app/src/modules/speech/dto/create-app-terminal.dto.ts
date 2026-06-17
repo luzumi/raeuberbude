@@ -16,8 +16,9 @@ export class CreateAppTerminalDto {
   type?: string = 'browser';
 
   @IsOptional()
-  @IsString()
-  location?: string;
+  @IsArray()
+  @IsString({ each: true })
+  location?: string[];
 
   @IsOptional()
   @IsObject()
