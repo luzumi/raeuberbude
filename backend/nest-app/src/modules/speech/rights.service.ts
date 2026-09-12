@@ -1,24 +1,31 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { UserRights, UserRightsDocument, ROLE_PERMISSIONS } from './schemas/user-rights.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import {UserRights, UserRole, UserStatus} from '../auth/entities/user-rights.entity';
 import { CreateUserRightsDto } from './dto/create-user-rights.dto';
 import { UpdateUserRightsDto } from './dto/update-user-rights.dto';
+
+// Role permissions mapping
+const ROLE_PERMISSIONS: Record<string, string[]> = {
+  admin: ['all'],
+  user: ['read', 'write'],
+  guest: ['read'],
+};
 
 @Injectable()
 export class RightsService {
   private readonly logger = new Logger(RightsService.name);
 
   constructor(
-    @InjectModel(UserRights.name)
-    private readonly userRightsModel: Model<UserRightsDocument>,
+    @InjectRepository(UserRights)
+    private readonly userRightsRepo: Repository<UserRights>,
   ) {}
 
   async create(createDto: CreateUserRightsDto): Promise<UserRights> {
     try {
       // Check if rights already exist for this user
-      const existing = await this.userRightsModel.findOne({
-        userId: new Types.ObjectId(createDto.userId),
+      const existing = await this.userRightsRepo.findOne({
+        where: { userId: createDto.userId },
       });
 
       if (existing) {
@@ -29,14 +36,22 @@ export class RightsService {
       const rolePermissions = ROLE_PERMISSIONS[createDto.role] || [];
       const permissions = createDto.permissions || rolePermissions;
 
-      const userRights = new this.userRightsModel({
-        ...createDto,
-        userId: new Types.ObjectId(createDto.userId),
-        permissions,
-        allowedTerminals: createDto.allowedTerminals?.map(id => new Types.ObjectId(id)) || [],
+      const userRights = this.userRightsRepo.create({
+        userId: createDto.userId,
+        role: createDto.role as any as UserRole,
+        status: (createDto.status as any as UserStatus) || UserStatus.ACTIVE,
+        permissionsJson: permissions,
+        expiresAt: createDto.expiresAt || null,
+        canUseSpeechInput: createDto.canUseSpeechInput ?? true,
+        canViewOwnInputs: createDto.canViewOwnInputs ?? true,
+        canManageTerminals: createDto.canManageTerminals ?? false,
+        canManageUsers: createDto.canManageUsers ?? false,
+        canViewAllInputs: createDto.canViewAllInputs ?? false,
+        canDeleteInputs: createDto.canDeleteInputs ?? false,
+        metadata: createDto.metadata || null,
       });
 
-      const saved = await userRights.save();
+      const saved = await this.userRightsRepo.save(userRights);
       this.logger.log(`Created user rights for user: ${createDto.userId}`);
 
       return saved;
@@ -49,28 +64,22 @@ export class RightsService {
 
   async findAll(filters: any = {}): Promise<UserRights[]> {
     const { role, status } = filters;
-    const query: any = {};
+    const where: any = {};
 
-    if (role) query.role = role;
-    if (status) query.status = status;
+    if (role) where.role = role;
+    if (status) where.status = status;
 
-    return this.userRightsModel
-      .find(query)
-      .populate('userId', 'username email')
-      .populate('allowedTerminals', 'name type')
-      .sort({ createdAt: -1 })
-      .exec();
+    return this.userRightsRepo.find({
+      where,
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async findByUserId(userId: string): Promise<UserRightsDocument> {
-    if (!Types.ObjectId.isValid(userId)) {
-      throw new BadRequestException('Invalid user ID format');
-    }
-
-    const userRights = await this.userRightsModel
-      .findOne({ userId: new Types.ObjectId(userId) })
-      .populate('allowedTerminals', 'name type')
-      .exec();
+  async findByUserId(userId: string): Promise<UserRights> {
+    const userRights = await this.userRightsRepo.findOne({
+      where: { userId },
+    });
 
     if (!userRights) {
       // Return default guest rights if no rights found
@@ -79,53 +88,54 @@ export class RightsService {
 
     // Check if rights have expired
     if (userRights.expiresAt && userRights.expiresAt < new Date()) {
-      userRights.status = 'suspended';
-      await userRights.save();
+      userRights.status = UserStatus.SUSPENDED;
+      await this.userRightsRepo.save(userRights);
     }
 
     return userRights;
   }
 
   async update(userId: string, updateDto: UpdateUserRightsDto): Promise<UserRights> {
-    if (!Types.ObjectId.isValid(userId)) {
-      throw new BadRequestException('Invalid user ID format');
-    }
+    let userRights = await this.userRightsRepo.findOne({ where: { userId } });
 
-    const updateData: any = { ...updateDto };
-    
-    if (updateDto.allowedTerminals) {
-      updateData.allowedTerminals = updateDto.allowedTerminals.map(id => new Types.ObjectId(id));
+    if (!userRights) {
+      // Create with upsert behavior
+      userRights = this.userRightsRepo.create({
+        userId,
+        role: (updateDto.role as any as UserRole) || UserRole.REGULAR,
+        status: (updateDto.status as any as UserStatus) || UserStatus.ACTIVE,
+        permissionsJson: updateDto.permissions || [],
+        expiresAt: updateDto.expiresAt || null,
+        canUseSpeechInput: updateDto.canUseSpeechInput ?? true,
+        canViewOwnInputs: updateDto.canViewOwnInputs ?? true,
+        canManageTerminals: updateDto.canManageTerminals ?? false,
+        canManageUsers: updateDto.canManageUsers ?? false,
+        canViewAllInputs: updateDto.canViewAllInputs ?? false,
+        canDeleteInputs: updateDto.canDeleteInputs ?? false,
+        metadata: updateDto.metadata || null,
+      });
+    } else {
+      Object.assign(userRights, updateDto);
+      if (updateDto.permissions) {
+        userRights.permissionsJson = updateDto.permissions;
+      }
     }
 
     // If role is changed, update permissions accordingly
     if (updateDto.role && !updateDto.permissions) {
-      updateData.permissions = ROLE_PERMISSIONS[updateDto.role] || [];
+      const rolePermissions = ROLE_PERMISSIONS[updateDto.role] || [];
+      userRights.permissionsJson = rolePermissions;
     }
 
-    const updated = await this.userRightsModel
-      .findOneAndUpdate(
-        { userId: new Types.ObjectId(userId) },
-        updateData,
-        { new: true, runValidators: true, upsert: true }
-      )
-      .populate('userId', 'username email')
-      .populate('allowedTerminals', 'name type')
-      .exec();
-
+    const updated = await this.userRightsRepo.save(userRights);
     this.logger.log(`Updated user rights for user: ${userId}`);
     return updated;
   }
 
   async delete(userId: string): Promise<void> {
-    if (!Types.ObjectId.isValid(userId)) {
-      throw new BadRequestException('Invalid user ID format');
-    }
+    const result = await this.userRightsRepo.delete({ userId });
 
-    const result = await this.userRightsModel
-      .deleteOne({ userId: new Types.ObjectId(userId) })
-      .exec();
-
-    if (result.deletedCount === 0) {
+    if (result.affected === 0) {
       throw new NotFoundException(`User rights for user ${userId} not found`);
     }
 
@@ -135,7 +145,7 @@ export class RightsService {
   async hasPermission(userId: string, permission: string): Promise<boolean> {
     const userRights = await this.findByUserId(userId);
 
-    if (userRights.status !== 'active') {
+    if (userRights.status !== UserStatus.ACTIVE) {
       return false;
     }
 
@@ -144,12 +154,13 @@ export class RightsService {
       return true;
     }
 
-    return userRights.permissions.includes(permission);
+    const permissions = userRights.permissionsJson || [];
+    return permissions.includes(permission);
   }
 
   async checkPermission(userId: string, permission: string): Promise<void> {
     const hasPermission = await this.hasPermission(userId, permission);
-    
+
     if (!hasPermission) {
       throw new ForbiddenException(`User lacks required permission: ${permission}`);
     }
@@ -158,7 +169,7 @@ export class RightsService {
   async canAccessTerminal(userId: string, terminalId: string): Promise<boolean> {
     const userRights = await this.findByUserId(userId);
 
-    if (userRights.status !== 'active') {
+    if (userRights.status !== UserStatus.ACTIVE) {
       return false;
     }
 
@@ -167,51 +178,47 @@ export class RightsService {
       return true;
     }
 
-    // Check if terminal is in allowed list
-    return userRights.allowedTerminals.some(
-      terminal => terminal.toString() === terminalId
-    );
+    // TODO: Implement allowedTerminals relation
+    return false;
   }
 
   async getRoleStatistics(): Promise<any> {
-    const stats = await this.userRightsModel.aggregate([
-      {
-        $group: {
-          _id: '$role',
-          count: { $sum: 1 },
-          activeCount: {
-            $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] },
-          },
-        },
-      },
-      {
-        $project: {
-          role: '$_id',
-          _id: 0,
-          total: '$count',
-          active: '$activeCount',
-          inactive: { $subtract: ['$count', '$activeCount'] },
-        },
-      },
-      {
-        $sort: { role: 1 },
-      },
-    ]).exec();
+    const allRights = await this.userRightsRepo.find();
+
+    const byRole: any = {};
+    let total = 0;
+    let totalActive = 0;
+
+    for (const right of allRights) {
+      const role = right.role;
+      if (!byRole[role]) {
+        byRole[role] = { role, total: 0, active: 0, inactive: 0 };
+      }
+      byRole[role].total++;
+      total++;
+
+      if (right.status === UserStatus.ACTIVE) {
+        byRole[role].active++;
+        totalActive++;
+      } else {
+        byRole[role].inactive++;
+      }
+    }
 
     return {
-      byRole: stats,
-      total: stats.reduce((sum, item) => sum + item.total, 0),
-      totalActive: stats.reduce((sum, item) => sum + item.active, 0),
+      byRole: Object.values(byRole),
+      total,
+      totalActive,
     };
   }
 
-  private createDefaultRights(userId: string): UserRightsDocument {
+  private createDefaultRights(userId: string): UserRights {
     // Return a default guest rights object (not saved to DB)
-    const defaultRights = new this.userRightsModel({
-      userId: new Types.ObjectId(userId),
-      role: 'guest',
-      permissions: ROLE_PERMISSIONS.guest,
-      status: 'active',
+    const defaultRights = this.userRightsRepo.create({
+      userId,
+      role: UserRole.GUEST,
+      permissionsJson: ROLE_PERMISSIONS.guest || [],
+      status: UserStatus.ACTIVE,
       canUseSpeechInput: true,
       canViewOwnInputs: true,
       canManageTerminals: false,
@@ -225,7 +232,7 @@ export class RightsService {
 
   async assignRole(userId: string, role: string): Promise<UserRights> {
     const validRoles = ['admin', 'manager', 'regular', 'guest', 'terminal'];
-    
+
     if (!validRoles.includes(role)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
@@ -236,37 +243,50 @@ export class RightsService {
     });
   }
 
-  async grantPermission(userId: string, permission: string): Promise<UserRightsDocument> {
-    const userRights = await this.findByUserId(userId);
-    
-    if (!userRights.permissions.includes(permission)) {
-      userRights.permissions.push(permission);
-      await userRights.save();
+  async grantPermission(userId: string, permission: string): Promise<UserRights> {
+    const userRights = await this.userRightsRepo.findOne({ where: { userId } });
+
+    if (!userRights) {
+      throw new NotFoundException(`User rights for user ${userId} not found`);
+    }
+
+    const permissions = userRights.permissionsJson || [];
+    if (!permissions.includes(permission)) {
+      permissions.push(permission);
+      userRights.permissionsJson = permissions;
+      await this.userRightsRepo.save(userRights);
     }
 
     return userRights;
   }
 
-  async revokePermission(userId: string, permission: string): Promise<UserRightsDocument> {
-    const userRights = await this.findByUserId(userId);
-    
-    userRights.permissions = userRights.permissions.filter(p => p !== permission);
-    await userRights.save();
+  async revokePermission(userId: string, permission: string): Promise<UserRights> {
+    const userRights = await this.userRightsRepo.findOne({ where: { userId } });
+
+    if (!userRights) {
+      throw new NotFoundException(`User rights for user ${userId} not found`);
+    }
+
+    const permissions = userRights.permissionsJson || [];
+    const filtered = permissions.filter((p: string) => p !== permission);
+    userRights.permissionsJson = filtered;
+    await this.userRightsRepo.save(userRights);
 
     return userRights;
   }
 
   async suspendUser(userId: string, reason?: string): Promise<UserRights> {
     return this.update(userId, {
-      status: 'suspended',
+      status: UserStatus.SUSPENDED as any,
       metadata: { suspendedAt: new Date(), reason },
     });
   }
 
   async activateUser(userId: string): Promise<UserRights> {
     return this.update(userId, {
-      status: 'active',
+      status: UserStatus.ACTIVE,
       metadata: { activatedAt: new Date() },
     });
   }
 }
+

@@ -7,6 +7,5 @@ afterAll(() => {
   console.log('✅ Integration tests completed');
 });
 
-// Increase timeout for integration tests
-jest.setTimeout(60000);
-
+// Increase timeout for integration tests when running under jest
+;(globalThis as any).jest?.setTimeout(60000);

@@ -244,6 +244,10 @@ export class HomeAssistantService {
     return this.entitiesSubject.getValue();
   }
 
+  public getAllDomains(): Entity[] {
+    return this.getEntitiesSnapshot().filter(e => e.entity_id.startsWith('domain.'));
+  }
+
   public getAllScripts(): Entity[] {
     return this.getEntitiesSnapshot().filter(e => e.entity_id.startsWith('script.'));
   }

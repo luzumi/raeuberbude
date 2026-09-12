@@ -11,11 +11,11 @@
  *
  * FK-Reihenfolge:
  * 1. app_users (keine Dependencies)
- * 2. app_terminals (FK zu app_users)
+ * 2. appterminals (FK zu app_users)
  * 3. categories (keine Dependencies)
  * 4. llm_instances (keine Dependencies)
- * 5. transcripts (FK zu app_users, app_terminals, möglicherweise categories)
- * 6. intent_logs (FK zu app_terminals)
+ * 5. transcripts (FK zu app_users, appterminals, möglicherweise categories)
+ * 6. intent_logs (FK zu appterminals)
  */
 
 // Stub: migrated to scripts/migration/migrate_mongo_to_maria.js

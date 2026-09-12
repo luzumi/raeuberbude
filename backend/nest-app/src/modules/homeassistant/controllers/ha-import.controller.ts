@@ -1,8 +1,8 @@
 import { Controller, Post, Body, UseInterceptors, UploadedFile, Get, Param } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { HaImportService } from '../services/ha-import.service';
-import { HaSnapshot } from '../schemas/ha-snapshot.schema';
+import { HaImportTypeOrmService } from '../services/ha-import-typeorm.service';
+import { HaSnapshot } from '../entities';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Express } from 'express';
@@ -16,7 +16,7 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 @ApiTags('HomeAssistant Import')
 @Controller('api/homeassistant/import')
 export class HaImportController {
-  constructor(private readonly importService: HaImportService) {}
+  constructor(private readonly importService: HaImportTypeOrmService) {}
 
   @Post('file')
   @UseInterceptors(FileInterceptor('file', {

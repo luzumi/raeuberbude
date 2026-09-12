@@ -79,8 +79,7 @@ export class UserAllowedTerminal {
   @JoinColumn({
     name: 'terminal_id',
     referencedColumnName: 'id',
-    foreignKeyConstraintName:
-      'fk_user_allowed_terminals__app_terminals__terminal_id',
+    foreignKeyConstraintName: 'fk_terminal_rights__appterminals__terminal_id',
   })
   terminal: AppTerminal;
 }

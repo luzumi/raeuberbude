@@ -74,8 +74,8 @@ export class SpeechController {
     if (!createDto.terminalId && cookieTerminalId) {
       try {
         const termDoc = await this.terminalsService.findByTerminalId(cookieTerminalId);
-        if (termDoc?._id) {
-          createDto.terminalId = termDoc._id.toString();
+        if (termDoc?.id) {
+          createDto.terminalId = termDoc.id;
           publicTerminalIdForActivity = termDoc.terminalId;
         }
       } catch { /* Terminal nicht gefunden – ignorieren */ }
@@ -758,3 +758,4 @@ export class SpeechController {
     };
   }
 }
+

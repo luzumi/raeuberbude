@@ -8,7 +8,7 @@ const cfg = {
   database: process.env.MARIADB_DATABASE || 'raueberbude',
 };
 
-const tables = ['app_users','app_terminals','categories','llm_instances','transcripts','intent_logs'];
+const tables = ['app_users','appterminals','categories','llm_instances','transcripts','intent_logs'];
 
 (async ()=>{
   const conn = await mysql.createConnection(cfg);

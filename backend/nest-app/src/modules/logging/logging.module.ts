@@ -1,23 +1,35 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
-import { Transcript } from './schemas/transcript.schema';
-import { Category } from './schemas/category.schema';
-import { LlmInstance } from './schemas/llminstance.schema';
-import { IntentLog } from './schemas/intentlog.schema';
+import { TranscriptEntity } from './entities';
+import { LlmInstanceEntity } from '../llm/entities/llm-instance.entity';
 import { LoggingController } from './logging.controller';
 import { LoggingService } from './logging.service';
 import { LmStudioMcpService } from '../llm/lm-studio-mcp.service';
 import { LlmClientService } from '../llm/llm-client.service';
+import {
+  Category,
+  IntentLog,
+  Keyword,
+  Suggestion,
+  TranscriptKeyword,
+  TranscriptSuggestion,
+  IntentLogKeyword
+} from './entities';
 
 @Module({
   imports: [
     HttpModule,
-    MongooseModule.forFeature([
-      { name: Transcript.name, schema: (Transcript as any).schema },
-      { name: Category.name, schema: (Category as any).schema },
-      { name: LlmInstance.name, schema: (LlmInstance as any).schema },
-      { name: IntentLog.name, schema: (IntentLog as any).schema },
+    TypeOrmModule.forFeature([
+      TranscriptEntity,
+      Category,
+      LlmInstanceEntity,
+      IntentLog,
+      Keyword,
+      Suggestion,
+      TranscriptKeyword,
+      TranscriptSuggestion,
+      IntentLogKeyword,
     ])
   ],
   controllers: [LoggingController],

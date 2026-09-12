@@ -1,11 +1,11 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { HaQueryService } from '../services/ha-query.service';
+import { HaMariaDbQueryService } from '../services/ha-mariadb-query.service';
 
 @ApiTags('HomeAssistant Entities')
 @Controller('api/homeassistant/entities')
 export class HaEntitiesController {
-  constructor(private readonly queryService: HaQueryService) {}
+  constructor(private readonly queryService: HaMariaDbQueryService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all entities' })
@@ -182,7 +182,7 @@ export class HaEntitiesController {
 @ApiTags('HomeAssistant Automations')
 @Controller('api/homeassistant/entities/automations')
 export class HaAutomationsController {
-  constructor(private readonly queryService: HaQueryService) {}
+  constructor(private readonly queryService: HaMariaDbQueryService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all automations' })
@@ -200,7 +200,7 @@ export class HaAutomationsController {
 @ApiTags('HomeAssistant Persons')
 @Controller('api/homeassistant/entities/persons')
 export class HaPersonsController {
-  constructor(private readonly queryService: HaQueryService) {}
+  constructor(private readonly queryService: HaMariaDbQueryService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all persons' })
@@ -224,7 +224,7 @@ export class HaPersonsController {
 @ApiTags('HomeAssistant Zones')
 @Controller('api/homeassistant/entities/zones')
 export class HaZonesController {
-  constructor(private readonly queryService: HaQueryService) {}
+  constructor(private readonly queryService: HaMariaDbQueryService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all zones' })
@@ -248,7 +248,7 @@ export class HaZonesController {
 @ApiTags('HomeAssistant Media Players')
 @Controller('api/homeassistant/entities/media-players')
 export class HaMediaPlayersController {
-  constructor(private readonly queryService: HaQueryService) {}
+  constructor(private readonly queryService: HaMariaDbQueryService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all media players' })
@@ -266,7 +266,7 @@ export class HaMediaPlayersController {
 @ApiTags('HomeAssistant Services')
 @Controller('api/homeassistant/entities/services')
 export class HaServicesController {
-  constructor(private readonly queryService: HaQueryService) {}
+  constructor(private readonly queryService: HaMariaDbQueryService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all services' })
@@ -287,4 +287,5 @@ export class HaServicesController {
     return await this.queryService.getService(domain, service);
   }
 }
+
 

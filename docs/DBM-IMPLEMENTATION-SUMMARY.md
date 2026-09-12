@@ -181,7 +181,7 @@ Implementiert für die wichtigsten Mongoose-Schemas:
 
 | MongoDB Collection | MariaDB Table    | TypeORM Entity        | Primary Key |
 |-------------------|------------------|-----------------------|-------------|
-| app_users         | app_users        | UserEntity            | UUID        |
+| app_users         | app_users        | User            | UUID        |
 | appterminals      | app_terminals    | AppTerminalEntity     | UUID        |
 | transcripts       | transcripts      | TranscriptEntity      | UUID        |
 | intentlogs        | intent_logs      | IntentLogEntity       | UUID        |

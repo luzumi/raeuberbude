@@ -261,8 +261,8 @@ user: User;
 ### Referenzen
 - [LUD28-59-TICKET-OVERVIEW.md](./LUD28-59-TICKET-OVERVIEW.md)
 - [LUD28-59.3-implementation-plan.md](./LUD28-59.3-implementation-plan.md)
-- [database/DBM-SCHEMA-03-TypeORM-Mapping.md](../../database/DBM-SCHEMA-03-TypeORM-Mapping.md)
-- [database/entities-spec/](../../database/entities-spec/)
+- [database/DBM-SCHEMA-03-TypeORM-Mapping.md](../database/DBM-SCHEMA-03-TypeORM-Mapping.md)
+- [database/entities-spec/](../database/entities-spec/)
 
 ---
 

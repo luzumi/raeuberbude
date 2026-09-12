@@ -19,4 +19,6 @@ export enum UserRole {
   MANAGER = 'manager',
   /** Voller Zugriff auf alle Funktionen */
   ADMIN = 'admin',
+  /** Zugriff auf Non-Admin-Stuff */
+  USER = 'user'
 }

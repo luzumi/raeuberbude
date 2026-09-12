@@ -147,6 +147,7 @@ export class TerminalSetupComponent implements OnInit {
   private async loadTerminals() {
     try {
       const res = await this.svc.listTerminals();
+      console.log('res load terminals', res)
       this.terminals = (res?.data ?? []).map((t: any) => ({ terminalId: t.terminalId, name: t.name, ...t }));
       this.filteredTerminals = this.terminals.slice(0, 50);
       this.terminalCtrl.valueChanges.subscribe((val) => {

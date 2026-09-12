@@ -68,6 +68,30 @@ export class SpeechHumanInput {
   metadata: Record<string, any> | null;
 
   /**
+   * Processing Status
+   */
+  @Column({ type: 'varchar', length: 50, nullable: true, default: 'pending' })
+  status: string;
+
+  /**
+   * Input Type (voice, text, etc.)
+   */
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'input_type' })
+  inputType: string;
+
+  /**
+   * Processed At Timestamp
+   */
+  @Column({ type: 'timestamp', nullable: true, name: 'processed_at' })
+  processedAt: Date | null;
+
+  /**
+   * Processed Response
+   */
+  @Column({ type: 'text', nullable: true, name: 'processed_response' })
+  processedResponse: string | null;
+
+  /**
    * Creation Timestamp
    */
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })

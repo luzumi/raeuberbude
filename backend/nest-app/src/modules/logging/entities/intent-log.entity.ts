@@ -4,11 +4,16 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
+  OneToMany,
+  ManyToMany,
   JoinColumn,
+  JoinTable,
   Index,
 } from 'typeorm';
 import { Category } from './category.entity';
 import { AppTerminal } from '../../terminals/entities';
+import { Keyword } from './keyword.entity';
+import { IntentLogKeyword } from './intent-log-keyword.entity';
 
 /**
  * IntentLog Entity
@@ -106,8 +111,32 @@ export class IntentLog {
   @JoinColumn({
     name: 'terminal_id',
     referencedColumnName: 'id',
-    foreignKeyConstraintName: 'fk_intent_logs__app_terminals__terminal_id',
+    foreignKeyConstraintName: 'fk_speech_transcripts__appterminals__terminal_id',
   })
   terminal: AppTerminal | null;
+
+  // =========================
+  // Relations (Many-to-Many)
+  // =========================
+
+  /**
+   * M:N Relation zu Keywords über Join-Table
+   */
+  @ManyToMany(() => Keyword, (keyword) => keyword.intentLogs)
+  @JoinTable({
+    name: 'intent_log_keywords',
+    joinColumn: { name: 'intent_log_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'keyword_id', referencedColumnName: 'id' },
+  })
+  keywords: Keyword[];
+
+  /**
+   * 1:n Relation zu IntentLogKeyword (für position field)
+   */
+  @OneToMany(
+    () => IntentLogKeyword,
+    (intentLogKeyword) => intentLogKeyword.intentLog,
+  )
+  intentLogKeywords: IntentLogKeyword[];
 }
 

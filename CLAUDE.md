@@ -57,7 +57,7 @@ proxy.conf.cjs               # Angular Proxy (-> NestJS, Home Assistant)
   - Entities: `/entities`, `/entities/search`, `/entities/:entityId`, `.../state`, `.../history`
   - Import: POST `/import/file` (multipart JSON), POST `/import/json`, GET `/import/snapshots*`
 
-- Users CRUD (`/users`)
+- AppUsers CRUD (`/appusers`)
   - POST `/register`, POST `/login`, GET/PATCH/DELETE `/:id`
 
 - Health
@@ -66,7 +66,7 @@ proxy.conf.cjs               # Angular Proxy (-> NestJS, Home Assistant)
 ## Proxy & Ports
 
 - Angular dev (4200) proxied:
-  - `/api/speech`, `/users`, `/api/homeassistant` -> NestJS (Standard: 3001)
+  - `/api/speech`, `/appusers`, `/api/homeassistant` -> NestJS (Standard: 3001)
   - übriges `/api/*` -> Home Assistant
 - Override per ENV beim Start von `npm start`:
   - `HA_BASE_URL` oder `HA_HOST`/`HA_PORT`, `NEST_BASE_URL` oder `NEST_HOST`/`NEST_PORT`

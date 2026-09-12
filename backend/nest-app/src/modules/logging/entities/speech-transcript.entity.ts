@@ -8,8 +8,8 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { User } from '../../auth/entities/user.entity';
-import { AppTerminal } from '../../terminals/entities/app-terminal.entity';
+import { User } from '../../auth/entities';
+import { AppTerminal } from '../../terminals/entities';
 import { Category } from './category.entity';
 
 /**
